@@ -413,8 +413,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
       <div className="lecturelayout">
         <aside className="lecturepanel">
-          <div className="videobox"><PlayCircle /><span>Lecture video</span><small>Video URL ready to connect</small></div>
-          <button className="secondary full">Open slides</button>
+          <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.videoUrl ? 'Video available' : 'Video link will be added next'}</small></div>
+          {lecture.videoUrl && <a className="primary full assetlink" href={lecture.videoUrl} target="_blank" rel="noreferrer">Watch video</a>}
+          {lecture.slidesUrl && <a className="secondary full assetlink" href={lecture.slidesUrl} target="_blank" rel="noreferrer">Download PPT</a>}
+          {lecture.pdfUrl && <a className="secondary full assetlink" href={lecture.pdfUrl} target="_blank" rel="noreferrer">Open PDF</a>}
           <div className="lectureprogress">
             <small>YOUR PROGRESS</small>
             <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
