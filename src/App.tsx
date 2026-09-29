@@ -13,6 +13,27 @@ import { useProgress, type LectureProgressState as ProgressState } from './hooks
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
 
+type LecturePrice = 0 | 40 | 50 | 60
+
+function getLecturePrice(lecture: { status: string; duration: number; system: string }): LecturePrice {
+  if (lecture.status === 'free') return 0
+
+  const premiumSystems = new Set([
+    'Neuroanatomy',
+    'Brainstem',
+    'Clinical Anatomy',
+    'Gastrointestinal Anatomy',
+    'Head & Neck Anatomy',
+  ])
+
+  // 60 EGP for long lectures or clinically/core-system heavy topics.
+  if (lecture.duration >= 55 || premiumSystems.has(lecture.system)) return 60
+  // 50 EGP for standard full lectures.
+  if (lecture.duration >= 45) return 50
+  // 40 EGP for shorter focused lectures.
+  return 40
+}
+
 
 const copy = {
   en: {
@@ -349,7 +370,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : '50 EGP · Locked'}</p>
+                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : getLecturePrice(lecture) + ' EGP · Locked'}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
@@ -433,7 +454,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
               <small>ANATOMATE PREMIUM</small>
               <h2>Lecture files are locked</h2>
               <p>Purchase this lecture to unlock its protected PDF and PowerPoint files.</p>
-              <div className="price"><strong>50 EGP</strong><span>one-time purchase</span></div>
+              <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>one-time purchase</span></div>
+              <small className="assetnote">Price reflects lecture depth, duration and clinical importance.</small>
               <button className="primary full" onClick={() => nav('/checkout/' + lecture.slug)}>
                 <CreditCard size={17} /> Buy Lecture
               </button>
@@ -500,7 +522,8 @@ function CheckoutPage() {
         <small>ANATOMATE BY KIFARO</small>
         <h2>{lecture.title}</h2>
         <p>Year {lecture.year} · {lecture.module}</p>
-        <div className="price"><strong>50 EGP</strong><span>PDF + PowerPoint access</span></div>
+        <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>PDF + PowerPoint access</span></div>
+        <small className="assetnote">Dynamic AnatoMate pricing: 40 / 50 / 60 EGP based on lecture scope and importance.</small>
         <button className="primary full" disabled><CreditCard size={17} /> Payment gateway setup in progress</button>
         <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
         <small className="assetnote">No Dropbox file link is exposed before purchase.</small>
