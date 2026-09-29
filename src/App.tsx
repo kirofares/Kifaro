@@ -3,21 +3,22 @@ import { NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
-  PlayCircle, Search, Settings, Sparkles, Star, Stethoscope, X,
+  LogIn, LogOut, PlayCircle, Search, Settings, Sparkles, Star, Stethoscope, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
-import type { Lecture } from './data/types'
+import AuthPage from './auth/AuthPage'
+import { useAuth } from './auth/AuthContext'
+import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
-type ProgressState = Record<string, { progress: number; completed?: boolean; favorite?: boolean }>
 
 const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
     topics: 'Topics', studio: 'KIFARO Studio', library: 'My Library',
     preferences: 'Preferences', search: 'Search courses, topics, or exams',
-    hello: 'Good evening, Amina.',
+    hello: 'Good evening',
     subtitle: 'Continue your medical journey with one focused step at a time.',
     continue: 'Continue Learning', open: 'Open AnatoMate', browse: 'Browse your pathways',
     revision: 'Revision Queue', weak: 'Weak topics to revisit',
@@ -32,7 +33,7 @@ const copy = {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
     topics: 'الموضوعات', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المقررات أو الموضوعات أو الاختبارات',
-    hello: 'مساء الخير، أمينة.',
+    hello: 'مساء الخير،',
     subtitle: 'كمّلي رحلتك الطبية بخطوة مركزة كل مرة.',
     continue: 'متابعة التعلم', open: 'افتح AnatoMate', browse: 'استعرض مساراتك',
     revision: 'قائمة المراجعة', weak: 'موضوعات تحتاج مراجعة',
@@ -61,13 +62,15 @@ function useStored<T>(key: string, initial: T) {
 export default function App() {
   const [lang, setLang] = useStored<Lang>('kifaro-lang', 'en')
   const [theme, setTheme] = useStored<Theme>('kifaro-theme', 'blue')
-  const [progress, setProgress] = useStored<ProgressState>('kifaro-progress', {})
+  const { progress, update } = useProgress()
+  const { user, configured, signOut } = useAuth()
   const [query, setQuery] = useState('')
   const [prefs, setPrefs] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [toast, setToast] = useState('')
   const t = copy[lang]
   const nav = useNavigate()
+  const studentName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || (lang === 'ar' ? 'طالب KIFARO' : 'KIFARO Student')
 
   useEffect(() => {
     document.documentElement.lang = lang
@@ -93,13 +96,6 @@ export default function App() {
   const flash = (message: string) => {
     setToast(message)
     window.setTimeout(() => setToast(''), 1800)
-  }
-
-  const update = (id: string, patch: Partial<ProgressState[string]>) => {
-    setProgress((state) => ({
-      ...state,
-      [id]: { ...(state[id] || { progress: 0 }), ...patch },
-    }))
   }
 
   const links = [
@@ -128,7 +124,12 @@ export default function App() {
           <button className="icon" aria-label="Messages"><MessageSquare /></button>
           <button className="icon" aria-label="Notifications"><Bell /></button>
           <button className="prefbtn" onClick={() => setPrefs(true)}><Palette size={18} /><span>{t.preferences}</span></button>
-          <div className="avatar">AM</div>
+          {user ? (
+            <button className="accountbtn" onClick={() => void signOut()}><LogOut size={17} /><span>Sign out</span></button>
+          ) : (
+            <button className="accountbtn" onClick={() => nav('/login')}><LogIn size={17} /><span>{configured ? 'Log in' : 'Demo mode'}</span></button>
+          )}
+          <div className="avatar">{studentName.slice(0, 2).toUpperCase()}</div>
         </div>
       </header>
 
@@ -151,7 +152,8 @@ export default function App() {
 
       <main className="main">
         <Routes>
-          <Route path="/" element={<Dashboard t={t} lectures={filtered} go={nav} />} />
+          <Route path="/" element={<Dashboard t={t} lectures={filtered} go={nav} studentName={studentName} />} />
+          <Route path="/login" element={<AuthPage />} />
           <Route path="/curriculum" element={<Curriculum lectures={filtered} go={nav} />} />
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
@@ -193,12 +195,12 @@ function PageHead({ eyebrow, title, body }: { eyebrow: string; title: string; bo
   )
 }
 
-function Dashboard({ t, lectures, go }: { t: any; lectures: any[]; go: (path: string) => void }) {
+function Dashboard({ t, lectures, go, studentName }: { t: any; lectures: any[]; go: (path: string) => void; studentName: string }) {
   const current = lectures.find((lecture) => lecture.progress > 0 && !lecture.completed) || lectures[0] || anatomateLectures[0]
 
   return (
     <div className="page">
-      <PageHead eyebrow="Tuesday · September 29" title={t.hello} body={t.subtitle} />
+      <PageHead eyebrow="Tuesday · September 29" title={t.hello + ' ' + studentName + '.'} body={t.subtitle} />
       <div className="dashgrid">
         <div>
           <section className="section">
