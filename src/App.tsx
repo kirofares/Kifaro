@@ -13,6 +13,8 @@ import { useProgress, type LectureProgressState as ProgressState } from './hooks
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
 
+const ANATOMATE_STUDENT_LIBRARY_URL = 'https://www.dropbox.com/scl/fo/7716uzv5l9jcoktktcxxx/AIhH7i76Iuy4mgEVLg0LcYc?rlkey=ffpidubd9g6nuucbkg5sc2m4e&dl=0'
+
 const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
@@ -417,8 +419,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
         <aside className="lecturepanel">
           <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.videoUrl ? 'Video available' : 'Video link will be added next'}</small></div>
           {lecture.videoUrl && <a className="primary full assetlink" href={lecture.videoUrl} target="_blank" rel="noreferrer">Watch video</a>}
-          {lecture.slidesUrl && <a className="secondary full assetlink" href={lecture.slidesUrl} target="_blank" rel="noreferrer">Download PPT</a>}
-          {lecture.pdfUrl && <a className="secondary full assetlink" href={lecture.pdfUrl} target="_blank" rel="noreferrer">Open PDF</a>}
+          <a className="secondary full assetlink" href={ANATOMATE_STUDENT_LIBRARY_URL} target="_blank" rel="noreferrer">Open AnatoMate Student Library</a>
+          <small className="assetnote">Find the lecture by its year and title, then open the PDF or download the PPTX.</small>
           <div className="lectureprogress">
             <small>YOUR PROGRESS</small>
             <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
