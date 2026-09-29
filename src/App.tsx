@@ -9,6 +9,7 @@ import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anat
 import AuthPage from './auth/AuthPage'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
+import { useEntitlements } from './hooks/useEntitlements'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
@@ -342,6 +343,8 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
 function ModulePage({ progress, update, flash, t }: { progress: ProgressState; update: any; flash: any; t: any }) {
   const { year, module } = useParams()
   const nav = useNavigate()
+  const { user } = useAuth()
+  const { entitlements } = useEntitlements(user?.id)
   const yearData = anatomateYears.find((item) => String(item.year) === year)
   const moduleData = yearData?.modules.find((item) => item.slug === module)
 
@@ -370,7 +373,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : getLecturePrice(lecture) + ' EGP · Locked'}</p>
+                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : entitlements.has(lecture.id) ? 'Purchased' : getLecturePrice(lecture) + ' EGP · Locked'}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
@@ -395,6 +398,8 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
 function LecturePage({ progress, update, flash, t }: { progress: ProgressState; update: any; flash: any; t: any }) {
   const { slug } = useParams()
   const nav = useNavigate()
+  const { user } = useAuth()
+  const { entitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const lecture = getLectureBySlug(slug)
   const [tab, setTab] = useState<'learn' | 'clinical' | 'pearls' | 'recall' | 'mcq'>('learn')
   const [answer, setAnswer] = useState<number | null>(null)
@@ -405,6 +410,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
   const state = progress[lecture.id] || { progress: 0 }
   const quiz = lecture.mcqs[0]
+  const purchased = lecture.status === 'free' || entitlements.has(lecture.id)
 
   return (
     <div className="page">
@@ -440,23 +446,27 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
       <div className="lecturelayout">
         <aside className="lecturepanel">
           <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.videoUrl ? 'Video available' : 'Video link will be added next'}</small></div>
-          {lecture.status === 'free' ? (
+          {purchased ? (
             <>
               {lecture.videoUrl && <a className="primary full assetlink" href={lecture.videoUrl} target="_blank" rel="noreferrer">Watch video</a>}
               <div className="contentbox">
-                <strong>Free preview</strong>
-                <p>This lecture is currently available without purchase.</p>
+                <Check size={28} />
+                <small>{lecture.status === 'free' ? 'FREE PREVIEW' : 'PURCHASE VERIFIED'}</small>
+                <h2>{lecture.status === 'free' ? 'Free preview' : 'You own this lecture'}</h2>
+                <p>{lecture.status === 'free'
+                  ? 'This lecture is currently available without purchase.'
+                  : 'Your account has permanent access. Protected PDF and PowerPoint delivery will appear here when file delivery is connected.'}</p>
               </div>
             </>
           ) : (
             <div className="contentbox">
               <Lock size={28} />
               <small>ANATOMATE PREMIUM</small>
-              <h2>Lecture files are locked</h2>
+              <h2>{entitlementsLoading ? 'Checking purchase…' : 'Lecture files are locked'}</h2>
               <p>Purchase this lecture to unlock its protected PDF and PowerPoint files.</p>
               <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>one-time purchase</span></div>
               <small className="assetnote">Price reflects lecture depth, duration and clinical importance.</small>
-              <button className="primary full" onClick={() => nav('/checkout/' + lecture.slug)}>
+              <button className="primary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug)}>
                 <CreditCard size={17} /> Buy Lecture
               </button>
             </div>
@@ -509,6 +519,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 function CheckoutPage() {
   const { slug } = useParams()
   const nav = useNavigate()
+  const { user } = useAuth()
+  const { entitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const lecture = getLectureBySlug(slug)
 
   if (!lecture) {
@@ -522,11 +534,26 @@ function CheckoutPage() {
         <small>ANATOMATE BY KIFARO</small>
         <h2>{lecture.title}</h2>
         <p>Year {lecture.year} · {lecture.module}</p>
-        <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>PDF + PowerPoint access</span></div>
-        <small className="assetnote">Dynamic AnatoMate pricing: 40 / 50 / 60 EGP based on lecture scope and importance.</small>
-        <button className="primary full" disabled><CreditCard size={17} /> Payment gateway setup in progress</button>
+        {!user ? (
+          <>
+            <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>PDF + PowerPoint access</span></div>
+            <p>Sign in first so the purchase can be permanently attached to your KIFARO account.</p>
+            <button className="primary full" onClick={() => nav('/login')}><LogIn size={17} /> Sign in to continue</button>
+          </>
+        ) : entitlements.has(lecture.id) ? (
+          <>
+            <div className="price"><strong>Purchased</strong><span>permanent account access</span></div>
+            <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}><Check size={17} /> Open lecture</button>
+          </>
+        ) : (
+          <>
+            <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>PDF + PowerPoint access</span></div>
+            <small className="assetnote">Dynamic AnatoMate pricing: 40 / 50 / 60 EGP based on lecture scope and importance.</small>
+            <button className="primary full" disabled><CreditCard size={17} /> {entitlementsLoading ? 'Checking account…' : 'Payment gateway setup in progress'}</button>
+          </>
+        )}
         <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
-        <small className="assetnote">No Dropbox file link is exposed before purchase.</small>
+        <small className="assetnote">Purchases are verified from Supabase. Students cannot grant access to themselves.</small>
       </div>
     </div>
   )
