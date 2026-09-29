@@ -1,10 +1,15 @@
-import { year1FoundationLectures } from './year1'
+import { year1OrientationLectures, year1FoundationLectures, year1PracticalLectures } from './year1'
 import { year2CnsLectures } from './year2'
+import { year3AbdomenLectures, year3HeadNeckLectures } from './year3'
 import type { Lecture } from '../types'
 
 export const anatomateLectures: Lecture[] = [
+  ...year1OrientationLectures,
   ...year1FoundationLectures,
+  ...year1PracticalLectures,
   ...year2CnsLectures,
+  ...year3AbdomenLectures,
+  ...year3HeadNeckLectures,
 ]
 
 export const anatomateYears = [
@@ -13,6 +18,13 @@ export const anatomateYears = [
     label: 'Year 1',
     modules: [
       {
+        slug: 'orientation',
+        title: 'AnatoMate Orientation',
+        description: 'How AnatoMate works and how to study anatomy efficiently.',
+        lectures: year1OrientationLectures,
+        status: 'available',
+      },
+      {
         slug: 'foundations',
         title: 'General Anatomy Foundations',
         description: 'The anatomical language and core concepts used throughout medical school.',
@@ -20,11 +32,11 @@ export const anatomateYears = [
         status: 'available',
       },
       {
-        slug: 'locomotor',
-        title: 'Locomotor & Skin',
-        description: 'Regional musculoskeletal anatomy and integumentary integration.',
-        lectures: [],
-        status: 'coming-soon',
+        slug: 'upper-limb-practical',
+        title: 'Upper Limb Practical',
+        description: 'Visual practical anatomy and bone identification.',
+        lectures: year1PracticalLectures,
+        status: 'available',
       },
     ],
   },
@@ -48,14 +60,21 @@ export const anatomateYears = [
       {
         slug: 'head-neck',
         title: 'Head & Neck',
-        description: 'Advanced regional anatomy with clinically oriented head and neck relationships.',
-        lectures: [],
-        status: 'coming-soon',
+        description: 'Oral cavity, palate, tongue, pharynx and oesophagus.',
+        lectures: year3HeadNeckLectures,
+        status: 'available',
       },
       {
-        slug: 'thorax-abdomen',
-        title: 'Thorax & Abdomen',
-        description: 'Integrated visceral and regional anatomy for clinical application.',
+        slug: 'abdomen',
+        title: 'Abdomen',
+        description: 'Abdominal wall, inguinal region, peritoneum and gastrointestinal anatomy.',
+        lectures: year3AbdomenLectures,
+        status: 'available',
+      },
+      {
+        slug: 'thorax',
+        title: 'Thorax',
+        description: 'Thoracic wall, mediastinum, lungs, heart and major thoracic structures.',
         lectures: [],
         status: 'coming-soon',
       },
