@@ -3,7 +3,7 @@ import { NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
-  LogIn, LogOut, PlayCircle, Search, Settings, Sparkles, Star, Stethoscope, X,
+  CreditCard, Lock, LogIn, LogOut, PlayCircle, Search, Settings, Sparkles, Star, Stethoscope, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import AuthPage from './auth/AuthPage'
@@ -13,7 +13,6 @@ import { useProgress, type LectureProgressState as ProgressState } from './hooks
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
 
-const ANATOMATE_STUDENT_LIBRARY_URL = 'https://www.dropbox.com/scl/fo/7716uzv5l9jcoktktcxxx/AIhH7i76Iuy4mgEVLg0LcYc?rlkey=ffpidubd9g6nuucbkg5sc2m4e&dl=0'
 
 const copy = {
   en: {
@@ -160,6 +159,7 @@ export default function App() {
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
+          <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
@@ -349,7 +349,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : 'Purchased'}</p>
+                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : '50 EGP · Locked'}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
@@ -373,6 +373,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
 
 function LecturePage({ progress, update, flash, t }: { progress: ProgressState; update: any; flash: any; t: any }) {
   const { slug } = useParams()
+  const nav = useNavigate()
   const lecture = getLectureBySlug(slug)
   const [tab, setTab] = useState<'learn' | 'clinical' | 'pearls' | 'recall' | 'mcq'>('learn')
   const [answer, setAnswer] = useState<number | null>(null)
@@ -418,9 +419,26 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
       <div className="lecturelayout">
         <aside className="lecturepanel">
           <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.videoUrl ? 'Video available' : 'Video link will be added next'}</small></div>
-          {lecture.videoUrl && <a className="primary full assetlink" href={lecture.videoUrl} target="_blank" rel="noreferrer">Watch video</a>}
-          <a className="secondary full assetlink" href={ANATOMATE_STUDENT_LIBRARY_URL} target="_blank" rel="noreferrer">Open AnatoMate Student Library</a>
-          <small className="assetnote">Find the lecture by its year and title, then open the PDF or download the PPTX.</small>
+          {lecture.status === 'free' ? (
+            <>
+              {lecture.videoUrl && <a className="primary full assetlink" href={lecture.videoUrl} target="_blank" rel="noreferrer">Watch video</a>}
+              <div className="contentbox">
+                <strong>Free preview</strong>
+                <p>This lecture is currently available without purchase.</p>
+              </div>
+            </>
+          ) : (
+            <div className="contentbox">
+              <Lock size={28} />
+              <small>ANATOMATE PREMIUM</small>
+              <h2>Lecture files are locked</h2>
+              <p>Purchase this lecture to unlock its protected PDF and PowerPoint files.</p>
+              <div className="price"><strong>50 EGP</strong><span>one-time purchase</span></div>
+              <button className="primary full" onClick={() => nav('/checkout/' + lecture.slug)}>
+                <CreditCard size={17} /> Buy Lecture
+              </button>
+            </div>
+          )}
           <div className="lectureprogress">
             <small>YOUR PROGRESS</small>
             <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
@@ -461,6 +479,31 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
             </div>
           )}
         </section>
+      </div>
+    </div>
+  )
+}
+
+function CheckoutPage() {
+  const { slug } = useParams()
+  const nav = useNavigate()
+  const lecture = getLectureBySlug(slug)
+
+  if (!lecture) {
+    return <div className="page"><PageHead eyebrow="KIFARO CHECKOUT" title="Lecture not found" body="This lecture is not available." /></div>
+  }
+
+  return (
+    <div className="page">
+      <PageHead eyebrow="SECURE CHECKOUT" title="Complete your purchase" body="Your lecture will unlock automatically after successful payment once the payment gateway is connected." />
+      <div className="contentbox">
+        <small>ANATOMATE BY KIFARO</small>
+        <h2>{lecture.title}</h2>
+        <p>Year {lecture.year} · {lecture.module}</p>
+        <div className="price"><strong>50 EGP</strong><span>PDF + PowerPoint access</span></div>
+        <button className="primary full" disabled><CreditCard size={17} /> Payment gateway setup in progress</button>
+        <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
+        <small className="assetnote">No Dropbox file link is exposed before purchase.</small>
       </div>
     </div>
   )
