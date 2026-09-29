@@ -1,4 +1,5 @@
 export type LectureStatus='free'|'purchased'
+
 export type Lecture={
   id:string
   slug:string
@@ -17,4 +18,5 @@ export type Lecture={
   mcqs:{question:string;options:string[];answer:number;explanation:string}[]
   videoUrl?:string
   slidesUrl?:string
+  pdfUrl?:string
 }
