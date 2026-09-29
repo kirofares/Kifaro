@@ -12,3 +12,5 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
 @media(max-width:900px){.lecturelayout{grid-template-columns:1fr}.lecturepanel{grid-template-columns:1fr 1fr}.lectureprogress{grid-column:1/-1}}@media(max-width:780px){.lecturehead{flex-direction:column}.lectureactions{width:100%}.lectureactions button{flex:1;justify-content:center}.lecturepanel{grid-template-columns:1fr}.lectureprogress{grid-column:auto}.modulecard{align-items:flex-start}.lessonrow{flex-wrap:wrap}.lessonrow .secondary{width:100%;justify-content:center}}
 
 .modulecard:disabled{cursor:not-allowed;opacity:.62;background:#f7f9fc}.modulecard:disabled:hover{border-color:var(--line);background:#f7f9fc}
+
+.assetlink{text-decoration:none}
