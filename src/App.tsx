@@ -3,11 +3,13 @@ import { NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
-  CreditCard, Lock, LogIn, LogOut, PlayCircle, Search, Settings, Sparkles, Star, Stethoscope, UserRound, X,
+  CreditCard, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
+import AdminPage from './admin/AdminPage'
+import { useAdmin } from './hooks/useAdmin'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
 import { useEntitlements } from './hooks/useEntitlements'
@@ -88,6 +90,7 @@ export default function App() {
   const [theme, setTheme] = useStored<Theme>('kifaro-theme', 'blue')
   const { progress, update } = useProgress()
   const { user, configured, signOut } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const [query, setQuery] = useState('')
   const [prefs, setPrefs] = useState(false)
   const [drawer, setDrawer] = useState(false)
@@ -130,6 +133,7 @@ export default function App() {
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
     ['/profile', 'My Profile', UserRound],
+    ...(isAdmin ? [['/admin', 'Admin Dashboard', ShieldCheck] as const] : []),
   ] as const
 
   return (
@@ -180,6 +184,7 @@ export default function App() {
           <Route path="/" element={<Dashboard t={t} lectures={filtered} go={nav} studentName={studentName} />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/curriculum" element={<Curriculum lectures={filtered} go={nav} />} />
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
