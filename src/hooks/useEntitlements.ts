@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+export type LectureEntitlement = {
+  lecture_id: string
+  price_paid_egp: number
+  view_limit: number | null
+  views_used: number
+  revoked_at: string | null
+}
+
 export function useEntitlements(userId?: string) {
-  const [lectureIds, setLectureIds] = useState<string[]>([])
+  const [rows, setRows] = useState<LectureEntitlement[]>([])
   const [loading, setLoading] = useState(Boolean(userId))
 
   const refresh = async () => {
     if (!supabase || !userId) {
-      setLectureIds([])
+      setRows([])
       setLoading(false)
       return
     }
@@ -15,11 +23,11 @@ export function useEntitlements(userId?: string) {
     setLoading(true)
     const { data, error } = await supabase
       .from('lecture_entitlements')
-      .select('lecture_id, revoked_at')
+      .select('lecture_id, price_paid_egp, view_limit, views_used, revoked_at')
       .eq('user_id', userId)
       .is('revoked_at', null)
 
-    if (!error) setLectureIds((data || []).map((row) => row.lecture_id))
+    if (!error) setRows((data || []) as LectureEntitlement[])
     setLoading(false)
   }
 
@@ -27,7 +35,8 @@ export function useEntitlements(userId?: string) {
     void refresh()
   }, [userId])
 
-  const entitlements = useMemo(() => new Set(lectureIds), [lectureIds])
+  const entitlements = useMemo(() => new Set(rows.map((row) => row.lecture_id)), [rows])
+  const entitlementByLecture = useMemo(() => new Map(rows.map((row) => [row.lecture_id, row])), [rows])
 
-  return { entitlements, loading, refresh }
+  return { entitlements, entitlementByLecture, rows, loading, refresh }
 }
