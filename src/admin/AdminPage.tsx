@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CreditCard, GraduationCap, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
+import { Check, CreditCard, GraduationCap, KeyRound, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { anatomateLectures } from '../data/anatomate'
 import { supabase } from '../lib/supabase'
@@ -181,6 +181,14 @@ export default function AdminPage() {
     }
   }
 
+  const sendPasswordReset = async (email: string | null) => {
+    if (!supabase || !email) return
+    setMessage('')
+    const redirectTo = window.location.origin + window.location.pathname + '#/reset-password'
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    setMessage(error ? error.message : 'Password reset email sent.')
+  }
+
   const revoke = async (userId: string, lectureId: string) => {
     if (!supabase) return
     setMessage('')
@@ -247,7 +255,7 @@ export default function AdminPage() {
           </div>
           <div className="admintablewrap">
             <table className="admintable">
-              <thead><tr><th>Student</th><th>Year</th><th>Faculty</th><th>University</th><th>Nationality</th><th>Phone</th><th>Role</th></tr></thead>
+              <thead><tr><th>Student</th><th>Year</th><th>Faculty</th><th>University</th><th>Nationality</th><th>Phone</th><th>Role</th><th>Account</th></tr></thead>
               <tbody>
                 {filteredProfiles.map((p) => (
                   <tr key={p.id}>
@@ -258,6 +266,7 @@ export default function AdminPage() {
                     <td>{p.nationality || '—'}</td>
                     <td>{p.phone_no || '—'}</td>
                     <td><span className="adminbadge">{p.role}</span></td>
+                    <td><button className="secondary" disabled={!p.email} onClick={() => void sendPasswordReset(p.email)}><KeyRound size={15}/>Send reset link</button></td>
                   </tr>
                 ))}
               </tbody>
