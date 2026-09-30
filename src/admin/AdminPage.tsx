@@ -210,6 +210,9 @@ export default function AdminPage() {
       pptxPath: setting?.pptx_path || '',
     })
     resetRuleDraft()
+    window.setTimeout(() => {
+      document.getElementById('lecture-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
   }
 
   const saveLecture = async () => {
@@ -647,7 +650,7 @@ export default function AdminPage() {
             const lecture = anatomateLectures.find((item) => item.id === editingLecture)
             if (!lecture) return null
             return (
-              <div className="adminpanel admineditor">
+              <div id="lecture-editor" className="adminpanel admineditor">
                 <div className="adminpanelhead">
                   <div><h2>Edit lecture</h2><p>Year {lecture.year} · {lecture.module}</p></div>
                   <button className="secondary" onClick={() => setEditingLecture('')}>Cancel</button>
