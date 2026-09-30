@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CreditCard, GraduationCap, LayoutDashboard, LockOpen, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
+import { Check, CreditCard, GraduationCap, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { anatomateLectures } from '../data/anatomate'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
+import { useLectureSettings } from '../hooks/useLectureSettings'
 
 type Profile = {
   id: string
@@ -41,6 +42,7 @@ function lecturePrice(lecture: { status: string; duration: number; system: strin
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
+  const { settings, refresh: refreshLectureSettings } = useLectureSettings()
   const [tab, setTab] = useState<Tab>('overview')
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [entitlements, setEntitlements] = useState<Entitlement[]>([])
@@ -49,6 +51,11 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState('')
   const [selectedLecture, setSelectedLecture] = useState('')
   const [message, setMessage] = useState('')
+  const [editingLecture, setEditingLecture] = useState('')
+  const [lectureDraft, setLectureDraft] = useState({
+    title: '', description: '', price: 50, access: 'paid' as 'free' | 'paid', published: true,
+    videoUrl: '', pdfUrl: '', pptxUrl: '',
+  })
 
   const load = async () => {
     if (!supabase || !isAdmin) return
@@ -85,6 +92,56 @@ export default function AdminPage() {
     )
   }, [profiles, query])
 
+  const settingFor = (lectureId: string) => settings.get(lectureId)
+
+  const effectivePrice = (lecture: (typeof anatomateLectures)[number]) =>
+    settingFor(lecture.id)?.price_egp ?? lecturePrice(lecture)
+
+  const effectiveAccess = (lecture: (typeof anatomateLectures)[number]) =>
+    settingFor(lecture.id)?.access_mode ?? (lecture.status === 'free' ? 'free' : 'paid')
+
+  const isPublished = (lectureId: string) => settingFor(lectureId)?.published ?? true
+
+  const startEditLecture = (lecture: (typeof anatomateLectures)[number]) => {
+    const setting = settingFor(lecture.id)
+    setEditingLecture(lecture.id)
+    setLectureDraft({
+      title: setting?.title_override || lecture.title,
+      description: setting?.description_override || lecture.description,
+      price: setting?.price_egp ?? lecturePrice(lecture),
+      access: setting?.access_mode ?? (lecture.status === 'free' ? 'free' : 'paid'),
+      published: setting?.published ?? true,
+      videoUrl: setting?.video_url || lecture.videoUrl || '',
+      pdfUrl: setting?.pdf_url || lecture.pdfUrl || '',
+      pptxUrl: setting?.pptx_url || lecture.slidesUrl || '',
+    })
+  }
+
+  const saveLecture = async () => {
+    if (!supabase || !user || !editingLecture) return
+    setMessage('')
+    const { error } = await supabase.from('lecture_settings').upsert({
+      lecture_id: editingLecture,
+      title_override: lectureDraft.title.trim() || null,
+      description_override: lectureDraft.description.trim() || null,
+      price_egp: lectureDraft.access === 'free' ? 0 : lectureDraft.price,
+      access_mode: lectureDraft.access,
+      published: lectureDraft.published,
+      video_url: lectureDraft.videoUrl.trim() || null,
+      pdf_url: lectureDraft.pdfUrl.trim() || null,
+      pptx_url: lectureDraft.pptxUrl.trim() || null,
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    }, { onConflict: 'lecture_id' })
+
+    if (error) setMessage(error.message)
+    else {
+      setMessage('Lecture settings saved.')
+      await refreshLectureSettings()
+      setEditingLecture('')
+    }
+  }
+
   if (authLoading || adminLoading) return <div className="page"><div className="adminpanel">Checking admin access…</div></div>
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <div className="page"><div className="adminpanel"><ShieldCheck /><h2>Admin access required</h2><p>This area is available only to authorized KIFARO administrators.</p></div></div>
@@ -98,7 +155,7 @@ export default function AdminPage() {
     const { error } = await supabase.from('lecture_entitlements').upsert({
       user_id: selectedUser,
       lecture_id: selectedLecture,
-      price_paid_egp: lecturePrice(lecture),
+      price_paid_egp: effectivePrice(lecture),
       source: 'admin',
       revoked_at: null,
       granted_at: new Date().toISOString(),
@@ -208,7 +265,7 @@ export default function AdminPage() {
               </select>
               <select value={selectedLecture} onChange={(e) => setSelectedLecture(e.target.value)}>
                 <option value="">Select lecture</option>
-                {anatomateLectures.filter((l) => l.status !== 'free').map((l) => <option key={l.id} value={l.id}>Year {l.year} · {l.title} · {lecturePrice(l)} EGP</option>)}
+                {anatomateLectures.filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id)).map((l) => <option key={l.id} value={l.id}>Year {l.year} · {(settingFor(l.id)?.title_override || l.title)} · {effectivePrice(l)} EGP</option>)}
               </select>
               <button className="primary" disabled={!selectedUser || !selectedLecture} onClick={() => void grant()}><LockOpen size={17}/>Grant access</button>
             </div>
@@ -238,27 +295,55 @@ export default function AdminPage() {
       )}
 
       {tab === 'lectures' && (
-        <div className="adminpanel">
-          <div className="adminpanelhead"><div><h2>Lecture catalog</h2><p>Current automatic prices and publication state.</p></div></div>
-          <div className="admintablewrap">
-            <table className="admintable">
-              <thead><tr><th>Year</th><th>Lecture</th><th>Module</th><th>Duration</th><th>Access</th><th>Price</th></tr></thead>
-              <tbody>
-                {anatomateLectures.map((lecture) => (
-                  <tr key={lecture.id}>
-                    <td>Year {lecture.year}</td>
-                    <td><strong>{lecture.title}</strong><small>{lecture.system}</small></td>
-                    <td>{lecture.module}</td>
-                    <td>{lecture.duration} min</td>
-                    <td>{lecture.status === 'free' ? 'Free' : 'Paid'}</td>
-                    <td><strong>{lecturePrice(lecture) ? lecturePrice(lecture) + ' EGP' : 'Free'}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          <div className="adminpanel">
+            <div className="adminpanelhead"><div><h2>Lecture catalog</h2><p>Edit pricing, access, publishing and student file links.</p></div></div>
+            <div className="admintablewrap">
+              <table className="admintable">
+                <thead><tr><th>Year</th><th>Lecture</th><th>Module</th><th>Access</th><th>Price</th><th>Published</th><th>Action</th></tr></thead>
+                <tbody>
+                  {anatomateLectures.map((lecture) => (
+                    <tr key={lecture.id}>
+                      <td>Year {lecture.year}</td>
+                      <td><strong>{settingFor(lecture.id)?.title_override || lecture.title}</strong><small>{lecture.system}</small></td>
+                      <td>{lecture.module}</td>
+                      <td>{effectiveAccess(lecture) === 'free' ? 'Free' : 'Paid'}</td>
+                      <td><strong>{effectiveAccess(lecture) === 'free' ? 'Free' : effectivePrice(lecture) + ' EGP'}</strong></td>
+                      <td>{isPublished(lecture.id) ? 'Published' : 'Hidden'}</td>
+                      <td><button className="secondary" onClick={() => startEditLecture(lecture)}><Pencil size={15}/>Edit</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <p className="adminhint">Pricing is currently automatic. Editable per-lecture prices and publish/unpublish controls are the next admin layer.</p>
-        </div>
+
+          {editingLecture && (() => {
+            const lecture = anatomateLectures.find((item) => item.id === editingLecture)
+            if (!lecture) return null
+            return (
+              <div className="adminpanel admineditor">
+                <div className="adminpanelhead">
+                  <div><h2>Edit lecture</h2><p>Year {lecture.year} · {lecture.module}</p></div>
+                  <button className="secondary" onClick={() => setEditingLecture('')}>Cancel</button>
+                </div>
+
+                <div className="adminformgrid">
+                  <label>Title<input value={lectureDraft.title} onChange={(e) => setLectureDraft((d) => ({...d,title:e.target.value}))}/></label>
+                  <label>Access<select value={lectureDraft.access} onChange={(e) => setLectureDraft((d) => ({...d,access:e.target.value as 'free'|'paid'}))}><option value="paid">Paid</option><option value="free">Free</option></select></label>
+                  <label>Price<select disabled={lectureDraft.access === 'free'} value={lectureDraft.price} onChange={(e) => setLectureDraft((d) => ({...d,price:Number(e.target.value)}))}><option value={40}>40 EGP</option><option value={50}>50 EGP</option><option value={60}>60 EGP</option></select></label>
+                  <label>Published<select value={lectureDraft.published ? 'yes' : 'no'} onChange={(e) => setLectureDraft((d) => ({...d,published:e.target.value === 'yes'}))}><option value="yes">Published</option><option value="no">Unpublished</option></select></label>
+                  <label className="adminformwide">Description<textarea rows={4} value={lectureDraft.description} onChange={(e) => setLectureDraft((d) => ({...d,description:e.target.value}))}/></label>
+                  <label className="adminformwide">Video URL<input value={lectureDraft.videoUrl} onChange={(e) => setLectureDraft((d) => ({...d,videoUrl:e.target.value}))} placeholder="https://..."/></label>
+                  <label className="adminformwide">PDF URL<input value={lectureDraft.pdfUrl} onChange={(e) => setLectureDraft((d) => ({...d,pdfUrl:e.target.value}))} placeholder="Protected file URL"/></label>
+                  <label className="adminformwide">PPTX URL<input value={lectureDraft.pptxUrl} onChange={(e) => setLectureDraft((d) => ({...d,pptxUrl:e.target.value}))} placeholder="Protected file URL"/></label>
+                </div>
+
+                <button className="primary" onClick={() => void saveLecture()}><Save size={16}/>Save lecture</button>
+              </div>
+            )
+          })()}
+        </>
       )}
 
       {loading && <div className="adminloading">Refreshing dashboard…</div>}
