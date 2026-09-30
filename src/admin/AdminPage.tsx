@@ -89,8 +89,10 @@ export default function AdminPage() {
   const [editingLecture, setEditingLecture] = useState('')
   const [lectureDraft, setLectureDraft] = useState({
     title: '', description: '', price: 50, access: 'paid' as 'free' | 'paid', published: true,
-    videoUrl: '', pdfUrl: '', pptxUrl: '',
+    videoUrl: '', videoStoragePath: '', pdfUrl: '', pptxUrl: '',
   })
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoUploading, setVideoUploading] = useState(false)
   const [editingRuleId, setEditingRuleId] = useState('')
   const [ruleYear, setRuleYear] = useState(0)
   const [ruleNationality, setRuleNationality] = useState('*')
@@ -198,6 +200,7 @@ export default function AdminPage() {
       access: setting?.access_mode ?? (lecture.status === 'free' ? 'free' : 'paid'),
       published: setting?.published ?? true,
       videoUrl: setting?.video_url || lecture.videoUrl || '',
+      videoStoragePath: setting?.video_storage_path || '',
       pdfUrl: setting?.pdf_url || lecture.pdfUrl || '',
       pptxUrl: setting?.pptx_url || lecture.slidesUrl || '',
     })
@@ -228,6 +231,7 @@ export default function AdminPage() {
     const { error: assetsError } = await supabase.from('lecture_assets').upsert({
       lecture_id: editingLecture,
       video_url: lectureDraft.videoUrl.trim() || null,
+      video_storage_path: lectureDraft.videoStoragePath.trim() || null,
       pdf_url: lectureDraft.pdfUrl.trim() || null,
       pptx_url: lectureDraft.pptxUrl.trim() || null,
       updated_at: now,
@@ -240,6 +244,38 @@ export default function AdminPage() {
       await refreshLectureSettings()
       setEditingLecture('')
     }
+  }
+
+  const uploadProtectedVideo = async () => {
+    if (!supabase || !editingLecture || !videoFile) return
+    setVideoUploading(true)
+    setMessage('')
+
+    const extension = videoFile.name.includes('.') ? videoFile.name.split('.').pop() : 'mp4'
+    const safeName = (settingFor(editingLecture)?.title_override || editingLecture)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+    const path = editingLecture + '/' + Date.now() + '-' + safeName + '.' + extension
+
+    const { error: uploadError } = await supabase.storage
+      .from('lecture-videos')
+      .upload(path, videoFile, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: videoFile.type || 'video/mp4',
+      })
+
+    if (uploadError) {
+      setMessage(uploadError.message)
+      setVideoUploading(false)
+      return
+    }
+
+    setLectureDraft((draft) => ({ ...draft, videoStoragePath: path }))
+    setVideoFile(null)
+    setMessage('Protected video uploaded. Click Save lecture to attach it.')
+    setVideoUploading(false)
   }
 
   const savePricingRule = async () => {
@@ -607,7 +643,15 @@ export default function AdminPage() {
                   <label>Price<select disabled={lectureDraft.access === 'free'} value={lectureDraft.price} onChange={(e) => setLectureDraft((d) => ({...d,price:Number(e.target.value)}))}><option value={40}>40 EGP</option><option value={50}>50 EGP</option><option value={60}>60 EGP</option></select></label>
                   <label>Published<select value={lectureDraft.published ? 'yes' : 'no'} onChange={(e) => setLectureDraft((d) => ({...d,published:e.target.value === 'yes'}))}><option value="yes">Published</option><option value="no">Unpublished</option></select></label>
                   <label className="adminformwide">Description<textarea rows={4} value={lectureDraft.description} onChange={(e) => setLectureDraft((d) => ({...d,description:e.target.value}))}/></label>
-                  <label className="adminformwide">Video URL<input value={lectureDraft.videoUrl} onChange={(e) => setLectureDraft((d) => ({...d,videoUrl:e.target.value}))} placeholder="https://..."/></label>
+                  <label className="adminformwide">Free/public video URL<input value={lectureDraft.videoUrl} onChange={(e) => setLectureDraft((d) => ({...d,videoUrl:e.target.value}))} placeholder="Use only for free preview lectures"/></label>
+                  <label className="adminformwide">Protected video storage path<input readOnly value={lectureDraft.videoStoragePath} placeholder="No private video uploaded yet"/></label>
+                  <label className="adminformwide">Upload protected video
+                    <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setVideoFile(e.target.files?.[0] || null)}/>
+                  </label>
+                  <div className="adminformwide adminquick">
+                    <button className="secondary" disabled={!videoFile || videoUploading} onClick={() => void uploadProtectedVideo()}>{videoUploading ? 'Uploading…' : 'Upload to private storage'}</button>
+                    {videoFile && <small>{videoFile.name}</small>}
+                  </div>
                   <label className="adminformwide">PDF URL<input value={lectureDraft.pdfUrl} onChange={(e) => setLectureDraft((d) => ({...d,pdfUrl:e.target.value}))} placeholder="Protected file URL"/></label>
                   <label className="adminformwide">PPTX URL<input value={lectureDraft.pptxUrl} onChange={(e) => setLectureDraft((d) => ({...d,pptxUrl:e.target.value}))} placeholder="Protected file URL"/></label>
                 </div>
