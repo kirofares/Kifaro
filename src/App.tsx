@@ -13,14 +13,16 @@ import { useAdmin } from './hooks/useAdmin'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
 import { useEntitlements } from './hooks/useEntitlements'
+import { useLectureSettings, type LectureSetting } from './hooks/useLectureSettings'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
 
 type LecturePrice = 0 | 40 | 50 | 60
 
-function getLecturePrice(lecture: { status: string; duration: number; system: string }): LecturePrice {
-  if (lecture.status === 'free') return 0
+function getLecturePrice(lecture: { status: string; duration: number; system: string }, setting?: LectureSetting): LecturePrice {
+  if (setting?.access_mode === 'free' || lecture.status === 'free' && setting?.access_mode !== 'paid') return 0
+  if (setting?.price_egp === 40 || setting?.price_egp === 50 || setting?.price_egp === 60) return setting.price_egp
 
   const premiumSystems = new Set([
     'Neuroanatomy',
@@ -38,6 +40,19 @@ function getLecturePrice(lecture: { status: string; duration: number; system: st
   return 40
 }
 
+
+function applyLectureSetting<T extends { id: string; title: string; description: string; status: string; videoUrl?: string; pdfUrl?: string; slidesUrl?: string }>(lecture: T, setting?: LectureSetting) {
+  if (!setting) return lecture
+  return {
+    ...lecture,
+    title: setting.title_override || lecture.title,
+    description: setting.description_override || lecture.description,
+    status: setting.access_mode === 'free' ? 'free' : setting.access_mode === 'paid' ? 'purchased' : lecture.status,
+    videoUrl: setting.video_url || lecture.videoUrl,
+    pdfUrl: setting.pdf_url || lecture.pdfUrl,
+    slidesUrl: setting.pptx_url || lecture.slidesUrl,
+  }
+}
 
 const copy = {
   en: {
@@ -89,6 +104,7 @@ export default function App() {
   const [lang, setLang] = useStored<Lang>('kifaro-lang', 'en')
   const [theme, setTheme] = useStored<Theme>('kifaro-theme', 'blue')
   const { progress, update } = useProgress()
+  const { settings: lectureSettings } = useLectureSettings()
   const { user, configured, signOut } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
   const [query, setQuery] = useState('')
@@ -106,11 +122,13 @@ export default function App() {
   }, [lang, theme])
 
   const lectures = useMemo(
-    () => anatomateLectures.map((lecture) => ({
-      ...lecture,
-      ...(progress[lecture.id] || { progress: 0 }),
-    })),
-    [progress],
+    () => anatomateLectures
+      .filter((lecture) => lectureSettings.get(lecture.id)?.published ?? true)
+      .map((lecture) => ({
+        ...applyLectureSetting(lecture, lectureSettings.get(lecture.id)),
+        ...(progress[lecture.id] || { progress: 0 }),
+      })),
+    [progress, lectureSettings],
   )
 
   const filtered = useMemo(
@@ -353,6 +371,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   const nav = useNavigate()
   const { user } = useAuth()
   const { entitlements } = useEntitlements(user?.id)
+  const { settings: lectureSettings } = useLectureSettings()
   const yearData = anatomateYears.find((item) => String(item.year) === year)
   const moduleData = yearData?.modules.find((item) => item.slug === module)
 
@@ -360,8 +379,11 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
     return <div className="page"><PageHead eyebrow="ANATOMATE" title="Module not found" body="This module is not available." /></div>
   }
 
-  const completed = moduleData.lectures.filter((lecture) => progress[lecture.id]?.completed).length
-  const pct = moduleData.lectures.length ? Math.round((completed / moduleData.lectures.length) * 100) : 0
+  const visibleLectures = moduleData.lectures
+    .filter((lecture) => lectureSettings.get(lecture.id)?.published ?? true)
+    .map((lecture) => applyLectureSetting(lecture, lectureSettings.get(lecture.id)))
+  const completed = visibleLectures.filter((lecture) => progress[lecture.id]?.completed).length
+  const pct = visibleLectures.length ? Math.round((completed / visibleLectures.length) * 100) : 0
 
   return (
     <div className="page">
@@ -369,11 +391,11 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
       <div className="modulehero">
         <div><small>MODULE PROGRESS</small><strong>{pct}%</strong></div>
         <div className="progress"><i style={{ width: pct + '%' }} /></div>
-        <span>{completed} of {moduleData.lectures.length} lectures completed</span>
+        <span>{completed} of {visibleLectures.length} lectures completed</span>
       </div>
 
       <div className="list">
-        {moduleData.lectures.map((lecture) => {
+        {visibleLectures.map((lecture) => {
           const state = progress[lecture.id] || { progress: 0 }
           return (
             <div className="lessonrow" key={lecture.id}>
@@ -381,7 +403,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : entitlements.has(lecture.id) ? 'Purchased' : getLecturePrice(lecture) + ' EGP · Locked'}</p>
+                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : entitlements.has(lecture.id) ? 'Purchased' : getLecturePrice(lecture, lectureSettings.get(lecture.id)) + ' EGP · Locked'}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
@@ -408,7 +430,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const nav = useNavigate()
   const { user } = useAuth()
   const { entitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
-  const lecture = getLectureBySlug(slug)
+  const { settings: lectureSettings } = useLectureSettings()
+  const baseLecture = getLectureBySlug(slug)
+  const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
+  const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
   const [tab, setTab] = useState<'learn' | 'clinical' | 'pearls' | 'recall' | 'mcq'>('learn')
   const [answer, setAnswer] = useState<number | null>(null)
 
@@ -472,7 +497,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
               <small>ANATOMATE PREMIUM</small>
               <h2>{entitlementsLoading ? 'Checking purchase…' : 'Lecture files are locked'}</h2>
               <p>Purchase this lecture to unlock its protected PDF and PowerPoint files.</p>
-              <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>one-time purchase</span></div>
+              <div className="price"><strong>{getLecturePrice(lecture, lectureSetting)} EGP</strong><span>one-time purchase</span></div>
               <small className="assetnote">Price reflects lecture depth, duration and clinical importance.</small>
               <button className="primary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug)}>
                 <CreditCard size={17} /> Buy Lecture
@@ -529,7 +554,10 @@ function CheckoutPage() {
   const nav = useNavigate()
   const { user } = useAuth()
   const { entitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
-  const lecture = getLectureBySlug(slug)
+  const { settings: lectureSettings } = useLectureSettings()
+  const baseLecture = getLectureBySlug(slug)
+  const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
+  const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
 
   if (!lecture) {
     return <div className="page"><PageHead eyebrow="KIFARO CHECKOUT" title="Lecture not found" body="This lecture is not available." /></div>
