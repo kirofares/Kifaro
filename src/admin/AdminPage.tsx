@@ -120,23 +120,36 @@ export default function AdminPage() {
   const saveLecture = async () => {
     if (!supabase || !user || !editingLecture) return
     setMessage('')
-    const { error } = await supabase.from('lecture_settings').upsert({
+
+    const now = new Date().toISOString()
+    const { error: settingsError } = await supabase.from('lecture_settings').upsert({
       lecture_id: editingLecture,
       title_override: lectureDraft.title.trim() || null,
       description_override: lectureDraft.description.trim() || null,
       price_egp: lectureDraft.access === 'free' ? 0 : lectureDraft.price,
       access_mode: lectureDraft.access,
       published: lectureDraft.published,
-      video_url: lectureDraft.videoUrl.trim() || null,
-      pdf_url: lectureDraft.pdfUrl.trim() || null,
-      pptx_url: lectureDraft.pptxUrl.trim() || null,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
       updated_by: user.id,
     }, { onConflict: 'lecture_id' })
 
-    if (error) setMessage(error.message)
+    if (settingsError) {
+      setMessage(settingsError.message)
+      return
+    }
+
+    const { error: assetsError } = await supabase.from('lecture_assets').upsert({
+      lecture_id: editingLecture,
+      video_url: lectureDraft.videoUrl.trim() || null,
+      pdf_url: lectureDraft.pdfUrl.trim() || null,
+      pptx_url: lectureDraft.pptxUrl.trim() || null,
+      updated_at: now,
+      updated_by: user.id,
+    }, { onConflict: 'lecture_id' })
+
+    if (assetsError) setMessage(assetsError.message)
     else {
-      setMessage('Lecture settings saved.')
+      setMessage('Lecture settings saved securely.')
       await refreshLectureSettings()
       setEditingLecture('')
     }
