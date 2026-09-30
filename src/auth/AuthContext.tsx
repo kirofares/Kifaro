@@ -2,13 +2,24 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 
+type StudentSignupData = {
+  email: string
+  password: string
+  fullName: string
+  academicYear: number
+  faculty: string
+  university: string
+  nationality: string
+  phoneNo: string
+}
+
 type AuthContextValue = {
   configured: boolean
   loading: boolean
   session: Session | null
   user: User | null
   signIn: (email: string, password: string) => Promise<{ error?: string }>
-  signUp: (email: string, password: string, fullName: string, medicalYear: number) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>
+  signUp: (data: StudentSignupData) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>
   signOut: () => Promise<void>
 }
 
@@ -47,15 +58,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       return error ? { error: error.message } : {}
     },
-    signUp: async (email, password, fullName, medicalYear) => {
+    signUp: async (form) => {
       if (!supabase) return { error: 'Supabase is not configured yet.' }
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: form.email,
+        password: form.password,
         options: {
           data: {
-            full_name: fullName,
-            medical_year: medicalYear,
+            full_name: form.fullName,
+            medical_year: form.academicYear,
+            faculty: form.faculty,
+            university: form.university,
+            nationality: form.nationality,
+            phone_no: form.phoneNo,
           },
         },
       })
