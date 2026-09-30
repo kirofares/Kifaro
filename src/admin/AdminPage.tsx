@@ -193,8 +193,26 @@ export default function AdminPage() {
     setRuleViews(rule.view_limit ?? '')
   }
 
-  const startEditLecture = (lecture: (typeof anatomateLectures)[number]) => {
+  const startEditLecture = async (lecture: (typeof anatomateLectures)[number]) => {
     const setting = settingFor(lecture.id)
+    let asset = {
+      video_url: null as string | null,
+      pdf_url: null as string | null,
+      pptx_url: null as string | null,
+      video_path: null as string | null,
+      pdf_path: null as string | null,
+      pptx_path: null as string | null,
+    }
+
+    if (supabase) {
+      const { data } = await supabase
+        .from('lecture_assets')
+        .select('video_url, pdf_url, pptx_url, video_path, pdf_path, pptx_path')
+        .eq('lecture_id', lecture.id)
+        .maybeSingle()
+      if (data) asset = data
+    }
+
     setEditingLecture(lecture.id)
     setLectureDraft({
       title: setting?.title_override || lecture.title,
@@ -202,12 +220,12 @@ export default function AdminPage() {
       price: setting?.price_egp ?? lecturePrice(lecture),
       access: setting?.access_mode ?? (lecture.status === 'free' ? 'free' : 'paid'),
       published: setting?.published ?? true,
-      videoUrl: setting?.video_url || lecture.videoUrl || '',
-      pdfUrl: setting?.pdf_url || lecture.pdfUrl || '',
-      pptxUrl: setting?.pptx_url || lecture.slidesUrl || '',
-      videoPath: setting?.video_path || '',
-      pdfPath: setting?.pdf_path || '',
-      pptxPath: setting?.pptx_path || '',
+      videoUrl: asset.video_url || lecture.videoUrl || '',
+      pdfUrl: asset.pdf_url || lecture.pdfUrl || '',
+      pptxUrl: asset.pptx_url || lecture.slidesUrl || '',
+      videoPath: asset.video_path || '',
+      pdfPath: asset.pdf_path || '',
+      pptxPath: asset.pptx_path || '',
     })
     resetRuleDraft()
     window.setTimeout(() => {
