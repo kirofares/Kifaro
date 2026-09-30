@@ -15,6 +15,8 @@ import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
 import { useEntitlements } from './hooks/useEntitlements'
 import { useLectureSettings, type LectureSetting } from './hooks/useLectureSettings'
+import { usePricingRules } from './hooks/usePricingRules'
+import { supabase } from './lib/supabase'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
@@ -374,6 +376,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   const { user } = useAuth()
   const { entitlements } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
+  const { offerFor } = usePricingRules()
   const yearData = anatomateYears.find((item) => String(item.year) === year)
   const moduleData = yearData?.modules.find((item) => item.slug === module)
 
@@ -405,7 +408,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : entitlements.has(lecture.id) ? 'Purchased' : getLecturePrice(lecture, lectureSettings.get(lecture.id)) + ' EGP · Locked'}</p>
+                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : entitlements.has(lecture.id) ? 'Purchased' : offerFor(lecture.id, getLecturePrice(lecture, lectureSettings.get(lecture.id))).price + ' EGP · Locked'}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
@@ -431,13 +434,16 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const { slug } = useParams()
   const nav = useNavigate()
   const { user } = useAuth()
-  const { entitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
+  const { entitlements, entitlementByLecture, refresh: refreshEntitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
+  const { offerFor } = usePricingRules()
   const baseLecture = getLectureBySlug(slug)
   const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
   const [tab, setTab] = useState<'learn' | 'clinical' | 'pearls' | 'recall' | 'mcq'>('learn')
   const [answer, setAnswer] = useState<number | null>(null)
+  const [videoBusy, setVideoBusy] = useState(false)
+  const [videoMessage, setVideoMessage] = useState('')
 
   if (!lecture) {
     return <div className="page"><PageHead eyebrow="ANATOMATE" title="Lecture not found" body="This lecture is not available." /></div>
@@ -446,6 +452,48 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const state = progress[lecture.id] || { progress: 0 }
   const quiz = lecture.mcqs[0]
   const purchased = lecture.status === 'free' || entitlements.has(lecture.id)
+  const entitlement = entitlementByLecture.get(lecture.id)
+  const offer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting))
+  const remainingViews = entitlement?.view_limit == null
+    ? null
+    : Math.max(0, entitlement.view_limit - entitlement.views_used)
+
+  const openVideo = async () => {
+    setVideoMessage('')
+    if (lecture.status === 'free') {
+      if (lecture.videoUrl) window.open(lecture.videoUrl, '_blank', 'noopener,noreferrer')
+      else setVideoMessage('Video is not available yet.')
+      return
+    }
+    if (!supabase || !user) {
+      setVideoMessage('Please sign in first.')
+      return
+    }
+
+    const popup = window.open('', '_blank')
+    setVideoBusy(true)
+    const { data, error } = await supabase.rpc('consume_lecture_view', { p_lecture_id: lecture.id })
+    setVideoBusy(false)
+
+    if (error) {
+      popup?.close()
+      setVideoMessage(error.message)
+      await refreshEntitlements()
+      return
+    }
+
+    const row = Array.isArray(data) ? data[0] : data
+    const url = row?.video_url as string | undefined
+    if (!url) {
+      popup?.close()
+      setVideoMessage('Video is not available yet.')
+      return
+    }
+
+    if (popup) popup.location.href = url
+    else window.location.href = url
+    await refreshEntitlements()
+  }
 
   return (
     <div className="page">
@@ -480,10 +528,14 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
       <div className="lecturelayout">
         <aside className="lecturepanel">
-          <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.videoUrl ? 'Video available' : 'Video link will be added next'}</small></div>
+          <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.status === 'free' ? (lecture.videoUrl ? 'Video available' : 'Video link will be added next') : purchased ? 'Protected video access' : 'Purchase required'}</small></div>
           {purchased ? (
             <>
-              {lecture.videoUrl && <a className="primary full assetlink" href={lecture.videoUrl} target="_blank" rel="noreferrer">Watch video</a>}
+              <button className="primary full assetlink" disabled={videoBusy || (remainingViews !== null && remainingViews <= 0)} onClick={() => void openVideo()}>
+                {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
+              </button>
+              {lecture.status !== 'free' && <small className="assetnote">{entitlement?.view_limit == null ? 'Unlimited views for this purchase.' : remainingViews + ' of ' + entitlement.view_limit + ' views remaining.'}</small>}
+              {videoMessage && <div className="authmessage">{videoMessage}</div>}
               <div className="contentbox">
                 <Check size={28} />
                 <small>{lecture.status === 'free' ? 'FREE PREVIEW' : 'PURCHASE VERIFIED'}</small>
@@ -499,8 +551,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
               <small>ANATOMATE PREMIUM</small>
               <h2>{entitlementsLoading ? 'Checking purchase…' : 'Lecture files are locked'}</h2>
               <p>Purchase this lecture to unlock its protected PDF and PowerPoint files.</p>
-              <div className="price"><strong>{getLecturePrice(lecture, lectureSetting)} EGP</strong><span>one-time purchase</span></div>
-              <small className="assetnote">Price reflects lecture depth, duration and clinical importance.</small>
+              <div className="price"><strong>{offer.price} EGP</strong><span>{offer.viewLimit == null ? 'unlimited video views' : offer.viewLimit + ' video views'}</span></div>
+              <small className="assetnote">Your offer is calculated from your academic year and nationality.</small>
               <button className="primary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug)}>
                 <CreditCard size={17} /> Buy Lecture
               </button>
@@ -557,6 +609,7 @@ function CheckoutPage() {
   const { user } = useAuth()
   const { entitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
+  const { offerFor, loading: offerLoading } = usePricingRules()
   const baseLecture = getLectureBySlug(slug)
   const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
@@ -564,6 +617,8 @@ function CheckoutPage() {
   if (!lecture) {
     return <div className="page"><PageHead eyebrow="KIFARO CHECKOUT" title="Lecture not found" body="This lecture is not available." /></div>
   }
+
+  const offer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting))
 
   return (
     <div className="page">
@@ -574,7 +629,7 @@ function CheckoutPage() {
         <p>Year {lecture.year} · {lecture.module}</p>
         {!user ? (
           <>
-            <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>PDF + PowerPoint access</span></div>
+            <div className="price"><strong>{getLecturePrice(lecture, lectureSetting)} EGP</strong><span>Sign in for your academic/nationality offer</span></div>
             <p>Sign in first so the purchase can be permanently attached to your KIFARO account.</p>
             <button className="primary full" onClick={() => nav('/login')}><LogIn size={17} /> Sign in to continue</button>
           </>
@@ -585,9 +640,9 @@ function CheckoutPage() {
           </>
         ) : (
           <>
-            <div className="price"><strong>{getLecturePrice(lecture)} EGP</strong><span>PDF + PowerPoint access</span></div>
-            <small className="assetnote">Dynamic AnatoMate pricing: 40 / 50 / 60 EGP based on lecture scope and importance.</small>
-            <button className="primary full" disabled><CreditCard size={17} /> {entitlementsLoading ? 'Checking account…' : 'Payment gateway setup in progress'}</button>
+            <div className="price"><strong>{offer.price} EGP</strong><span>{offer.viewLimit == null ? 'Unlimited video views' : offer.viewLimit + ' video views per payment'}</span></div>
+            <small className="assetnote">This offer is matched to your academic year and nationality.</small>
+            <button className="primary full" disabled><CreditCard size={17} /> {entitlementsLoading || offerLoading ? 'Checking account…' : 'Payment gateway setup in progress'}</button>
           </>
         )}
         <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
