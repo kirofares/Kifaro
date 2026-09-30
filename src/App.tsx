@@ -3,10 +3,11 @@ import { NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
-  CreditCard, Lock, LogIn, LogOut, PlayCircle, Search, Settings, Sparkles, Star, Stethoscope, X,
+  CreditCard, Lock, LogIn, LogOut, PlayCircle, Search, Settings, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import AuthPage from './auth/AuthPage'
+import ProfilePage from './auth/ProfilePage'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
 import { useEntitlements } from './hooks/useEntitlements'
@@ -128,6 +129,7 @@ export default function App() {
     ['/topics', t.topics, Brain],
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
+    ['/profile', 'My Profile', UserRound],
   ] as const
 
   return (
@@ -152,7 +154,7 @@ export default function App() {
           ) : (
             <button className="accountbtn" onClick={() => nav('/login')}><LogIn size={17} /><span>{configured ? 'Log in' : 'Demo mode'}</span></button>
           )}
-          <div className="avatar">{studentName.slice(0, 2).toUpperCase()}</div>
+          <button className="avatar avatarbtn" onClick={() => nav('/profile')} aria-label="Open profile">{studentName.slice(0, 2).toUpperCase()}</button>
         </div>
       </header>
 
@@ -177,6 +179,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard t={t} lectures={filtered} go={nav} studentName={studentName} />} />
           <Route path="/login" element={<AuthPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/curriculum" element={<Curriculum lectures={filtered} go={nav} />} />
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
