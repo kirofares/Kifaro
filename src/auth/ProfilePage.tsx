@@ -38,9 +38,11 @@ export default function ProfilePage() {
       return
     }
 
+    const client = supabase
+
     const load = async () => {
       setLoading(true)
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('profiles')
         .select('full_name, medical_year, faculty, university, nationality, phone_no, email')
         .eq('id', user.id)
