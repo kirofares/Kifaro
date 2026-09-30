@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Building2, Flag, GraduationCap, LockKeyhole, Mail, Phone, School, Stethoscope, UserRound } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { ACADEMIC_LEVELS, EGYPTIAN_UNIVERSITIES, FACULTIES } from '../data/academicOptions'
 
@@ -20,6 +21,20 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false)
 
   if (user) return <Navigate to="/" replace />
+
+  const forgotPassword = async () => {
+    if (!supabase) return
+    if (!email.trim()) {
+      setMessage('Enter your email first.')
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    const redirectTo = window.location.origin + window.location.pathname + '#/reset-password'
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
+    setMessage(error ? error.message : 'Password reset link sent. Check your email.')
+    setBusy(false)
+  }
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -71,6 +86,7 @@ export default function AuthPage() {
 
           <label>Email<div className="authinput"><Mail /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div></label>
           <label>Password<div className="authinput"><LockKeyhole /><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required /></div></label>
+          {mode === 'login' && <button type="button" className="secondary" disabled={busy || !configured} onClick={() => void forgotPassword()}>Forgot password?</button>}
 
           {message && <div className="authmessage">{message}</div>}
           <button className="primary authsubmit" disabled={!configured || busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Log in to KIFARO' : 'Create KIFARO account'}</button>
