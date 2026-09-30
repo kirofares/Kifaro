@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { GraduationCap, LockKeyhole, Mail, Stethoscope, UserRound } from 'lucide-react'
+import { Building2, Flag, GraduationCap, LockKeyhole, Mail, Phone, School, Stethoscope, UserRound } from 'lucide-react'
 import { useAuth } from './AuthContext'
 
 export default function AuthPage() {
@@ -10,7 +10,11 @@ export default function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [medicalYear, setMedicalYear] = useState(1)
+  const [academicYear, setAcademicYear] = useState(1)
+  const [faculty, setFaculty] = useState('Medicine')
+  const [university, setUniversity] = useState('')
+  const [nationality, setNationality] = useState('Egyptian')
+  const [phoneNo, setPhoneNo] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -26,7 +30,7 @@ export default function AuthPage() {
       if (result.error) setMessage(result.error)
       else navigate('/')
     } else {
-      const result = await signUp(email, password, fullName, medicalYear)
+      const result = await signUp({ email, password, fullName, academicYear, faculty, university, nationality, phoneNo })
       if (result.error) setMessage(result.error)
       else if (result.needsEmailConfirmation) setMessage('Check your email to confirm your KIFARO account.')
       else navigate('/')
@@ -55,12 +59,16 @@ export default function AuthPage() {
         <form onSubmit={submit}>
           {mode === 'signup' && (
             <>
-              <label>Full name<div className="authinput"><UserRound /><input value={fullName} onChange={(e) => setFullName(e.target.value)} required /></div></label>
-              <label>Medical year<div className="authinput"><GraduationCap /><select value={medicalYear} onChange={(e) => setMedicalYear(Number(e.target.value))}><option value={1}>Year 1</option><option value={2}>Year 2</option><option value={3}>Year 3</option></select></div></label>
+              <label>Full name<div className="authinput"><UserRound /><input value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" /></div></label>
+              <label>Academic year<div className="authinput"><GraduationCap /><select value={academicYear} onChange={(e) => setAcademicYear(Number(e.target.value))}><option value={1}>Year 1</option><option value={2}>Year 2</option><option value={3}>Year 3</option><option value={4}>Year 4</option><option value={5}>Year 5</option><option value={6}>Year 6</option></select></div></label>
+              <label>Faculty<div className="authinput"><School /><select value={faculty} onChange={(e) => setFaculty(e.target.value)} required><option>Medicine</option><option>Dentistry</option><option>Pharmacy</option><option>Nursing</option><option>Physical Therapy</option><option>Other</option></select></div></label>
+              <label>University<div className="authinput"><Building2 /><input value={university} onChange={(e) => setUniversity(e.target.value)} required placeholder="e.g. Ain Shams University" /></div></label>
+              <label>Nationality<div className="authinput"><Flag /><input value={nationality} onChange={(e) => setNationality(e.target.value)} required /></div></label>
+              <label>Phone no<div className="authinput"><Phone /><input type="tel" value={phoneNo} onChange={(e) => setPhoneNo(e.target.value)} required autoComplete="tel" placeholder="+20..." /></div></label>
             </>
           )}
 
-          <label>Email<div className="authinput"><Mail /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div></label>
+          <label>Email<div className="authinput"><Mail /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div></label>
           <label>Password<div className="authinput"><LockKeyhole /><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required /></div></label>
 
           {message && <div className="authmessage">{message}</div>}
