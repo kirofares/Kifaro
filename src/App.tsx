@@ -458,36 +458,38 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
     ? null
     : Math.max(0, entitlement.view_limit - entitlement.views_used)
 
-  const openVideo = async () => {
+  const openProtectedAsset = async (assetType: 'video' | 'pdf' | 'pptx') => {
     setVideoMessage('')
-    if (lecture.status === 'free') {
-      if (lecture.videoUrl) window.open(lecture.videoUrl, '_blank', 'noopener,noreferrer')
-      else setVideoMessage('Video is not available yet.')
-      return
-    }
+
     if (!supabase || !user) {
+      if (assetType === 'video' && lecture.status === 'free' && lecture.videoUrl) {
+        window.open(lecture.videoUrl, '_blank', 'noopener,noreferrer')
+        return
+      }
       setVideoMessage('Please sign in first.')
       return
     }
 
     const popup = window.open('', '_blank')
-    setVideoBusy(true)
-    const { data, error } = await supabase.functions.invoke('lecture-video-access', {
-      body: { lecture_id: lecture.id },
+    if (assetType === 'video') setVideoBusy(true)
+
+    const { data, error } = await supabase.functions.invoke('lecture-asset', {
+      body: { lectureId: lecture.id, assetType },
     })
-    setVideoBusy(false)
+
+    if (assetType === 'video') setVideoBusy(false)
 
     if (error || data?.error) {
       popup?.close()
-      setVideoMessage(data?.error || error?.message || 'Could not open protected video.')
+      setVideoMessage(data?.error || error?.message || 'Could not open protected content.')
       await refreshEntitlements()
       return
     }
 
-    const url = data?.signed_url as string | undefined
+    const url = data?.signedUrl as string | undefined
     if (!url) {
       popup?.close()
-      setVideoMessage('Video is not available yet.')
+      setVideoMessage('This file is not available yet.')
       return
     }
 
@@ -532,9 +534,13 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.status === 'free' ? (lecture.videoUrl ? 'Video available' : 'Video link will be added next') : purchased ? 'Protected video access' : 'Purchase required'}</small></div>
           {purchased ? (
             <>
-              <button className="primary full assetlink" disabled={videoBusy || (remainingViews !== null && remainingViews <= 0)} onClick={() => void openVideo()}>
+              <button className="primary full assetlink" disabled={videoBusy || (remainingViews !== null && remainingViews <= 0)} onClick={() => void openProtectedAsset('video')}>
                 {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
               </button>
+              <div className="adminquick">
+                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>Download PDF</button>
+                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>Download PowerPoint</button>
+              </div>
               {lecture.status !== 'free' && <small className="assetnote">{entitlement?.view_limit == null ? 'Unlimited views for this purchase.' : remainingViews + ' of ' + entitlement.view_limit + ' views remaining.'}</small>}
               {videoMessage && <div className="authmessage">{videoMessage}</div>}
               <div className="contentbox">
@@ -543,7 +549,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                 <h2>{lecture.status === 'free' ? 'Free preview' : 'You own this lecture'}</h2>
                 <p>{lecture.status === 'free'
                   ? 'This lecture is currently available without purchase.'
-                  : 'Your account has permanent access. Protected PDF and PowerPoint delivery will appear here when file delivery is connected.'}</p>
+                  : 'Your account has protected access. Video, PDF and PowerPoint links are temporary and generated only when you open them.'}</p>
               </div>
             </>
           ) : (
