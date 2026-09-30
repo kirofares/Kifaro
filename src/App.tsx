@@ -51,9 +51,6 @@ function applyLectureSetting<T extends { id: string; title: string; description:
     title: setting.title_override || lecture.title,
     description: setting.description_override || lecture.description,
     status: setting.access_mode === 'free' ? 'free' : setting.access_mode === 'paid' ? 'purchased' : lecture.status,
-    videoUrl: setting.video_url || lecture.videoUrl,
-    pdfUrl: setting.pdf_url || lecture.pdfUrl,
-    slidesUrl: setting.pptx_url || lecture.slidesUrl,
   }
 }
 
