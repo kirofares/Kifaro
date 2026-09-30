@@ -472,18 +472,19 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
     const popup = window.open('', '_blank')
     setVideoBusy(true)
-    const { data, error } = await supabase.rpc('consume_lecture_view', { p_lecture_id: lecture.id })
+    const { data, error } = await supabase.functions.invoke('lecture-video-access', {
+      body: { lecture_id: lecture.id },
+    })
     setVideoBusy(false)
 
-    if (error) {
+    if (error || data?.error) {
       popup?.close()
-      setVideoMessage(error.message)
+      setVideoMessage(data?.error || error?.message || 'Could not open protected video.')
       await refreshEntitlements()
       return
     }
 
-    const row = Array.isArray(data) ? data[0] : data
-    const url = row?.video_url as string | undefined
+    const url = data?.signed_url as string | undefined
     if (!url) {
       popup?.close()
       setVideoMessage('Video is not available yet.')
