@@ -29,6 +29,15 @@ type Entitlement = {
   revoked_at: string | null
 }
 
+type ProgressRow = {
+  user_id: string
+  lecture_id: string
+  progress: number
+  completed: boolean
+  favorite: boolean
+  updated_at: string
+}
+
 type Tab = 'overview' | 'students' | 'purchases' | 'lectures'
 
 function lecturePrice(lecture: { status: string; duration: number; system: string }) {
@@ -46,6 +55,9 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('overview')
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [entitlements, setEntitlements] = useState<Entitlement[]>([])
+  const [progressRows, setProgressRows] = useState<ProgressRow[]>([])
+  const [selectedStudentId, setSelectedStudentId] = useState('')
+  const [studentLecture, setStudentLecture] = useState('')
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [selectedUser, setSelectedUser] = useState('')
@@ -62,16 +74,19 @@ export default function AdminPage() {
     setLoading(true)
     setMessage('')
 
-    const [profilesResult, entitlementsResult] = await Promise.all([
+    const [profilesResult, entitlementsResult, progressResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, medical_year, faculty, university, nationality, phone_no, email, role, created_at').order('created_at', { ascending: false }),
       supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at').order('granted_at', { ascending: false }),
+      supabase.from('lecture_progress').select('user_id, lecture_id, progress, completed, favorite, updated_at').order('updated_at', { ascending: false }),
     ])
 
     if (profilesResult.error) setMessage(profilesResult.error.message)
     if (entitlementsResult.error) setMessage(entitlementsResult.error.message)
+    if (progressResult.error) setMessage(progressResult.error.message)
 
     setProfiles((profilesResult.data || []) as Profile[])
     setEntitlements((entitlementsResult.data || []) as Entitlement[])
+    setProgressRows((progressResult.data || []) as ProgressRow[])
     setLoading(false)
   }
 
@@ -82,6 +97,11 @@ export default function AdminPage() {
 
   const activePurchases = entitlements.filter((item) => !item.revoked_at)
   const revenue = activePurchases.reduce((sum, item) => sum + Number(item.price_paid_egp || 0), 0)
+  const selectedStudent = profiles.find((p) => p.id === selectedStudentId)
+  const selectedStudentEntitlements = entitlements.filter((item) => item.user_id === selectedStudentId)
+  const selectedStudentActive = selectedStudentEntitlements.filter((item) => !item.revoked_at)
+  const selectedStudentProgress = progressRows.filter((item) => item.user_id === selectedStudentId)
+  const selectedStudentSpend = selectedStudentActive.reduce((sum, item) => sum + Number(item.price_paid_egp || 0), 0)
 
   const filteredProfiles = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -181,6 +201,33 @@ export default function AdminPage() {
     }
   }
 
+  const grantForStudent = async () => {
+    if (!selectedStudentId || !studentLecture) return
+    setSelectedUser(selectedStudentId)
+    setSelectedLecture(studentLecture)
+
+    if (!supabase) return
+    const lecture = anatomateLectures.find((item) => item.id === studentLecture)
+    if (!lecture) return
+
+    setMessage('')
+    const { error } = await supabase.from('lecture_entitlements').upsert({
+      user_id: selectedStudentId,
+      lecture_id: studentLecture,
+      price_paid_egp: effectivePrice(lecture),
+      source: 'admin',
+      revoked_at: null,
+      granted_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,lecture_id' })
+
+    if (error) setMessage(error.message)
+    else {
+      setMessage('Lecture access granted.')
+      setStudentLecture('')
+      await load()
+    }
+  }
+
   const sendPasswordReset = async (email: string | null) => {
     if (!supabase || !email) return
     setMessage('')
@@ -266,12 +313,77 @@ export default function AdminPage() {
                     <td>{p.nationality || '—'}</td>
                     <td>{p.phone_no || '—'}</td>
                     <td><span className="adminbadge">{p.role}</span></td>
-                    <td><button className="secondary" disabled={!p.email} onClick={() => void sendPasswordReset(p.email)}><KeyRound size={15}/>Send reset link</button></td>
+                    <td>
+                      <div className="adminquick">
+                        <button className="secondary" onClick={() => setSelectedStudentId(p.id)}>View</button>
+                        <button className="secondary" disabled={!p.email} onClick={() => void sendPasswordReset(p.email)}><KeyRound size={15}/>Reset</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {selectedStudent && (
+            <div className="adminpanel admineditor">
+              <div className="adminpanelhead">
+                <div>
+                  <small>STUDENT DETAILS</small>
+                  <h2>{selectedStudent.full_name || selectedStudent.email || 'Student'}</h2>
+                  <p>{selectedStudent.email || '—'} · {selectedStudent.phone_no || 'No phone'}</p>
+                </div>
+                <button className="secondary" onClick={() => setSelectedStudentId('')}>Close</button>
+              </div>
+
+              <div className="adminstats">
+                <div><small>ACTIVE LECTURES</small><strong>{selectedStudentActive.length}</strong><span>current access</span></div>
+                <div><small>RECORDED SPEND</small><strong>{selectedStudentSpend} EGP</strong><span>active entitlements</span></div>
+                <div><small>COMPLETED</small><strong>{selectedStudentProgress.filter((x) => x.completed).length}</strong><span>lectures completed</span></div>
+                <div><small>LAST ACTIVITY</small><strong>{selectedStudentProgress[0]?.updated_at ? new Date(selectedStudentProgress[0].updated_at).toLocaleDateString() : '—'}</strong><span>latest progress update</span></div>
+              </div>
+
+              <div className="adminformgrid">
+                <label>Academic level<input readOnly value={selectedStudent.medical_year === 7 ? 'Post Graduate' : selectedStudent.medical_year ? 'Year ' + selectedStudent.medical_year : '—'} /></label>
+                <label>Faculty<input readOnly value={selectedStudent.faculty || '—'} /></label>
+                <label>University<input readOnly value={selectedStudent.university || '—'} /></label>
+                <label>Nationality<input readOnly value={selectedStudent.nationality || '—'} /></label>
+              </div>
+
+              <div className="admingrant">
+                <select value={studentLecture} onChange={(e) => setStudentLecture(e.target.value)}>
+                  <option value="">Grant another lecture…</option>
+                  {anatomateLectures
+                    .filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id) && !selectedStudentActive.some((x) => x.lecture_id === l.id))
+                    .map((l) => <option key={l.id} value={l.id}>Year {l.year} · {settingFor(l.id)?.title_override || l.title} · {effectivePrice(l)} EGP</option>)}
+                </select>
+                <button className="primary" disabled={!studentLecture} onClick={() => void grantForStudent()}><LockOpen size={17}/>Grant access</button>
+                <button className="secondary" disabled={!selectedStudent.email} onClick={() => void sendPasswordReset(selectedStudent.email)}><KeyRound size={16}/>Send password reset</button>
+              </div>
+
+              <div className="admintablewrap">
+                <table className="admintable">
+                  <thead><tr><th>Lecture</th><th>Paid</th><th>Access</th><th>Progress</th><th>Last activity</th><th>Action</th></tr></thead>
+                  <tbody>
+                    {selectedStudentEntitlements.map((item) => {
+                      const progress = selectedStudentProgress.find((p) => p.lecture_id === item.lecture_id)
+                      return (
+                        <tr key={item.lecture_id}>
+                          <td><strong>{lectureFor(item.lecture_id)?.title || item.lecture_id}</strong></td>
+                          <td>{item.price_paid_egp} EGP</td>
+                          <td>{item.revoked_at ? 'Revoked' : 'Active'}</td>
+                          <td>{progress?.completed ? 'Completed' : (progress?.progress ?? 0) + '%'}</td>
+                          <td>{progress?.updated_at ? new Date(progress.updated_at).toLocaleDateString() : '—'}</td>
+                          <td>{!item.revoked_at && <button className="dangerbtn" onClick={() => void revoke(item.user_id, item.lecture_id)}><XCircle size={16}/>Revoke</button>}</td>
+                        </tr>
+                      )
+                    })}
+                    {!selectedStudentEntitlements.length && <tr><td colSpan={6}>No lecture access recorded yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
