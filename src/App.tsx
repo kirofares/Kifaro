@@ -9,6 +9,7 @@ import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anat
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import AdminPage from './admin/AdminPage'
+import ResetPasswordPage from './auth/ResetPasswordPage'
 import { useAdmin } from './hooks/useAdmin'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
@@ -202,6 +203,7 @@ export default function App() {
           <Route path="/" element={<Dashboard t={t} lectures={filtered} go={nav} studentName={studentName} />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/curriculum" element={<Curriculum lectures={filtered} go={nav} />} />
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
