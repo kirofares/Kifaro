@@ -182,7 +182,7 @@ export default function AdminPage() {
                 {filteredProfiles.map((p) => (
                   <tr key={p.id}>
                     <td><strong>{p.full_name || 'Unnamed'}</strong><small>{p.email || '—'}</small></td>
-                    <td>{p.medical_year ? 'Year ' + p.medical_year : '—'}</td>
+                    <td>{p.medical_year === 7 ? 'Post Graduate' : p.medical_year ? 'Year ' + p.medical_year : '—'}</td>
                     <td>{p.faculty || '—'}</td>
                     <td>{p.university || '—'}</td>
                     <td>{p.nationality || '—'}</td>
