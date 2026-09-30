@@ -3,6 +3,7 @@ import { Building2, Check, Flag, GraduationCap, Mail, Phone, Save, School, UserR
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from '../lib/supabase'
+import { ACADEMIC_LEVELS, EGYPTIAN_UNIVERSITIES, FACULTIES } from '../data/academicOptions'
 
 type ProfileForm = {
   full_name: string
@@ -145,20 +146,20 @@ export default function ProfilePage() {
             <label>
               Academic year
               <div className="authinput"><GraduationCap /><select value={form.medical_year} onChange={(e) => updateField('medical_year', Number(e.target.value))}>
-                {[1,2,3,4,5,6].map((year) => <option key={year} value={year}>Year {year}</option>)}
+                {ACADEMIC_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
               </select></div>
             </label>
 
             <label>
               Faculty
               <div className="authinput"><School /><select value={form.faculty} onChange={(e) => updateField('faculty', e.target.value)}>
-                <option>Medicine</option><option>Dentistry</option><option>Pharmacy</option><option>Nursing</option><option>Physical Therapy</option><option>Other</option>
+                {FACULTIES.map((item) => <option key={item} value={item}>{item}</option>)}
               </select></div>
             </label>
 
             <label>
               University
-              <div className="authinput"><Building2 /><input value={form.university} onChange={(e) => updateField('university', e.target.value)} required /></div>
+              <div className="authinput"><Building2 /><select value={form.university} onChange={(e) => updateField('university', e.target.value)} required><option value="">Select university</option>{Object.entries(EGYPTIAN_UNIVERSITIES).map(([group, universities]) => <optgroup key={group} label={group}>{universities.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}</select></div>
             </label>
 
             <label>
