@@ -9,15 +9,17 @@ export type LectureSetting = {
   access_mode: 'free' | 'paid' | null
   published: boolean
   video_url: string | null
-  video_storage_path: string | null
   pdf_url: string | null
   pptx_url: string | null
+  video_path: string | null
+  pdf_path: string | null
+  pptx_path: string | null
   updated_at: string
   updated_by: string | null
 }
 
-type PublicLectureSetting = Omit<LectureSetting, 'video_url' | 'pdf_url' | 'pptx_url'>
-type LectureAsset = Pick<LectureSetting, 'lecture_id' | 'video_url' | 'video_storage_path' | 'pdf_url' | 'pptx_url'>
+type PublicLectureSetting = Omit<LectureSetting, 'video_url' | 'pdf_url' | 'pptx_url' | 'video_path' | 'pdf_path' | 'pptx_path'>
+type LectureAsset = Pick<LectureSetting, 'lecture_id' | 'video_url' | 'pdf_url' | 'pptx_url' | 'video_path' | 'pdf_path' | 'pptx_path'>
 
 export function useLectureSettings() {
   const [rows, setRows] = useState<LectureSetting[]>([])
@@ -38,7 +40,7 @@ export function useLectureSettings() {
         .select('lecture_id, title_override, description_override, price_egp, access_mode, published, updated_at, updated_by'),
       supabase
         .from('lecture_assets')
-        .select('lecture_id, video_url, video_storage_path, pdf_url, pptx_url'),
+        .select('lecture_id, video_url, pdf_url, pptx_url, video_path, pdf_path, pptx_path'),
     ])
 
     if (!settingsResult.error) {
@@ -49,9 +51,11 @@ export function useLectureSettings() {
       const merged = ((settingsResult.data || []) as PublicLectureSetting[]).map((row) => ({
         ...row,
         video_url: assets.get(row.lecture_id)?.video_url ?? null,
-        video_storage_path: assets.get(row.lecture_id)?.video_storage_path ?? null,
         pdf_url: assets.get(row.lecture_id)?.pdf_url ?? null,
         pptx_url: assets.get(row.lecture_id)?.pptx_url ?? null,
+        video_path: assets.get(row.lecture_id)?.video_path ?? null,
+        pdf_path: assets.get(row.lecture_id)?.pdf_path ?? null,
+        pptx_path: assets.get(row.lecture_id)?.pptx_path ?? null,
       }))
 
       setRows(merged)
