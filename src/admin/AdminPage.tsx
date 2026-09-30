@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
 import { useLectureSettings } from '../hooks/useLectureSettings'
+import { usePricingRules, type PricingRule } from '../hooks/usePricingRules'
 
 type Profile = {
   id: string
@@ -27,6 +28,10 @@ type Entitlement = {
   source: string
   granted_at: string
   revoked_at: string | null
+  view_limit: number | null
+  views_used: number
+  offer_academic_year: number | null
+  offer_nationality: string | null
 }
 
 type ProgressRow = {
@@ -40,6 +45,23 @@ type ProgressRow = {
 
 type Tab = 'overview' | 'students' | 'purchases' | 'lectures'
 
+function pricingRuleScore(rule: PricingRule) {
+  const yearScore = rule.academic_year == null ? 0 : 20
+  const nationalityScore = rule.nationality_match === '*' ? 0 : rule.nationality_match === 'NON_EGYPTIAN' ? 5 : 10
+  return yearScore + nationalityScore + Number(rule.priority || 0)
+}
+
+function ruleMatchesStudent(rule: PricingRule, profile: Profile) {
+  const nationality = (profile.nationality || '').trim().toLowerCase()
+  const nationalityRule = rule.nationality_match.trim()
+  const nationalityMatches =
+    nationalityRule === '*' ||
+    nationalityRule.toLowerCase() === nationality ||
+    (nationalityRule === 'NON_EGYPTIAN' && !['egyptian', 'egypt'].includes(nationality))
+
+  return (rule.academic_year == null || rule.academic_year === profile.medical_year) && nationalityMatches
+}
+
 function lecturePrice(lecture: { status: string; duration: number; system: string }) {
   if (lecture.status === 'free') return 0
   const premiumSystems = new Set(['Neuroanatomy','Brainstem','Clinical Anatomy','Gastrointestinal Anatomy','Head & Neck Anatomy'])
@@ -52,6 +74,7 @@ export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
   const { settings, refresh: refreshLectureSettings } = useLectureSettings()
+  const { rows: pricingRules, refresh: refreshPricingRules } = usePricingRules()
   const [tab, setTab] = useState<Tab>('overview')
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [entitlements, setEntitlements] = useState<Entitlement[]>([])
@@ -68,6 +91,12 @@ export default function AdminPage() {
     title: '', description: '', price: 50, access: 'paid' as 'free' | 'paid', published: true,
     videoUrl: '', pdfUrl: '', pptxUrl: '',
   })
+  const [editingRuleId, setEditingRuleId] = useState('')
+  const [ruleYear, setRuleYear] = useState(0)
+  const [ruleNationality, setRuleNationality] = useState('*')
+  const [ruleCustomNationality, setRuleCustomNationality] = useState('')
+  const [rulePrice, setRulePrice] = useState(50)
+  const [ruleViews, setRuleViews] = useState<number | ''>(3)
 
   const load = async () => {
     if (!supabase || !isAdmin) return
@@ -76,7 +105,7 @@ export default function AdminPage() {
 
     const [profilesResult, entitlementsResult, progressResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, medical_year, faculty, university, nationality, phone_no, email, role, created_at').order('created_at', { ascending: false }),
-      supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at').order('granted_at', { ascending: false }),
+      supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at, view_limit, views_used, offer_academic_year, offer_nationality').order('granted_at', { ascending: false }),
       supabase.from('lecture_progress').select('user_id, lecture_id, progress, completed, favorite, updated_at').order('updated_at', { ascending: false }),
     ])
 
@@ -122,6 +151,43 @@ export default function AdminPage() {
 
   const isPublished = (lectureId: string) => settingFor(lectureId)?.published ?? true
 
+  const offerForStudent = (lecture: (typeof anatomateLectures)[number], profile?: Profile) => {
+    const rule = profile
+      ? pricingRules
+          .filter((item) => item.lecture_id === lecture.id && ruleMatchesStudent(item, profile))
+          .sort((a, b) => pricingRuleScore(b) - pricingRuleScore(a))[0]
+      : undefined
+
+    return {
+      price: rule ? Number(rule.price_egp) : effectivePrice(lecture),
+      viewLimit: rule?.view_limit ?? null,
+      rule,
+    }
+  }
+
+  const resetRuleDraft = () => {
+    setEditingRuleId('')
+    setRuleYear(0)
+    setRuleNationality('*')
+    setRuleCustomNationality('')
+    setRulePrice(50)
+    setRuleViews(3)
+  }
+
+  const startEditRule = (rule: PricingRule) => {
+    setEditingRuleId(rule.id)
+    setRuleYear(rule.academic_year || 0)
+    if (rule.nationality_match === '*' || rule.nationality_match === 'Egyptian' || rule.nationality_match === 'NON_EGYPTIAN') {
+      setRuleNationality(rule.nationality_match)
+      setRuleCustomNationality('')
+    } else {
+      setRuleNationality('CUSTOM')
+      setRuleCustomNationality(rule.nationality_match)
+    }
+    setRulePrice(Number(rule.price_egp))
+    setRuleViews(rule.view_limit ?? '')
+  }
+
   const startEditLecture = (lecture: (typeof anatomateLectures)[number]) => {
     const setting = settingFor(lecture.id)
     setEditingLecture(lecture.id)
@@ -135,6 +201,7 @@ export default function AdminPage() {
       pdfUrl: setting?.pdf_url || lecture.pdfUrl || '',
       pptxUrl: setting?.pptx_url || lecture.slidesUrl || '',
     })
+    resetRuleDraft()
   }
 
   const saveLecture = async () => {
@@ -175,6 +242,57 @@ export default function AdminPage() {
     }
   }
 
+  const savePricingRule = async () => {
+    if (!supabase || !user || !editingLecture) return
+    const nationalityMatch = ruleNationality === 'CUSTOM' ? ruleCustomNationality.trim() : ruleNationality
+    if (!nationalityMatch) {
+      setMessage('Enter a nationality or choose a nationality group.')
+      return
+    }
+    if (rulePrice < 0) {
+      setMessage('Price cannot be negative.')
+      return
+    }
+    if (ruleViews !== '' && Number(ruleViews) < 1) {
+      setMessage('Views must be at least 1, or leave blank for unlimited.')
+      return
+    }
+
+    const payload = {
+      lecture_id: editingLecture,
+      academic_year: ruleYear === 0 ? null : ruleYear,
+      nationality_match: nationalityMatch,
+      price_egp: rulePrice,
+      view_limit: ruleViews === '' ? null : Number(ruleViews),
+      enabled: true,
+      priority: 0,
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    }
+
+    const result = editingRuleId
+      ? await supabase.from('lecture_pricing_rules').update(payload).eq('id', editingRuleId)
+      : await supabase.from('lecture_pricing_rules').insert(payload)
+
+    if (result.error) setMessage(result.error.message)
+    else {
+      setMessage('Pricing and view rule saved.')
+      resetRuleDraft()
+      await refreshPricingRules()
+    }
+  }
+
+  const deletePricingRule = async (id: string) => {
+    if (!supabase) return
+    const { error } = await supabase.from('lecture_pricing_rules').delete().eq('id', id)
+    if (error) setMessage(error.message)
+    else {
+      setMessage('Pricing rule deleted.')
+      if (editingRuleId === id) resetRuleDraft()
+      await refreshPricingRules()
+    }
+  }
+
   if (authLoading || adminLoading) return <div className="page"><div className="adminpanel">Checking admin access…</div></div>
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <div className="page"><div className="adminpanel"><ShieldCheck /><h2>Admin access required</h2><p>This area is available only to authorized KIFARO administrators.</p></div></div>
@@ -184,11 +302,19 @@ export default function AdminPage() {
     const lecture = anatomateLectures.find((item) => item.id === selectedLecture)
     if (!lecture) return
 
+    const profile = profiles.find((p) => p.id === selectedUser)
+    if (!profile) return
+    const offer = offerForStudent(lecture, profile)
+
     setMessage('')
     const { error } = await supabase.from('lecture_entitlements').upsert({
       user_id: selectedUser,
       lecture_id: selectedLecture,
-      price_paid_egp: effectivePrice(lecture),
+      price_paid_egp: offer.price,
+      view_limit: offer.viewLimit,
+      views_used: 0,
+      offer_academic_year: profile.medical_year,
+      offer_nationality: profile.nationality,
       source: 'admin',
       revoked_at: null,
       granted_at: new Date().toISOString(),
@@ -210,11 +336,19 @@ export default function AdminPage() {
     const lecture = anatomateLectures.find((item) => item.id === studentLecture)
     if (!lecture) return
 
+    const profile = profiles.find((p) => p.id === selectedStudentId)
+    if (!profile) return
+    const offer = offerForStudent(lecture, profile)
+
     setMessage('')
     const { error } = await supabase.from('lecture_entitlements').upsert({
       user_id: selectedStudentId,
       lecture_id: studentLecture,
-      price_paid_egp: effectivePrice(lecture),
+      price_paid_egp: offer.price,
+      view_limit: offer.viewLimit,
+      views_used: 0,
+      offer_academic_year: profile.medical_year,
+      offer_nationality: profile.nationality,
       source: 'admin',
       revoked_at: null,
       granted_at: new Date().toISOString(),
@@ -363,7 +497,7 @@ export default function AdminPage() {
 
               <div className="admintablewrap">
                 <table className="admintable">
-                  <thead><tr><th>Lecture</th><th>Paid</th><th>Access</th><th>Progress</th><th>Last activity</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Lecture</th><th>Paid</th><th>Views</th><th>Access</th><th>Progress</th><th>Last activity</th><th>Action</th></tr></thead>
                   <tbody>
                     {selectedStudentEntitlements.map((item) => {
                       const progress = selectedStudentProgress.find((p) => p.lecture_id === item.lecture_id)
@@ -371,6 +505,7 @@ export default function AdminPage() {
                         <tr key={item.lecture_id}>
                           <td><strong>{lectureFor(item.lecture_id)?.title || item.lecture_id}</strong></td>
                           <td>{item.price_paid_egp} EGP</td>
+                          <td>{item.views_used} / {item.view_limit == null ? '∞' : item.view_limit}</td>
                           <td>{item.revoked_at ? 'Revoked' : 'Active'}</td>
                           <td>{progress?.completed ? 'Completed' : (progress?.progress ?? 0) + '%'}</td>
                           <td>{progress?.updated_at ? new Date(progress.updated_at).toLocaleDateString() : '—'}</td>
@@ -378,7 +513,7 @@ export default function AdminPage() {
                         </tr>
                       )
                     })}
-                    {!selectedStudentEntitlements.length && <tr><td colSpan={6}>No lecture access recorded yet.</td></tr>}
+                    {!selectedStudentEntitlements.length && <tr><td colSpan={7}>No lecture access recorded yet.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -399,7 +534,11 @@ export default function AdminPage() {
               </select>
               <select value={selectedLecture} onChange={(e) => setSelectedLecture(e.target.value)}>
                 <option value="">Select lecture</option>
-                {anatomateLectures.filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id)).map((l) => <option key={l.id} value={l.id}>Year {l.year} · {(settingFor(l.id)?.title_override || l.title)} · {effectivePrice(l)} EGP</option>)}
+                {anatomateLectures.filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id)).map((l) => {
+                  const profile = profiles.find((p) => p.id === selectedUser)
+                  const offer = offerForStudent(l, profile)
+                  return <option key={l.id} value={l.id}>Year {l.year} · {(settingFor(l.id)?.title_override || l.title)} · {offer.price} EGP · {offer.viewLimit == null ? '∞ views' : offer.viewLimit + ' views'}</option>
+                })}
               </select>
               <button className="primary" disabled={!selectedUser || !selectedLecture} onClick={() => void grant()}><LockOpen size={17}/>Grant access</button>
             </div>
@@ -474,6 +613,60 @@ export default function AdminPage() {
                 </div>
 
                 <button className="primary" onClick={() => void saveLecture()}><Save size={16}/>Save lecture</button>
+
+                <div className="adminpanel">
+                  <div className="adminpanelhead">
+                    <div>
+                      <h2>Price & view rules</h2>
+                      <p>Set different offers by academic year and nationality. More specific rules override general rules.</p>
+                    </div>
+                  </div>
+
+                  <div className="adminformgrid">
+                    <label>Academic year
+                      <select value={ruleYear} onChange={(e) => setRuleYear(Number(e.target.value))}>
+                        <option value={0}>Any academic year</option>
+                        <option value={1}>Year 1</option><option value={2}>Year 2</option><option value={3}>Year 3</option>
+                        <option value={4}>Year 4</option><option value={5}>Year 5</option><option value={6}>Year 6</option>
+                        <option value={7}>Post Graduate</option>
+                      </select>
+                    </label>
+                    <label>Nationality
+                      <select value={ruleNationality} onChange={(e) => setRuleNationality(e.target.value)}>
+                        <option value="*">Any nationality</option>
+                        <option value="Egyptian">Egyptian</option>
+                        <option value="NON_EGYPTIAN">Non-Egyptian</option>
+                        <option value="CUSTOM">Specific nationality</option>
+                      </select>
+                    </label>
+                    {ruleNationality === 'CUSTOM' && <label>Specific nationality<input value={ruleCustomNationality} onChange={(e) => setRuleCustomNationality(e.target.value)} placeholder="e.g. British"/></label>}
+                    <label>Price (EGP)<input type="number" min={0} step={1} value={rulePrice} onChange={(e) => setRulePrice(Number(e.target.value))}/></label>
+                    <label>Video views per payment<input type="number" min={1} value={ruleViews} placeholder="Blank = unlimited" onChange={(e) => setRuleViews(e.target.value === '' ? '' : Number(e.target.value))}/></label>
+                  </div>
+
+                  <div className="adminquick">
+                    <button className="primary" onClick={() => void savePricingRule()}><Save size={16}/>{editingRuleId ? 'Update rule' : 'Add rule'}</button>
+                    {editingRuleId && <button className="secondary" onClick={resetRuleDraft}>Cancel edit</button>}
+                  </div>
+
+                  <div className="admintablewrap">
+                    <table className="admintable">
+                      <thead><tr><th>Academic year</th><th>Nationality</th><th>Price</th><th>Views/payment</th><th>Action</th></tr></thead>
+                      <tbody>
+                        {pricingRules.filter((rule) => rule.lecture_id === editingLecture).map((rule) => (
+                          <tr key={rule.id}>
+                            <td>{rule.academic_year === 7 ? 'Post Graduate' : rule.academic_year ? 'Year ' + rule.academic_year : 'Any'}</td>
+                            <td>{rule.nationality_match === '*' ? 'Any' : rule.nationality_match === 'NON_EGYPTIAN' ? 'Non-Egyptian' : rule.nationality_match}</td>
+                            <td><strong>{Number(rule.price_egp)} EGP</strong></td>
+                            <td>{rule.view_limit == null ? 'Unlimited' : rule.view_limit}</td>
+                            <td><div className="adminquick"><button className="secondary" onClick={() => startEditRule(rule)}><Pencil size={14}/>Edit</button><button className="dangerbtn" onClick={() => void deletePricingRule(rule.id)}><XCircle size={14}/>Delete</button></div></td>
+                          </tr>
+                        ))}
+                        {!pricingRules.some((rule) => rule.lecture_id === editingLecture) && <tr><td colSpan={5}>No custom rules yet. Base lecture price applies with unlimited views.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )
           })()}
