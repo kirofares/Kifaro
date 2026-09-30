@@ -8,9 +8,6 @@ export type LectureSetting = {
   price_egp: number | null
   access_mode: 'free' | 'paid' | null
   published: boolean
-  video_url: string | null
-  pdf_url: string | null
-  pptx_url: string | null
   video_path: string | null
   pdf_path: string | null
   pptx_path: string | null
