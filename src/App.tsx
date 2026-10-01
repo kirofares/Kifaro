@@ -3,7 +3,7 @@ import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
-  CreditCard, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
+  CreditCard, FileText, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import AuthPage from './auth/AuthPage'
@@ -209,7 +209,8 @@ export default function App() {
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
-          <Route path="/anatomate/lecture/:slug/datashow" element={<DatashowViewer />} />
+          <Route path="/anatomate/lecture/:slug/datashow" element={<DatashowViewer mode="datashow" />} />
+          <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
           <Route path="/studio" element={<Studio />} />
@@ -568,9 +569,14 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
               <div><strong>Datashow</strong><small>Protected slide viewer · watermarked</small></div>
             </div>
             {datashowUnlocked ? (
-              <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
-                <BookOpen size={17} /> Open Datashow
-              </button>
+              <div className="protectedviewerbuttons">
+                <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
+                  <BookOpen size={17} /> Open Datashow
+                </button>
+                <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/pdf')}>
+                  <FileText size={17} /> Open PDF Viewer
+                </button>
+              </div>
             ) : (
               <>
                 <div className="price"><strong>{datashowOffer.price} EGP</strong><span>viewer-only access</span></div>
@@ -579,7 +585,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                 </button>
               </>
             )}
-            <small className="assetnote">Slides open inside KIFARO only. Every slide displays the watermark “Dr. Kirolus Fares”.</small>
+            <small className="assetnote">Datashow and PDF open inside KIFARO only. Every displayed page carries “Dr. Kirolus Fares” plus the signed-in student's identity and viewing time.</small>
           </div>
 
           {!videoUnlocked && !datashowUnlocked && (
@@ -711,7 +717,7 @@ function CheckoutPage() {
         {product !== 'video' && (
           <div className="watermarkpromise">
             <ShieldCheck size={22} />
-            <div><strong>Protected Datashow</strong><p>No student PowerPoint download. Slides open inside KIFARO with “Dr. Kirolus Fares” visibly watermarked on every slide.</p></div>
+            <div><strong>Protected Datashow + PDF Viewer</strong><p>No student PowerPoint or original PDF download. Content opens inside KIFARO with “Dr. Kirolus Fares” plus the student's identity and viewing time on every displayed page.</p></div>
           </div>
         )}
 
