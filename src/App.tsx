@@ -17,6 +17,7 @@ import { useProgress, type LectureProgressState as ProgressState } from './hooks
 import { useEntitlements } from './hooks/useEntitlements'
 import { useLectureSettings, type LectureSetting } from './hooks/useLectureSettings'
 import { usePricingRules } from './hooks/usePricingRules'
+import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { supabase } from './lib/supabase'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
@@ -438,6 +439,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const { entitlementByLecture, refresh: refreshEntitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
+  const { byLecture: assetReadiness } = useAssetReadiness()
   const baseLecture = getLectureBySlug(slug)
   const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
@@ -455,6 +457,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const entitlement = entitlementByLecture.get(lecture.id)
   const videoUnlocked = lecture.status === 'free' || Boolean(entitlement?.video_access) || isAdmin
   const datashowUnlocked = Boolean(entitlement?.datashow_access) || isAdmin
+  const readiness = assetReadiness.get(lecture.id)
+  const videoAvailable = Boolean(readiness?.has_video || (lecture.status === 'free' && lecture.videoUrl))
+  const datashowAvailable = Boolean(readiness?.has_datashow)
+  const bundleAvailable = videoAvailable && datashowAvailable
   const videoBasePrice = getLecturePrice(lecture, lectureSetting)
   const datashowBasePrice = Math.max(30, videoBasePrice)
   const bundleBasePrice = videoBasePrice + datashowBasePrice
@@ -544,7 +550,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
             <small>{videoUnlocked ? 'Video access available' : 'Video purchase required'}</small>
           </div>
 
-          {videoUnlocked ? (
+          {videoAvailable && videoUnlocked ? (
             <button
               className="primary full assetlink"
               disabled={videoBusy || (remainingViews !== null && remainingViews <= 0)}
@@ -552,7 +558,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
             >
               {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
             </button>
-          ) : (
+          ) : videoAvailable ? (
             <div className="contentbox compactpurchase">
               <Lock size={24} />
               <small>VIDEO ACCESS</small>
@@ -561,6 +567,13 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                 <CreditCard size={17} /> Unlock Video
               </button>
             </div>
+          ) : (
+            <div className="contentbox compactpurchase unavailableproduct">
+              <Clock3 size={24} />
+              <small>VIDEO</small>
+              <h3>Coming soon</h3>
+              <p>The protected video has not been uploaded yet, so it cannot be sold.</p>
+            </div>
           )}
 
           <div className="datashowcard">
@@ -568,7 +581,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
               <BookOpen size={24} />
               <div><strong>Datashow</strong><small>Protected slide viewer · watermarked</small></div>
             </div>
-            {datashowUnlocked ? (
+            {datashowAvailable && datashowUnlocked ? (
               <div className="protectedviewerbuttons">
                 <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
                   <BookOpen size={17} /> Open Datashow
@@ -577,18 +590,24 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                   <FileText size={17} /> Open PDF Viewer
                 </button>
               </div>
-            ) : (
+            ) : datashowAvailable ? (
               <>
                 <div className="price"><strong>{datashowOffer.price} EGP</strong><span>viewer-only access</span></div>
                 <button className="secondary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug + '?product=datashow')}>
                   <Lock size={17} /> Unlock Datashow
                 </button>
               </>
+            ) : (
+              <div className="unavailableproduct">
+                <Clock3 size={20} />
+                <strong>Datashow coming soon</strong>
+                <small>The protected PDF has not been uploaded yet.</small>
+              </div>
             )}
             <small className="assetnote">Datashow and PDF open inside KIFARO only. Every displayed page carries “Dr. Kirolus Fares” plus the signed-in student's identity and viewing time.</small>
           </div>
 
-          {!videoUnlocked && !datashowUnlocked && (
+          {bundleAvailable && !videoUnlocked && !datashowUnlocked && (
             <div className="contentbox compactpurchase">
               <small>BEST VALUE</small>
               <h3>Video + Datashow Bundle</h3>
@@ -665,6 +684,7 @@ function CheckoutPage() {
   const { entitlementByLecture, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor, loading: offerLoading } = usePricingRules()
+  const { byLecture: assetReadiness } = useAssetReadiness()
   const baseLecture = getLectureBySlug(slug)
   const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
@@ -682,6 +702,11 @@ function CheckoutPage() {
   const bundleOffer = offerFor(lecture.id, basePrice + datashowBasePrice, 'bundle')
   const offers = { video: videoOffer, datashow: datashowOffer, bundle: bundleOffer }
   const offer = offers[product]
+  const readiness = assetReadiness.get(lecture.id)
+  const videoAvailable = Boolean(readiness?.has_video || (lecture.status === 'free' && lecture.videoUrl))
+  const datashowAvailable = Boolean(readiness?.has_datashow)
+  const availability = { video: videoAvailable, datashow: datashowAvailable, bundle: videoAvailable && datashowAvailable }
+  const selectedAvailable = availability[product]
   const entitlement = entitlementByLecture.get(lecture.id)
   const ownsSelected =
     product === 'video' ? Boolean(entitlement?.video_access) :
@@ -693,14 +718,14 @@ function CheckoutPage() {
       <PageHead eyebrow="SECURE CHECKOUT" title="Choose your access" body="Video and Datashow are separate products. Bundle unlocks both." />
 
       <div className="productchooser">
-        <button className={product === 'video' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'video' })}>
-          <PlayCircle size={24} /><strong>Video</strong><span>{videoOffer.price} EGP</span>
+        <button disabled={!videoAvailable} className={product === 'video' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'video' })}>
+          <PlayCircle size={24} /><strong>Video</strong><span>{videoAvailable ? videoOffer.price + ' EGP' : 'Coming soon'}</span>
         </button>
-        <button className={product === 'datashow' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'datashow' })}>
-          <BookOpen size={24} /><strong>Datashow</strong><span>{datashowOffer.price} EGP</span>
+        <button disabled={!datashowAvailable} className={product === 'datashow' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'datashow' })}>
+          <BookOpen size={24} /><strong>Datashow</strong><span>{datashowAvailable ? datashowOffer.price + ' EGP' : 'Coming soon'}</span>
         </button>
-        <button className={product === 'bundle' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'bundle' })}>
-          <Sparkles size={24} /><strong>Bundle</strong><span>{bundleOffer.price} EGP</span>
+        <button disabled={!availability.bundle} className={product === 'bundle' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'bundle' })}>
+          <Sparkles size={24} /><strong>Bundle</strong><span>{availability.bundle ? bundleOffer.price + ' EGP' : 'Not ready'}</span>
         </button>
       </div>
 
@@ -721,7 +746,13 @@ function CheckoutPage() {
           </div>
         )}
 
-        {!user ? (
+        {!selectedAvailable ? (
+          <div className="unavailablecheckout">
+            <Clock3 size={24} />
+            <strong>This product is not ready for sale yet.</strong>
+            <p>KIFARO only enables checkout after the required protected content has been uploaded.</p>
+          </div>
+        ) : !user ? (
           <>
             <p>Sign in first so the purchase can be permanently attached to your KIFARO account.</p>
             <button className="primary full" onClick={() => nav('/login')}><LogIn size={17} /> Sign in to continue</button>
