@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
     const lectureId = String(body?.lectureId || '')
     const assetType = String(body?.assetType || '')
 
-    if (!lectureId || !['video', 'pdf', 'pptx'].includes(assetType)) {
+    if (!lectureId || !['video', 'datashow', 'pdf', 'pptx'].includes(assetType)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -56,8 +56,9 @@ Deno.serve(async (req: Request) => {
     })
 
     if (accessError) {
+      const forbidden = /required|admin only|No active|View limit/i.test(accessError.message)
       return new Response(JSON.stringify({ error: accessError.message }), {
-        status: accessError.message.includes('View limit reached') ? 403 : 400,
+        status: forbidden ? 403 : 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -74,7 +75,7 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
-    const expiresIn = assetType === 'video' ? 120 : 300
+    const expiresIn = assetType === 'video' ? 120 : assetType === 'datashow' ? 45 : 120
     const { data: signed, error: signedError } = await adminClient.storage
       .from('kifaro-content')
       .createSignedUrl(row.asset_path, expiresIn)
@@ -89,9 +90,10 @@ Deno.serve(async (req: Request) => {
       viewsUsed: row.views_used,
       viewLimit: row.view_limit,
       remainingViews,
+      viewerOnly: assetType === 'datashow',
     }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unexpected error' }), {
