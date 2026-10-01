@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
 import { useLectureSettings } from '../hooks/useLectureSettings'
 import { usePricingRules, type PricingRule } from '../hooks/usePricingRules'
+import { useAssetReadiness } from '../hooks/useAssetReadiness'
 
 type Profile = {
   id: string
@@ -78,6 +79,7 @@ export default function AdminPage() {
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
   const { settings, refresh: refreshLectureSettings } = useLectureSettings()
   const { rows: pricingRules, refresh: refreshPricingRules } = usePricingRules()
+  const { byLecture: assetReadiness } = useAssetReadiness()
   const [tab, setTab] = useState<Tab>('overview')
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [entitlements, setEntitlements] = useState<Entitlement[]>([])
@@ -161,6 +163,22 @@ export default function AdminPage() {
     settingFor(lecture.id)?.access_mode ?? (lecture.status === 'free' ? 'free' : 'paid')
 
   const isPublished = (lectureId: string) => settingFor(lectureId)?.published ?? true
+
+  const readinessFor = (lectureId: string) => assetReadiness.get(lectureId) || {
+    lecture_id: lectureId,
+    has_video: false,
+    has_datashow: false,
+    has_pdf: false,
+    has_pptx: false,
+  }
+
+  const saleReadiness = (lectureId: string) => {
+    const ready = readinessFor(lectureId)
+    if (ready.has_video && ready.has_datashow) return { label: 'Bundle ready', ready: true }
+    if (ready.has_datashow) return { label: 'Datashow ready', ready: true }
+    if (ready.has_video) return { label: 'Video ready', ready: true }
+    return { label: 'Not ready', ready: false }
+  }
 
   const offerForStudent = (lecture: (typeof anatomateLectures)[number], profile?: Profile, productType: 'video' | 'datashow' | 'bundle' = 'bundle') => {
     const rule = profile
@@ -688,19 +706,27 @@ export default function AdminPage() {
             <div className="adminpanelhead"><div><h2>Lecture catalog</h2><p>Edit pricing, access, publishing and student file links.</p></div></div>
             <div className="admintablewrap">
               <table className="admintable">
-                <thead><tr><th>Year</th><th>Lecture</th><th>Module</th><th>Access</th><th>Price</th><th>Published</th><th>Action</th></tr></thead>
+                <thead><tr><th>Year</th><th>Lecture</th><th>Module</th><th>Video</th><th>Datashow</th><th>PDF</th><th>Sale ready</th><th>Access</th><th>Price</th><th>Published</th><th>Action</th></tr></thead>
                 <tbody>
-                  {anatomateLectures.map((lecture) => (
-                    <tr key={lecture.id}>
-                      <td>Year {lecture.year}</td>
-                      <td><strong>{settingFor(lecture.id)?.title_override || lecture.title}</strong><small>{lecture.system}</small></td>
-                      <td>{lecture.module}</td>
-                      <td>{effectiveAccess(lecture) === 'free' ? 'Free' : 'Paid'}</td>
-                      <td><strong>{effectiveAccess(lecture) === 'free' ? 'Free' : effectivePrice(lecture) + ' EGP'}</strong></td>
-                      <td>{isPublished(lecture.id) ? 'Published' : 'Hidden'}</td>
-                      <td><button className="secondary" onClick={() => startEditLecture(lecture)}><Pencil size={15}/>Edit</button></td>
-                    </tr>
-                  ))}
+                  {anatomateLectures.map((lecture) => {
+                    const ready = readinessFor(lecture.id)
+                    const sale = saleReadiness(lecture.id)
+                    return (
+                      <tr key={lecture.id}>
+                        <td>Year {lecture.year}</td>
+                        <td><strong>{settingFor(lecture.id)?.title_override || lecture.title}</strong><small>{lecture.system}</small></td>
+                        <td>{lecture.module}</td>
+                        <td><span className={ready.has_video ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_video ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_video ? 'Ready' : 'Missing'}</span></td>
+                        <td><span className={ready.has_datashow ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_datashow ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_datashow ? 'Ready' : 'Missing'}</span></td>
+                        <td><span className={ready.has_pdf ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_pdf ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_pdf ? 'Ready' : 'Missing'}</span></td>
+                        <td><span className={sale.ready ? 'readinessbadge ready' : 'readinessbadge missing'}>{sale.ready ? <Check size={13}/> : <XCircle size={13}/>} {sale.label}</span></td>
+                        <td>{effectiveAccess(lecture) === 'free' ? 'Free video' : 'Paid'}</td>
+                        <td><strong>{effectiveAccess(lecture) === 'free' ? 'Video free' : effectivePrice(lecture) + ' EGP'}</strong></td>
+                        <td>{isPublished(lecture.id) ? 'Published' : 'Hidden'}</td>
+                        <td><button className="secondary" onClick={() => startEditLecture(lecture)}><Pencil size={15}/>Edit</button></td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
