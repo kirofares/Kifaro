@@ -3,7 +3,7 @@ import { Building2, Check, Flag, GraduationCap, Mail, Phone, Save, School, UserR
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from '../lib/supabase'
-import { ACADEMIC_LEVELS, EGYPTIAN_UNIVERSITIES, FACULTIES } from '../data/academicOptions'
+import { ACADEMIC_LEVELS, EGYPTIAN_UNIVERSITIES, FACULTIES, LEARNING_DEPTHS } from '../data/academicOptions'
 
 type ProfileForm = {
   full_name: string
@@ -13,6 +13,7 @@ type ProfileForm = {
   nationality: string
   phone_no: string
   email: string
+  preferred_learning_depth: string
 }
 
 const emptyProfile: ProfileForm = {
@@ -23,6 +24,7 @@ const emptyProfile: ProfileForm = {
   nationality: 'Egyptian',
   phone_no: '',
   email: '',
+  preferred_learning_depth: 'CORE',
 }
 
 export default function ProfilePage() {
@@ -44,7 +46,7 @@ export default function ProfilePage() {
       setLoading(true)
       const { data, error } = await client
         .from('profiles')
-        .select('full_name, medical_year, faculty, university, nationality, phone_no, email')
+        .select('full_name, medical_year, faculty, university, nationality, phone_no, email, preferred_learning_depth')
         .eq('id', user.id)
         .single()
 
@@ -59,6 +61,7 @@ export default function ProfilePage() {
           nationality: data.nationality || 'Egyptian',
           phone_no: data.phone_no || '',
           email: data.email || user.email || '',
+          preferred_learning_depth: data.preferred_learning_depth || 'CORE',
         })
       }
       setLoading(false)
@@ -90,6 +93,7 @@ export default function ProfilePage() {
         university: form.university.trim(),
         nationality: form.nationality.trim(),
         phone_no: form.phone_no.trim(),
+        preferred_learning_depth: form.preferred_learning_depth,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
@@ -109,6 +113,7 @@ export default function ProfilePage() {
         university: form.university.trim(),
         nationality: form.nationality.trim(),
         phone_no: form.phone_no.trim(),
+        preferred_learning_depth: form.preferred_learning_depth,
       },
     })
 
@@ -156,6 +161,13 @@ export default function ProfilePage() {
               Faculty
               <div className="authinput"><School /><select value={form.faculty} onChange={(e) => updateField('faculty', e.target.value)}>
                 {FACULTIES.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select></div>
+            </label>
+
+            <label>
+              Preferred learning depth
+              <div className="authinput"><GraduationCap /><select value={form.preferred_learning_depth} onChange={(e) => updateField('preferred_learning_depth', e.target.value)}>
+                {LEARNING_DEPTHS.map((item) => <option key={item} value={item}>{item}</option>)}
               </select></div>
             </label>
 
