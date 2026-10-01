@@ -11,6 +11,7 @@ type StudentSignupData = {
   university: string
   nationality: string
   phoneNo: string
+  preferredLearningDepth: string
 }
 
 type AuthContextValue = {
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             university: form.university,
             nationality: form.nationality,
             phone_no: form.phoneNo,
+            preferred_learning_depth: form.preferredLearningDepth,
           },
         },
       })
