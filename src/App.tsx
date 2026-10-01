@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
@@ -10,6 +10,7 @@ import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import AdminPage from './admin/AdminPage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
+import DatashowViewer from './components/DatashowViewer'
 import { useAdmin } from './hooks/useAdmin'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
@@ -208,6 +209,7 @@ export default function App() {
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
+          <Route path="/anatomate/lecture/:slug/datashow" element={<DatashowViewer />} />
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
           <Route path="/studio" element={<Studio />} />
@@ -432,7 +434,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const nav = useNavigate()
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
-  const { entitlements, entitlementByLecture, refresh: refreshEntitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
+  const { entitlementByLecture, refresh: refreshEntitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
   const baseLecture = getLectureBySlug(slug)
@@ -449,9 +451,12 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
   const state = progress[lecture.id] || { progress: 0 }
   const quiz = lecture.mcqs[0]
-  const purchased = lecture.status === 'free' || entitlements.has(lecture.id) || isAdmin
   const entitlement = entitlementByLecture.get(lecture.id)
-  const offer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting))
+  const videoUnlocked = lecture.status === 'free' || Boolean(entitlement?.video_access) || isAdmin
+  const datashowUnlocked = Boolean(entitlement?.datashow_access) || isAdmin
+  const videoOffer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting), 'video')
+  const datashowOffer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting), 'datashow')
+  const bundleOffer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting), 'bundle')
   const remainingViews = entitlement?.view_limit == null
     ? null
     : Math.max(0, entitlement.view_limit - entitlement.views_used)
@@ -529,40 +534,75 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
       <div className="lecturelayout">
         <aside className="lecturepanel">
-          <div className="videobox"><PlayCircle /><span>Lecture video</span><small>{lecture.status === 'free' ? (lecture.videoUrl ? 'Video available' : 'Video link will be added next') : purchased ? 'Protected video access' : 'Purchase required'}</small></div>
-          {purchased ? (
-            <>
-              <button className="primary full assetlink" disabled={videoBusy || (remainingViews !== null && remainingViews <= 0)} onClick={() => void openProtectedAsset('video')}>
-                {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
-              </button>
-              <div className="adminquick">
-                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>Download PDF</button>
-                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>Download PowerPoint</button>
-              </div>
-              {lecture.status !== 'free' && <small className="assetnote">{entitlement?.view_limit == null ? 'Unlimited views for this purchase.' : remainingViews + ' of ' + entitlement.view_limit + ' views remaining.'}</small>}
-              {videoMessage && <div className="authmessage">{videoMessage}</div>}
-              <div className="contentbox">
-                <Check size={28} />
-                <small>{lecture.status === 'free' ? 'FREE PREVIEW' : 'PURCHASE VERIFIED'}</small>
-                <h2>{lecture.status === 'free' ? 'Free preview' : 'You own this lecture'}</h2>
-                <p>{lecture.status === 'free'
-                  ? 'This lecture is currently available without purchase.'
-                  : 'Your account has protected access. Video, PDF and PowerPoint links are temporary and generated only when you open them.'}</p>
-              </div>
-            </>
+          <div className="videobox">
+            <PlayCircle />
+            <span>Lecture video</span>
+            <small>{videoUnlocked ? 'Video access available' : 'Video purchase required'}</small>
+          </div>
+
+          {videoUnlocked ? (
+            <button
+              className="primary full assetlink"
+              disabled={videoBusy || (remainingViews !== null && remainingViews <= 0)}
+              onClick={() => void openProtectedAsset('video')}
+            >
+              {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
+            </button>
           ) : (
-            <div className="contentbox">
-              <Lock size={28} />
-              <small>ANATOMATE PREMIUM</small>
-              <h2>{entitlementsLoading ? 'Checking purchase…' : 'Lecture files are locked'}</h2>
-              <p>Purchase this lecture to unlock its protected PDF and PowerPoint files.</p>
-              <div className="price"><strong>{offer.price} EGP</strong><span>{offer.viewLimit == null ? 'unlimited video views' : offer.viewLimit + ' video views'}</span></div>
-              <small className="assetnote">Your offer is calculated from your academic year and nationality.</small>
-              <button className="primary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug)}>
-                <CreditCard size={17} /> Buy Lecture
+            <div className="contentbox compactpurchase">
+              <Lock size={24} />
+              <small>VIDEO ACCESS</small>
+              <div className="price"><strong>{videoOffer.price} EGP</strong><span>{videoOffer.viewLimit == null ? 'video access' : videoOffer.viewLimit + ' video views'}</span></div>
+              <button className="primary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug + '?product=video')}>
+                <CreditCard size={17} /> Unlock Video
               </button>
             </div>
           )}
+
+          <div className="datashowcard">
+            <div className="datashowcardhead">
+              <BookOpen size={24} />
+              <div><strong>Datashow</strong><small>Protected slide viewer · watermarked</small></div>
+            </div>
+            {datashowUnlocked ? (
+              <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
+                <BookOpen size={17} /> Open Datashow
+              </button>
+            ) : (
+              <>
+                <div className="price"><strong>{datashowOffer.price} EGP</strong><span>viewer-only access</span></div>
+                <button className="secondary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug + '?product=datashow')}>
+                  <Lock size={17} /> Unlock Datashow
+                </button>
+              </>
+            )}
+            <small className="assetnote">Slides open inside KIFARO only. Every slide displays the watermark “Dr. Kirolus Fares”.</small>
+          </div>
+
+          {!videoUnlocked && !datashowUnlocked && (
+            <div className="contentbox compactpurchase">
+              <small>BEST VALUE</small>
+              <h3>Video + Datashow Bundle</h3>
+              <div className="price"><strong>{bundleOffer.price} EGP</strong><span>both access types</span></div>
+              <button className="primary full" onClick={() => nav('/checkout/' + lecture.slug + '?product=bundle')}>
+                <CreditCard size={17} /> View Bundle
+              </button>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="adminoriginals">
+              <small>ADMIN ORIGINAL FILES</small>
+              <div className="adminquick">
+                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>Original PDF</button>
+                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>Original PowerPoint</button>
+              </div>
+            </div>
+          )}
+
+          {lecture.status !== 'free' && videoUnlocked && <small className="assetnote">{entitlement?.view_limit == null ? 'Unlimited video views for this purchase.' : remainingViews + ' of ' + entitlement.view_limit + ' video views remaining.'}</small>}
+          {videoMessage && <div className="authmessage">{videoMessage}</div>}
+
           <div className="lectureprogress">
             <small>YOUR PROGRESS</small>
             <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
@@ -612,44 +652,84 @@ function CheckoutPage() {
   const { slug } = useParams()
   const nav = useNavigate()
   const { user } = useAuth()
-  const { entitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { entitlementByLecture, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor, loading: offerLoading } = usePricingRules()
   const baseLecture = getLectureBySlug(slug)
   const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
+  const requested = searchParams.get('product')
+  const product = requested === 'video' || requested === 'datashow' || requested === 'bundle' ? requested : 'bundle'
 
   if (!lecture) {
     return <div className="page"><PageHead eyebrow="KIFARO CHECKOUT" title="Lecture not found" body="This lecture is not available." /></div>
   }
 
-  const offer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting))
+  const basePrice = getLecturePrice(lecture, lectureSetting)
+  const videoOffer = offerFor(lecture.id, basePrice, 'video')
+  const datashowOffer = offerFor(lecture.id, basePrice, 'datashow')
+  const bundleOffer = offerFor(lecture.id, basePrice, 'bundle')
+  const offers = { video: videoOffer, datashow: datashowOffer, bundle: bundleOffer }
+  const offer = offers[product]
+  const entitlement = entitlementByLecture.get(lecture.id)
+  const ownsSelected =
+    product === 'video' ? Boolean(entitlement?.video_access) :
+    product === 'datashow' ? Boolean(entitlement?.datashow_access) :
+    Boolean(entitlement?.video_access && entitlement?.datashow_access)
 
   return (
     <div className="page">
-      <PageHead eyebrow="SECURE CHECKOUT" title="Complete your purchase" body="Your lecture will unlock automatically after successful payment once the payment gateway is connected." />
+      <PageHead eyebrow="SECURE CHECKOUT" title="Choose your access" body="Video and Datashow are separate products. Bundle unlocks both." />
+
+      <div className="productchooser">
+        <button className={product === 'video' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'video' })}>
+          <PlayCircle size={24} /><strong>Video</strong><span>{videoOffer.price} EGP</span>
+        </button>
+        <button className={product === 'datashow' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'datashow' })}>
+          <BookOpen size={24} /><strong>Datashow</strong><span>{datashowOffer.price} EGP</span>
+        </button>
+        <button className={product === 'bundle' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'bundle' })}>
+          <Sparkles size={24} /><strong>Bundle</strong><span>{bundleOffer.price} EGP</span>
+        </button>
+      </div>
+
       <div className="contentbox">
         <small>ANATOMATE BY KIFARO</small>
         <h2>{lecture.title}</h2>
         <p>Year {lecture.year} · {lecture.module}</p>
+
+        <div className="price">
+          <strong>{offer.price} EGP</strong>
+          <span>{product === 'datashow' ? 'viewer-only Datashow access' : product === 'bundle' ? 'video + Datashow access' : offer.viewLimit == null ? 'video access' : offer.viewLimit + ' video views'}</span>
+        </div>
+
+        {product !== 'video' && (
+          <div className="watermarkpromise">
+            <ShieldCheck size={22} />
+            <div><strong>Protected Datashow</strong><p>No student PowerPoint download. Slides open inside KIFARO with “Dr. Kirolus Fares” visibly watermarked on every slide.</p></div>
+          </div>
+        )}
+
         {!user ? (
           <>
-            <div className="price"><strong>{getLecturePrice(lecture, lectureSetting)} EGP</strong><span>Sign in for your academic/nationality offer</span></div>
             <p>Sign in first so the purchase can be permanently attached to your KIFARO account.</p>
             <button className="primary full" onClick={() => nav('/login')}><LogIn size={17} /> Sign in to continue</button>
           </>
-        ) : entitlements.has(lecture.id) ? (
+        ) : ownsSelected ? (
           <>
-            <div className="price"><strong>Purchased</strong><span>permanent account access</span></div>
-            <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}><Check size={17} /> Open lecture</button>
+            <div className="price"><strong>Purchased</strong><span>access is active</span></div>
+            <button className="primary full" onClick={() => nav(product === 'datashow' ? '/anatomate/lecture/' + lecture.slug + '/datashow' : '/anatomate/lecture/' + lecture.slug)}>
+              <Check size={17} /> Open content
+            </button>
           </>
         ) : (
           <>
-            <div className="price"><strong>{offer.price} EGP</strong><span>{offer.viewLimit == null ? 'Unlimited video views' : offer.viewLimit + ' video views per payment'}</span></div>
-            <small className="assetnote">This offer is matched to your academic year and nationality.</small>
+            <small className="assetnote">Your final offer can be matched to academic year and nationality from the Admin pricing rules.</small>
             <button className="primary full" disabled><CreditCard size={17} /> {entitlementsLoading || offerLoading ? 'Checking account…' : 'Payment gateway setup in progress'}</button>
           </>
         )}
+
         <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
         <small className="assetnote">Purchases are verified from Supabase. Students cannot grant access to themselves.</small>
       </div>
