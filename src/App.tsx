@@ -431,6 +431,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const { slug } = useParams()
   const nav = useNavigate()
   const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { entitlements, entitlementByLecture, refresh: refreshEntitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
@@ -448,7 +449,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
   const state = progress[lecture.id] || { progress: 0 }
   const quiz = lecture.mcqs[0]
-  const purchased = lecture.status === 'free' || entitlements.has(lecture.id)
+  const purchased = lecture.status === 'free' || entitlements.has(lecture.id) || isAdmin
   const entitlement = entitlementByLecture.get(lecture.id)
   const offer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting))
   const remainingViews = entitlement?.view_limit == null
