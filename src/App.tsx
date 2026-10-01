@@ -21,8 +21,6 @@ import { supabase } from './lib/supabase'
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 type Lang = 'en' | 'ar'
 
-const ANATOMATE_STUDENT_LIBRARY_URL = 'https://www.dropbox.com/scl/fo/7716uzv5l9jcoktktcxxx/AIhH7i76Iuy4mgEVLg0LcYc?rlkey=ffpidubd9g6nuucbkg5sc2m4e&dl=0'
-
 type LecturePrice = 0 | 40 | 50 | 60
 
 function getLecturePrice(lecture: { status: string; duration: number; system: string }, setting?: LectureSetting): LecturePrice {
@@ -460,14 +458,6 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const openProtectedAsset = async (assetType: 'video' | 'pdf' | 'pptx') => {
     setVideoMessage('')
 
-    // Keep the established Dropbox student library as a safe fallback until
-    // the private Supabase asset has actually been uploaded and attached.
-    const privatePath = assetType === 'video' ? lectureSetting?.video_path : assetType === 'pdf' ? lectureSetting?.pdf_path : lectureSetting?.pptx_path
-    if ((assetType === 'pdf' || assetType === 'pptx') && !privatePath) {
-      window.open(ANATOMATE_STUDENT_LIBRARY_URL, '_blank', 'noopener,noreferrer')
-      return
-    }
-
     if (!supabase || !user) {
       if (assetType === 'video' && lecture.status === 'free' && lecture.videoUrl) {
         window.open(lecture.videoUrl, '_blank', 'noopener,noreferrer')
@@ -545,8 +535,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                 {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
               </button>
               <div className="adminquick">
-                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>{lectureSetting?.pdf_path ? 'Download PDF' : 'Open PDF library'}</button>
-                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>{lectureSetting?.pptx_path ? 'Download PowerPoint' : 'Open PowerPoint library'}</button>
+                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>Download PDF</button>
+                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>Download PowerPoint</button>
               </div>
               {lecture.status !== 'free' && <small className="assetnote">{entitlement?.view_limit == null ? 'Unlimited views for this purchase.' : remainingViews + ' of ' + entitlement.view_limit + ' views remaining.'}</small>}
               {videoMessage && <div className="authmessage">{videoMessage}</div>}
