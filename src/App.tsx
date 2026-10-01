@@ -11,6 +11,7 @@ import ProfilePage from './auth/ProfilePage'
 import AdminPage from './admin/AdminPage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
 import DatashowViewer from './components/DatashowViewer'
+import ProtectedVideoPlayer from './components/ProtectedVideoPlayer'
 import { useAdmin } from './hooks/useAdmin'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
@@ -212,6 +213,7 @@ export default function App() {
           <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug/datashow" element={<DatashowViewer mode="datashow" />} />
           <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
+          <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
           <Route path="/studio" element={<Studio />} />
@@ -554,7 +556,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
             <button
               className="primary full assetlink"
               disabled={videoBusy || (remainingViews !== null && remainingViews <= 0)}
-              onClick={() => void openProtectedAsset('video')}
+              onClick={() => {
+                if (readiness?.has_video) nav('/anatomate/lecture/' + lecture.slug + '/video')
+                else void openProtectedAsset('video')
+              }}
             >
               {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
             </button>
