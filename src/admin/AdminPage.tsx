@@ -106,6 +106,7 @@ export default function AdminPage() {
   const [pptxFile, setPptxFile] = useState<File | null>(null)
   const [assetUploading, setAssetUploading] = useState<'video' | 'pdf' | 'pptx' | ''>('')
   const [videoUploadProgress, setVideoUploadProgress] = useState(0)
+  const [bunnyConfigured, setBunnyConfigured] = useState<boolean | null>(null)
   const [editingRuleId, setEditingRuleId] = useState('')
   const [ruleYear, setRuleYear] = useState(0)
   const [ruleNationality, setRuleNationality] = useState('*')
@@ -139,6 +140,17 @@ export default function AdminPage() {
     if (isAdmin) void load()
     else if (!adminLoading) setLoading(false)
   }, [isAdmin, adminLoading])
+
+  useEffect(() => {
+    if (!isAdmin || !supabase) return
+    const client = supabase
+    void (async () => {
+      const { data, error } = await client.functions.invoke('bunny-video-admin', {
+        body: { action: 'configuration' },
+      })
+      setBunnyConfigured(error ? false : Boolean(data?.configured))
+    })()
+  }, [isAdmin])
 
   const activePurchases = entitlements.filter((item) => !item.revoked_at)
   const revenue = activePurchases.reduce((sum, item) => sum + Number(item.price_paid_egp || 0), 0)
@@ -820,6 +832,22 @@ export default function AdminPage() {
 
       {tab === 'lectures' && (
         <>
+          <div className={bunnyConfigured ? 'adminpanel videohoststatus connected' : 'adminpanel videohoststatus setup'}>
+            <div>
+              <small>VIDEO HOSTING</small>
+              <h2>Bunny Stream</h2>
+              <p>{bunnyConfigured === null
+                ? 'Checking secure video hosting connection…'
+                : bunnyConfigured
+                  ? 'Connected. Admin video uploads will go directly to Bunny Stream.'
+                  : 'Setup required. Add the Bunny Stream library credentials to Supabase Edge Function secrets before uploading videos.'}</p>
+            </div>
+            <span className={bunnyConfigured ? 'readinessbadge ready' : 'readinessbadge missing'}>
+              {bunnyConfigured ? <Check size={13}/> : <XCircle size={13}/>}
+              {bunnyConfigured ? 'Connected' : bunnyConfigured === null ? 'Checking' : 'Not connected'}
+            </span>
+          </div>
+
           <div className="adminpanel">
             <div className="adminpanelhead"><div><h2>Lecture catalog</h2><p>Edit pricing, access, publishing and student file links.</p></div></div>
             <div className="admintablewrap">
