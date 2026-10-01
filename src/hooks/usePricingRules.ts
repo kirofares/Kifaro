@@ -11,6 +11,7 @@ export type PricingRule = {
   enabled: boolean
   priority: number
   updated_at: string
+  product_type: 'video' | 'datashow' | 'bundle'
 }
 
 export type LectureOffer = {
@@ -41,7 +42,7 @@ export function usePricingRules() {
     setLoading(true)
     const { data, error } = await supabase
       .from('lecture_pricing_rules')
-      .select('id, lecture_id, academic_year, nationality_match, price_egp, view_limit, enabled, priority, updated_at')
+      .select('id, lecture_id, academic_year, nationality_match, price_egp, view_limit, enabled, priority, updated_at, product_type')
       .eq('enabled', true)
 
     if (!error) setRows((data || []) as PricingRule[])
@@ -63,8 +64,8 @@ export function usePricingRules() {
     return map
   }, [rows])
 
-  const offerFor = (lectureId: string, fallbackPrice: number): LectureOffer => {
-    const rule = byLecture.get(lectureId)?.[0] || null
+  const offerFor = (lectureId: string, fallbackPrice: number, productType: 'video' | 'datashow' | 'bundle' = 'bundle'): LectureOffer => {
+    const rule = byLecture.get(lectureId)?.filter((item) => item.product_type === productType)[0] || null
     return {
       price: rule ? Number(rule.price_egp) : fallbackPrice,
       viewLimit: rule?.view_limit ?? null,
