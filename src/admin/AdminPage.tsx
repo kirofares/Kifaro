@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, CreditCard, GraduationCap, KeyRound, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
+import * as tus from 'tus-js-client'
 import { anatomateLectures } from '../data/anatomate'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
@@ -79,7 +80,7 @@ export default function AdminPage() {
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
   const { settings, refresh: refreshLectureSettings } = useLectureSettings()
   const { rows: pricingRules, refresh: refreshPricingRules } = usePricingRules()
-  const { byLecture: assetReadiness } = useAssetReadiness()
+  const { byLecture: assetReadiness, refresh: refreshAssetReadiness } = useAssetReadiness()
   const [tab, setTab] = useState<Tab>('overview')
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [entitlements, setEntitlements] = useState<Entitlement[]>([])
@@ -98,11 +99,13 @@ export default function AdminPage() {
     title: '', description: '', price: 50, access: 'paid' as 'free' | 'paid', published: true,
     videoUrl: '', pdfUrl: '', pptxUrl: '',
     videoPath: '', pdfPath: '', pptxPath: '',
+    bunnyVideoId: '', bunnyStatus: '', bunnyProgress: 0,
   })
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [pptxFile, setPptxFile] = useState<File | null>(null)
   const [assetUploading, setAssetUploading] = useState<'video' | 'pdf' | 'pptx' | ''>('')
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0)
   const [editingRuleId, setEditingRuleId] = useState('')
   const [ruleYear, setRuleYear] = useState(0)
   const [ruleNationality, setRuleNationality] = useState('*')
