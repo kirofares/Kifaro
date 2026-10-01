@@ -73,3 +73,13 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
 .vieweridentity svg{color:var(--primary);flex:0 0 auto}.vieweridentity span{font-weight:800;font-size:12px}.vieweridentity small{color:var(--muted);font-size:11px;overflow-wrap:anywhere}
 @media(max-width:680px){.protectedviewerbuttons{grid-template-columns:1fr}.vieweridentity{align-items:flex-start;flex-wrap:wrap}.vieweridentity small{width:100%;padding-left:26px}}
 @media print{.datashowpage{display:none!important}body:after{content:"Protected KIFARO content — Dr. Kirolus Fares";display:block;padding:40px;font:700 24px Arial,sans-serif}}
+
+.readinessbadge{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}
+.readinessbadge.ready{background:#e8f7f0;color:#166a4e;border:1px solid #b8e4d2}
+.readinessbadge.missing{background:#fff0ef;color:#9a3f3b;border:1px solid #efc5c1}
+.unavailableproduct{display:grid;gap:7px;justify-items:start;color:var(--muted)}
+.unavailableproduct svg{color:var(--muted)}.unavailableproduct h3,.unavailableproduct strong{color:var(--text);margin:0}.unavailableproduct p,.unavailableproduct small{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.productchooser button:disabled{cursor:not-allowed;opacity:.52;box-shadow:none}
+.productchooser button:disabled:hover{border-color:var(--line);background:#fff}
+.unavailablecheckout{display:flex;align-items:flex-start;gap:12px;border:1px solid #f0d59d;background:#fff8e8;color:#7a5c00;border-radius:13px;padding:14px;margin:14px 0}
+.unavailablecheckout svg{flex:0 0 auto}.unavailablecheckout strong{display:block;color:#6b5100}.unavailablecheckout p{margin:3px 0 0;font-size:12px;line-height:1.5}
