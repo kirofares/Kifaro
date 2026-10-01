@@ -235,12 +235,15 @@ export default function AdminPage() {
       video_path: null as string | null,
       pdf_path: null as string | null,
       pptx_path: null as string | null,
+      bunny_video_id: null as string | null,
+      bunny_status: null as string | null,
+      bunny_encode_progress: null as number | null,
     }
 
     if (supabase) {
       const { data } = await supabase
         .from('lecture_assets')
-        .select('video_url, pdf_url, pptx_url, video_path, pdf_path, pptx_path')
+        .select('video_url, pdf_url, pptx_url, video_path, pdf_path, pptx_path, bunny_video_id, bunny_status, bunny_encode_progress')
         .eq('lecture_id', lecture.id)
         .maybeSingle()
       if (data) asset = data
@@ -259,6 +262,9 @@ export default function AdminPage() {
       videoPath: asset.video_path || '',
       pdfPath: asset.pdf_path || '',
       pptxPath: asset.pptx_path || '',
+      bunnyVideoId: asset.bunny_video_id || '',
+      bunnyStatus: asset.bunny_status || '',
+      bunnyProgress: Number(asset.bunny_encode_progress || 0),
     })
     resetRuleDraft()
     window.setTimeout(() => {
