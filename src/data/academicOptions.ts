@@ -123,3 +123,12 @@ export const EGYPTIAN_UNIVERSITIES = {
     'Heliopolis New University',
   ],
 } as const
+
+
+export const LEARNING_DEPTHS = [
+  'CORE',
+  'ADVANCED',
+  'POSTGRAD',
+] as const
+
+export type LearningDepth = typeof LEARNING_DEPTHS[number]
