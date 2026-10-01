@@ -313,9 +313,117 @@ export default function AdminPage() {
     }
   }
 
-  const uploadProtectedAsset = async (kind: 'video' | 'pdf' | 'pptx') => {
+  const refreshBunnyStatus = async () => {
+    if (!supabase || !editingLecture || !lectureDraft.bunnyVideoId) return
+    setMessage('Checking Bunny Stream encoding status…')
+    const { data, error } = await supabase.functions.invoke('bunny-video-admin', {
+      body: { action: 'status', lectureId: editingLecture },
+    })
+    if (error || data?.error) {
+      setMessage(data?.error || error?.message || 'Could not read Bunny Stream status.')
+      return
+    }
+    setLectureDraft((draft) => ({
+      ...draft,
+      bunnyStatus: String(data?.status || ''),
+      bunnyProgress: Number(data?.encodeProgress || 0),
+    }))
+    await refreshAssetReadiness()
+    setMessage(data?.status === 'ready'
+      ? 'Video is encoded and ready for sale.'
+      : 'Bunny Stream is still processing the video: ' + Number(data?.encodeProgress || 0) + '%.')
+  }
+
+  const uploadVideoToBunny = async () => {
+    if (!supabase || !editingLecture || !videoFile) return
+
+    setAssetUploading('video')
+    setVideoUploadProgress(0)
+    setMessage('Preparing secure Bunny Stream upload…')
+
+    const { data, error } = await supabase.functions.invoke('bunny-video-admin', {
+      body: { action: 'prepare', lectureId: editingLecture, title: lectureDraft.title || editingLecture },
+    })
+
+    if (error || data?.error || !data?.endpoint || !data?.signature || !data?.videoId) {
+      setAssetUploading('')
+      const missing = data?.requiredSecrets?.length
+        ? ' Add these Supabase secrets first: ' + data.requiredSecrets.join(', ') + '.'
+        : ''
+      setMessage((data?.error || error?.message || 'Could not prepare Bunny Stream upload.') + missing)
+      return
+    }
+
+    setLectureDraft((draft) => ({
+      ...draft,
+      bunnyVideoId: String(data.videoId),
+      bunnyStatus: 'uploading',
+      bunnyProgress: 0,
+    }))
+
+    const upload = new tus.Upload(videoFile, {
+      endpoint: String(data.endpoint),
+      retryDelays: [0, 3000, 5000, 10000, 20000, 60000],
+      chunkSize: 25 * 1024 * 1024,
+      removeFingerprintOnSuccess: true,
+      headers: {
+        AuthorizationSignature: String(data.signature),
+        AuthorizationExpire: String(data.expires),
+        VideoId: String(data.videoId),
+        LibraryId: String(data.libraryId),
+      },
+      metadata: {
+        filename: videoFile.name,
+        filetype: videoFile.type || 'video/mp4',
+        title: lectureDraft.title || videoFile.name,
+      },
+      onError: (uploadError) => {
+        setAssetUploading('')
+        setMessage('Bunny Stream upload failed: ' + uploadError.message)
+      },
+      onProgress: (bytesUploaded, bytesTotal) => {
+        const percent = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 100) : 0
+        setVideoUploadProgress(percent)
+        setMessage('Uploading video to Bunny Stream: ' + percent + '%')
+      },
+      onSuccess: () => {
+        void (async () => {
+          const result = await supabase.functions.invoke('bunny-video-admin', {
+            body: { action: 'uploaded', lectureId: editingLecture },
+          })
+          setVideoFile(null)
+          setVideoUploadProgress(100)
+          setAssetUploading('')
+          if (result.error || result.data?.error) {
+            setMessage(result.data?.error || result.error?.message || 'Upload finished, but status check failed.')
+            return
+          }
+          setLectureDraft((draft) => ({
+            ...draft,
+            bunnyStatus: String(result.data?.status || 'processing'),
+            bunnyProgress: Number(result.data?.encodeProgress || 0),
+          }))
+          await refreshAssetReadiness()
+          setMessage(result.data?.status === 'ready'
+            ? 'Video uploaded to Bunny Stream and is ready.'
+            : 'Video uploaded to Bunny Stream. Encoding is now processing.')
+        })()
+      },
+    })
+
+    try {
+      const previous = await upload.findPreviousUploads()
+      if (previous.length) upload.resumeFromPreviousUpload(previous[0])
+      upload.start()
+    } catch (uploadError) {
+      setAssetUploading('')
+      setMessage(uploadError instanceof Error ? uploadError.message : 'Could not start Bunny Stream upload.')
+    }
+  }
+
+  const uploadProtectedAsset = async (kind: 'pdf' | 'pptx') => {
     if (!supabase || !editingLecture) return
-    const file = kind === 'video' ? videoFile : kind === 'pdf' ? pdfFile : pptxFile
+    const file = kind === 'pdf' ? pdfFile : pptxFile
     if (!file) return
 
     setAssetUploading(kind)
@@ -345,9 +453,8 @@ export default function AdminPage() {
 
     setLectureDraft((draft) => ({
       ...draft,
-      ...(kind === 'video' ? { videoPath: path } : kind === 'pdf' ? { pdfPath: path } : { pptxPath: path }),
+      ...(kind === 'pdf' ? { pdfPath: path } : { pptxPath: path }),
     }))
-    if (kind === 'video') setVideoFile(null)
     if (kind === 'pdf') setPdfFile(null)
     if (kind === 'pptx') setPptxFile(null)
     setMessage(kind.toUpperCase() + ' uploaded to private storage. Click Save lecture to attach it.')
