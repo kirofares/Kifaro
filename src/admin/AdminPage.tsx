@@ -169,8 +169,12 @@ export default function AdminPage() {
           .sort((a, b) => pricingRuleScore(b) - pricingRuleScore(a))[0]
       : undefined
 
+    const videoPrice = effectivePrice(lecture)
+    const datashowPrice = Math.max(30, videoPrice)
+    const fallbackPrice = productType === 'video' ? videoPrice : productType === 'datashow' ? datashowPrice : videoPrice + datashowPrice
+
     return {
-      price: rule ? Number(rule.price_egp) : effectivePrice(lecture),
+      price: rule ? Number(rule.price_egp) : fallbackPrice,
       viewLimit: rule?.view_limit ?? null,
       rule,
     }
@@ -592,7 +596,7 @@ export default function AdminPage() {
                 <select value={studentLecture} onChange={(e) => setStudentLecture(e.target.value)}>
                   <option value="">Grant another lecture…</option>
                   {anatomateLectures
-                    .filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id))
+                    .filter((l) => isPublished(l.id))
                     .map((l) => <option key={l.id} value={l.id}>Year {l.year} · {settingFor(l.id)?.title_override || l.title} · {effectivePrice(l)} EGP</option>)}
                 </select>
                 <button className="primary" disabled={!studentLecture} onClick={() => void grantForStudent()}><LockOpen size={17}/>Grant access</button>
@@ -644,7 +648,7 @@ export default function AdminPage() {
               </select>
               <select value={selectedLecture} onChange={(e) => setSelectedLecture(e.target.value)}>
                 <option value="">Select lecture</option>
-                {anatomateLectures.filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id)).map((l) => {
+                {anatomateLectures.filter((l) => isPublished(l.id)).map((l) => {
                   const profile = profiles.find((p) => p.id === selectedUser)
                   const offer = offerForStudent(l, profile, selectedProduct)
                   return <option key={l.id} value={l.id}>Year {l.year} · {(settingFor(l.id)?.title_override || l.title)} · {offer.price} EGP · {offer.viewLimit == null ? '∞ views' : offer.viewLimit + ' views'}</option>
