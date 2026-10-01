@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
     const lectureId = String(body?.lectureId || '')
     const assetType = String(body?.assetType || '')
 
-    if (!lectureId || !['video', 'datashow', 'pdf', 'pptx'].includes(assetType)) {
+    if (!lectureId || !['video', 'datashow', 'document', 'pdf', 'pptx'].includes(assetType)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
-    const expiresIn = assetType === 'video' ? 120 : assetType === 'datashow' ? 45 : 120
+    const expiresIn = assetType === 'video' ? 120 : (assetType === 'datashow' || assetType === 'document') ? 45 : 120
     const { data: signed, error: signedError } = await adminClient.storage
       .from('kifaro-content')
       .createSignedUrl(row.asset_path, expiresIn)
@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
       viewsUsed: row.views_used,
       viewLimit: row.view_limit,
       remainingViews,
-      viewerOnly: assetType === 'datashow',
+      viewerOnly: assetType === 'datashow' || assetType === 'document',
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
