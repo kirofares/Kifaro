@@ -7,6 +7,9 @@ export type LectureEntitlement = {
   view_limit: number | null
   views_used: number
   revoked_at: string | null
+  video_access: boolean
+  datashow_access: boolean
+  product_type: 'video' | 'datashow' | 'bundle'
 }
 
 export function useEntitlements(userId?: string) {
@@ -23,7 +26,7 @@ export function useEntitlements(userId?: string) {
     setLoading(true)
     const { data, error } = await supabase
       .from('lecture_entitlements')
-      .select('lecture_id, price_paid_egp, view_limit, views_used, revoked_at')
+      .select('lecture_id, price_paid_egp, view_limit, views_used, revoked_at, video_access, datashow_access, product_type')
       .eq('user_id', userId)
       .is('revoked_at', null)
 
@@ -36,7 +39,9 @@ export function useEntitlements(userId?: string) {
   }, [userId])
 
   const entitlements = useMemo(() => new Set(rows.map((row) => row.lecture_id)), [rows])
+  const videoEntitlements = useMemo(() => new Set(rows.filter((row) => row.video_access).map((row) => row.lecture_id)), [rows])
+  const datashowEntitlements = useMemo(() => new Set(rows.filter((row) => row.datashow_access).map((row) => row.lecture_id)), [rows])
   const entitlementByLecture = useMemo(() => new Map(rows.map((row) => [row.lecture_id, row])), [rows])
 
-  return { entitlements, entitlementByLecture, rows, loading, refresh }
+  return { entitlements, videoEntitlements, datashowEntitlements, entitlementByLecture, rows, loading, refresh }
 }
