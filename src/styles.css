@@ -83,3 +83,8 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
 .productchooser button:disabled:hover{border-color:var(--line);background:#fff}
 .unavailablecheckout{display:flex;align-items:flex-start;gap:12px;border:1px solid #f0d59d;background:#fff8e8;color:#7a5c00;border-radius:13px;padding:14px;margin:14px 0}
 .unavailablecheckout svg{flex:0 0 auto}.unavailablecheckout strong{display:block;color:#6b5100}.unavailablecheckout p{margin:3px 0 0;font-size:12px;line-height:1.5}
+
+.bunnyuploadbox{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid #cfe0ff;background:#f7fbff;border-radius:14px;padding:14px}
+.bunnyuploadbox>div{display:grid;gap:4px}.bunnyuploadbox small{font-size:10px;letter-spacing:.7px;font-weight:800;color:var(--primary)}.bunnyuploadbox strong{font-size:14px}.bunnyuploadbox span{font-size:12px;color:var(--muted)}
+.bunnyprogress{display:grid;gap:6px}.bunnyprogress>div{height:9px;background:#e8edf4;border-radius:999px;overflow:hidden}.bunnyprogress i{display:block;height:100%;background:var(--primary);border-radius:inherit;transition:width .2s ease}.bunnyprogress span{font-size:11px;color:var(--muted);font-weight:700}
+@media(max-width:700px){.bunnyuploadbox{align-items:flex-start;flex-direction:column}.bunnyuploadbox button{width:100%;justify-content:center}}
