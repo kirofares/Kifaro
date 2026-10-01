@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { Building2, Flag, GraduationCap, LockKeyhole, Mail, Phone, School, Stethoscope, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
-import { ACADEMIC_LEVELS, EGYPTIAN_UNIVERSITIES, FACULTIES } from '../data/academicOptions'
+import { ACADEMIC_LEVELS, EGYPTIAN_UNIVERSITIES, FACULTIES, LEARNING_DEPTHS } from '../data/academicOptions'
 
 export default function AuthPage() {
   const { configured, user, signIn, signUp } = useAuth()
@@ -17,6 +17,7 @@ export default function AuthPage() {
   const [university, setUniversity] = useState('')
   const [nationality, setNationality] = useState('Egyptian')
   const [phoneNo, setPhoneNo] = useState('')
+  const [preferredLearningDepth, setPreferredLearningDepth] = useState('CORE')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -46,7 +47,7 @@ export default function AuthPage() {
       if (result.error) setMessage(result.error)
       else navigate('/')
     } else {
-      const result = await signUp({ email, password, fullName, academicYear, faculty, university, nationality, phoneNo })
+      const result = await signUp({ email, password, fullName, academicYear, faculty, university, nationality, phoneNo, preferredLearningDepth })
       if (result.error) setMessage(result.error)
       else if (result.needsEmailConfirmation) setMessage('Check your email to confirm your KIFARO account.')
       else navigate('/')
@@ -78,6 +79,7 @@ export default function AuthPage() {
               <label>Full name<div className="authinput"><UserRound /><input value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" /></div></label>
               <label>Academic year<div className="authinput"><GraduationCap /><select value={academicYear} onChange={(e) => setAcademicYear(Number(e.target.value))}>{ACADEMIC_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></div></label>
               <label>Faculty<div className="authinput"><School /><select value={faculty} onChange={(e) => setFaculty(e.target.value)} required>{FACULTIES.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
+              <label>Preferred learning depth<div className="authinput"><GraduationCap /><select value={preferredLearningDepth} onChange={(e) => setPreferredLearningDepth(e.target.value)}>{LEARNING_DEPTHS.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
               <label>University<div className="authinput"><Building2 /><select value={university} onChange={(e) => setUniversity(e.target.value)} required><option value="">Select university</option>{Object.entries(EGYPTIAN_UNIVERSITIES).map(([group, universities]) => <optgroup key={group} label={group}>{universities.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}</select></div></label>
               <label>Nationality<div className="authinput"><Flag /><input value={nationality} onChange={(e) => setNationality(e.target.value)} required /></div></label>
               <label>Phone no<div className="authinput"><Phone /><input type="tel" value={phoneNo} onChange={(e) => setPhoneNo(e.target.value)} required autoComplete="tel" placeholder="+20..." /></div></label>
