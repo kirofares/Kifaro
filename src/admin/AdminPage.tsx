@@ -32,6 +32,9 @@ type Entitlement = {
   views_used: number
   offer_academic_year: number | null
   offer_nationality: string | null
+  video_access: boolean
+  datashow_access: boolean
+  product_type: 'video' | 'datashow' | 'bundle'
 }
 
 type ProgressRow = {
@@ -85,6 +88,8 @@ export default function AdminPage() {
   const [query, setQuery] = useState('')
   const [selectedUser, setSelectedUser] = useState('')
   const [selectedLecture, setSelectedLecture] = useState('')
+  const [selectedProduct, setSelectedProduct] = useState<'video' | 'datashow' | 'bundle'>('bundle')
+  const [studentProduct, setStudentProduct] = useState<'video' | 'datashow' | 'bundle'>('bundle')
   const [message, setMessage] = useState('')
   const [editingLecture, setEditingLecture] = useState('')
   const [lectureDraft, setLectureDraft] = useState({
@@ -102,6 +107,7 @@ export default function AdminPage() {
   const [ruleCustomNationality, setRuleCustomNationality] = useState('')
   const [rulePrice, setRulePrice] = useState(50)
   const [ruleViews, setRuleViews] = useState<number | ''>(3)
+  const [ruleProduct, setRuleProduct] = useState<'video' | 'datashow' | 'bundle'>('bundle')
 
   const load = async () => {
     if (!supabase || !isAdmin) return
@@ -110,7 +116,7 @@ export default function AdminPage() {
 
     const [profilesResult, entitlementsResult, progressResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, medical_year, faculty, university, nationality, phone_no, email, role, created_at').order('created_at', { ascending: false }),
-      supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at, view_limit, views_used, offer_academic_year, offer_nationality').order('granted_at', { ascending: false }),
+      supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at, view_limit, views_used, offer_academic_year, offer_nationality, video_access, datashow_access, product_type').order('granted_at', { ascending: false }),
       supabase.from('lecture_progress').select('user_id, lecture_id, progress, completed, favorite, updated_at').order('updated_at', { ascending: false }),
     ])
 
@@ -156,10 +162,10 @@ export default function AdminPage() {
 
   const isPublished = (lectureId: string) => settingFor(lectureId)?.published ?? true
 
-  const offerForStudent = (lecture: (typeof anatomateLectures)[number], profile?: Profile) => {
+  const offerForStudent = (lecture: (typeof anatomateLectures)[number], profile?: Profile, productType: 'video' | 'datashow' | 'bundle' = 'bundle') => {
     const rule = profile
       ? pricingRules
-          .filter((item) => item.lecture_id === lecture.id && ruleMatchesStudent(item, profile))
+          .filter((item) => item.lecture_id === lecture.id && item.product_type === productType && ruleMatchesStudent(item, profile))
           .sort((a, b) => pricingRuleScore(b) - pricingRuleScore(a))[0]
       : undefined
 
@@ -177,6 +183,7 @@ export default function AdminPage() {
     setRuleCustomNationality('')
     setRulePrice(50)
     setRuleViews(3)
+    setRuleProduct('bundle')
   }
 
   const startEditRule = (rule: PricingRule) => {
@@ -191,6 +198,7 @@ export default function AdminPage() {
     }
     setRulePrice(Number(rule.price_egp))
     setRuleViews(rule.view_limit ?? '')
+    setRuleProduct(rule.product_type)
   }
 
   const startEditLecture = async (lecture: (typeof anatomateLectures)[number]) => {
@@ -336,7 +344,8 @@ export default function AdminPage() {
       academic_year: ruleYear === 0 ? null : ruleYear,
       nationality_match: nationalityMatch,
       price_egp: rulePrice,
-      view_limit: ruleViews === '' ? null : Number(ruleViews),
+      view_limit: ruleProduct === 'datashow' ? null : ruleViews === '' ? null : Number(ruleViews),
+      product_type: ruleProduct,
       enabled: true,
       priority: 0,
       updated_at: new Date().toISOString(),
@@ -370,6 +379,11 @@ export default function AdminPage() {
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <div className="page"><div className="adminpanel"><ShieldCheck /><h2>Admin access required</h2><p>This area is available only to authorized KIFARO administrators.</p></div></div>
 
+  const accessFlags = (product: 'video' | 'datashow' | 'bundle') => ({
+    video: product === 'video' || product === 'bundle',
+    datashow: product === 'datashow' || product === 'bundle',
+  })
+
   const grant = async () => {
     if (!supabase || !selectedUser || !selectedLecture) return
     const lecture = anatomateLectures.find((item) => item.id === selectedLecture)
@@ -377,15 +391,23 @@ export default function AdminPage() {
 
     const profile = profiles.find((p) => p.id === selectedUser)
     if (!profile) return
-    const offer = offerForStudent(lecture, profile)
+    const offer = offerForStudent(lecture, profile, selectedProduct)
+    const flags = accessFlags(selectedProduct)
+    const existing = entitlements.find((item) => item.user_id === selectedUser && item.lecture_id === selectedLecture && !item.revoked_at)
+    const videoAccess = Boolean(existing?.video_access || flags.video)
+    const datashowAccess = Boolean(existing?.datashow_access || flags.datashow)
+    const combinedProduct = videoAccess && datashowAccess ? 'bundle' : videoAccess ? 'video' : 'datashow'
 
     setMessage('')
     const { error } = await supabase.from('lecture_entitlements').upsert({
       user_id: selectedUser,
       lecture_id: selectedLecture,
-      price_paid_egp: offer.price,
-      view_limit: offer.viewLimit,
-      views_used: 0,
+      price_paid_egp: Number(existing?.price_paid_egp || 0) + offer.price,
+      view_limit: offer.viewLimit ?? existing?.view_limit ?? null,
+      views_used: existing?.views_used ?? 0,
+      video_access: videoAccess,
+      datashow_access: datashowAccess,
+      product_type: combinedProduct,
       offer_academic_year: profile.medical_year,
       offer_nationality: profile.nationality,
       source: 'admin',
@@ -395,31 +417,35 @@ export default function AdminPage() {
 
     if (error) setMessage(error.message)
     else {
-      setMessage('Lecture access granted.')
+      setMessage(selectedProduct + ' access granted.')
       await load()
     }
   }
 
   const grantForStudent = async () => {
-    if (!selectedStudentId || !studentLecture) return
-    setSelectedUser(selectedStudentId)
-    setSelectedLecture(studentLecture)
-
-    if (!supabase) return
+    if (!selectedStudentId || !studentLecture || !supabase) return
     const lecture = anatomateLectures.find((item) => item.id === studentLecture)
     if (!lecture) return
 
     const profile = profiles.find((p) => p.id === selectedStudentId)
     if (!profile) return
-    const offer = offerForStudent(lecture, profile)
+    const offer = offerForStudent(lecture, profile, studentProduct)
+    const flags = accessFlags(studentProduct)
+    const existing = entitlements.find((item) => item.user_id === selectedStudentId && item.lecture_id === studentLecture && !item.revoked_at)
+    const videoAccess = Boolean(existing?.video_access || flags.video)
+    const datashowAccess = Boolean(existing?.datashow_access || flags.datashow)
+    const combinedProduct = videoAccess && datashowAccess ? 'bundle' : videoAccess ? 'video' : 'datashow'
 
     setMessage('')
     const { error } = await supabase.from('lecture_entitlements').upsert({
       user_id: selectedStudentId,
       lecture_id: studentLecture,
-      price_paid_egp: offer.price,
-      view_limit: offer.viewLimit,
-      views_used: 0,
+      price_paid_egp: Number(existing?.price_paid_egp || 0) + offer.price,
+      view_limit: offer.viewLimit ?? existing?.view_limit ?? null,
+      views_used: existing?.views_used ?? 0,
+      video_access: videoAccess,
+      datashow_access: datashowAccess,
+      product_type: combinedProduct,
       offer_academic_year: profile.medical_year,
       offer_nationality: profile.nationality,
       source: 'admin',
@@ -429,7 +455,7 @@ export default function AdminPage() {
 
     if (error) setMessage(error.message)
     else {
-      setMessage('Lecture access granted.')
+      setMessage(studentProduct + ' access granted.')
       setStudentLecture('')
       await load()
     }
@@ -558,10 +584,15 @@ export default function AdminPage() {
               </div>
 
               <div className="admingrant">
+                <select value={studentProduct} onChange={(e) => setStudentProduct(e.target.value as 'video' | 'datashow' | 'bundle')}>
+                  <option value="video">Video</option>
+                  <option value="datashow">Datashow</option>
+                  <option value="bundle">Bundle</option>
+                </select>
                 <select value={studentLecture} onChange={(e) => setStudentLecture(e.target.value)}>
                   <option value="">Grant another lecture…</option>
                   {anatomateLectures
-                    .filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id) && !selectedStudentActive.some((x) => x.lecture_id === l.id))
+                    .filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id))
                     .map((l) => <option key={l.id} value={l.id}>Year {l.year} · {settingFor(l.id)?.title_override || l.title} · {effectivePrice(l)} EGP</option>)}
                 </select>
                 <button className="primary" disabled={!studentLecture} onClick={() => void grantForStudent()}><LockOpen size={17}/>Grant access</button>
@@ -570,15 +601,16 @@ export default function AdminPage() {
 
               <div className="admintablewrap">
                 <table className="admintable">
-                  <thead><tr><th>Lecture</th><th>Paid</th><th>Views</th><th>Access</th><th>Progress</th><th>Last activity</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Lecture</th><th>Product</th><th>Paid</th><th>Views</th><th>Access</th><th>Progress</th><th>Last activity</th><th>Action</th></tr></thead>
                   <tbody>
                     {selectedStudentEntitlements.map((item) => {
                       const progress = selectedStudentProgress.find((p) => p.lecture_id === item.lecture_id)
                       return (
                         <tr key={item.lecture_id}>
                           <td><strong>{lectureFor(item.lecture_id)?.title || item.lecture_id}</strong></td>
+                          <td>{item.video_access && item.datashow_access ? 'Bundle' : item.video_access ? 'Video' : 'Datashow'}</td>
                           <td>{item.price_paid_egp} EGP</td>
-                          <td>{item.views_used} / {item.view_limit == null ? '∞' : item.view_limit}</td>
+                          <td>{item.video_access ? item.views_used + ' / ' + (item.view_limit == null ? '∞' : item.view_limit) : '—'}</td>
                           <td>{item.revoked_at ? 'Revoked' : 'Active'}</td>
                           <td>{progress?.completed ? 'Completed' : (progress?.progress ?? 0) + '%'}</td>
                           <td>{progress?.updated_at ? new Date(progress.updated_at).toLocaleDateString() : '—'}</td>
@@ -586,7 +618,7 @@ export default function AdminPage() {
                         </tr>
                       )
                     })}
-                    {!selectedStudentEntitlements.length && <tr><td colSpan={7}>No lecture access recorded yet.</td></tr>}
+                    {!selectedStudentEntitlements.length && <tr><td colSpan={8}>No lecture access recorded yet.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -605,11 +637,16 @@ export default function AdminPage() {
                 <option value="">Select student</option>
                 {profiles.filter((p) => p.role === 'student').map((p) => <option key={p.id} value={p.id}>{p.full_name || p.email} — {p.email}</option>)}
               </select>
+              <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value as 'video' | 'datashow' | 'bundle')}>
+                <option value="video">Video access</option>
+                <option value="datashow">Datashow access</option>
+                <option value="bundle">Bundle access</option>
+              </select>
               <select value={selectedLecture} onChange={(e) => setSelectedLecture(e.target.value)}>
                 <option value="">Select lecture</option>
                 {anatomateLectures.filter((l) => effectiveAccess(l) === 'paid' && isPublished(l.id)).map((l) => {
                   const profile = profiles.find((p) => p.id === selectedUser)
-                  const offer = offerForStudent(l, profile)
+                  const offer = offerForStudent(l, profile, selectedProduct)
                   return <option key={l.id} value={l.id}>Year {l.year} · {(settingFor(l.id)?.title_override || l.title)} · {offer.price} EGP · {offer.viewLimit == null ? '∞ views' : offer.viewLimit + ' views'}</option>
                 })}
               </select>
@@ -621,12 +658,13 @@ export default function AdminPage() {
             <h2>Purchase & access history</h2>
             <div className="admintablewrap">
               <table className="admintable">
-                <thead><tr><th>Student</th><th>Lecture</th><th>Paid</th><th>Source</th><th>Status</th><th>Action</th></tr></thead>
+                <thead><tr><th>Student</th><th>Lecture</th><th>Product</th><th>Paid</th><th>Source</th><th>Status</th><th>Action</th></tr></thead>
                 <tbody>
                   {entitlements.map((item) => (
                     <tr key={item.user_id + item.lecture_id}>
                       <td>{nameForUser(item.user_id)}</td>
                       <td>{lectureFor(item.lecture_id)?.title || item.lecture_id}</td>
+                      <td>{item.video_access && item.datashow_access ? 'Bundle' : item.video_access ? 'Video' : 'Datashow'}</td>
                       <td>{item.price_paid_egp} EGP</td>
                       <td>{item.source}</td>
                       <td>{item.revoked_at ? 'Revoked' : 'Active'}</td>
@@ -721,6 +759,13 @@ export default function AdminPage() {
                   </div>
 
                   <div className="adminformgrid">
+                    <label>Product
+                      <select value={ruleProduct} onChange={(e) => setRuleProduct(e.target.value as 'video' | 'datashow' | 'bundle')}>
+                        <option value="video">Video</option>
+                        <option value="datashow">Datashow</option>
+                        <option value="bundle">Bundle</option>
+                      </select>
+                    </label>
                     <label>Academic year
                       <select value={ruleYear} onChange={(e) => setRuleYear(Number(e.target.value))}>
                         <option value={0}>Any academic year</option>
@@ -739,7 +784,7 @@ export default function AdminPage() {
                     </label>
                     {ruleNationality === 'CUSTOM' && <label>Specific nationality<input value={ruleCustomNationality} onChange={(e) => setRuleCustomNationality(e.target.value)} placeholder="e.g. British"/></label>}
                     <label>Price (EGP)<input type="number" min={0} step={1} value={rulePrice} onChange={(e) => setRulePrice(Number(e.target.value))}/></label>
-                    <label>Video views per payment<input type="number" min={1} value={ruleViews} placeholder="Blank = unlimited" onChange={(e) => setRuleViews(e.target.value === '' ? '' : Number(e.target.value))}/></label>
+                    <label>Video views per payment<input type="number" min={1} disabled={ruleProduct === 'datashow'} value={ruleProduct === 'datashow' ? '' : ruleViews} placeholder={ruleProduct === 'datashow' ? 'Not applicable' : 'Blank = unlimited'} onChange={(e) => setRuleViews(e.target.value === '' ? '' : Number(e.target.value))}/></label>
                   </div>
 
                   <div className="adminquick">
@@ -749,10 +794,11 @@ export default function AdminPage() {
 
                   <div className="admintablewrap">
                     <table className="admintable">
-                      <thead><tr><th>Academic year</th><th>Nationality</th><th>Price</th><th>Views/payment</th><th>Action</th></tr></thead>
+                      <thead><tr><th>Product</th><th>Academic year</th><th>Nationality</th><th>Price</th><th>Views/payment</th><th>Action</th></tr></thead>
                       <tbody>
                         {pricingRules.filter((rule) => rule.lecture_id === editingLecture).map((rule) => (
                           <tr key={rule.id}>
+                            <td>{rule.product_type === 'datashow' ? 'Datashow' : rule.product_type === 'video' ? 'Video' : 'Bundle'}</td>
                             <td>{rule.academic_year === 7 ? 'Post Graduate' : rule.academic_year ? 'Year ' + rule.academic_year : 'Any'}</td>
                             <td>{rule.nationality_match === '*' ? 'Any' : rule.nationality_match === 'NON_EGYPTIAN' ? 'Non-Egyptian' : rule.nationality_match}</td>
                             <td><strong>{Number(rule.price_egp)} EGP</strong></td>
@@ -760,7 +806,7 @@ export default function AdminPage() {
                             <td><div className="adminquick"><button className="secondary" onClick={() => startEditRule(rule)}><Pencil size={14}/>Edit</button><button className="dangerbtn" onClick={() => void deletePricingRule(rule.id)}><XCircle size={14}/>Delete</button></div></td>
                           </tr>
                         ))}
-                        {!pricingRules.some((rule) => rule.lecture_id === editingLecture) && <tr><td colSpan={5}>No custom rules yet. Base lecture price applies with unlimited views.</td></tr>}
+                        {!pricingRules.some((rule) => rule.lecture_id === editingLecture) && <tr><td colSpan={6}>No custom rules yet. Base lecture price applies until you add Video, Datashow or Bundle pricing.</td></tr>}
                       </tbody>
                     </table>
                   </div>
