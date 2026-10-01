@@ -17,24 +17,41 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        import_id:
-          - "7522bec4-40c5-4d0d-b744-de3b2496aa14"
-          - "7e118a39-99b8-4544-b033-e39e7c5a2693"
-          - "ec52e3fe-daad-405f-b33a-6fe7ba3051f0"
-          - "6290e341-6083-4a18-a0d4-9ccd1614a114"
-          - "f441d671-7316-4629-b679-0d6cc994eda3"
-          - "562e59ff-5fb5-482a-897b-100a1edf1575"
-          - "15662ee8-4e6e-4166-803d-2ab0e826eaff"
-          - "b84e534d-02cb-4f3f-9a9b-8df96e3b9d54"
-          - "1635cfc0-6d06-4b61-b96a-45b30778bc7a"
-          - "e74a3bb8-e1e2-4805-b13c-29e202aa0838"
-          - "c0c4865c-d895-45af-b312-0528b7cc9f27"
-          - "81b07f5b-2273-4a06-905b-ab242be131bc"
-          - "c0197c2c-cd0c-43fa-890a-1b34d7f01675"
-          - "20b92d8c-7539-4fb1-b56a-a1096de884d7"
-          - "589fb59b-7e02-47c5-a3a6-36b03eee40d6"
-          - "267b88de-45ac-4028-807b-b07959d19cd8"
-          - "3830db95-c9fe-492d-ab1c-15fda30d4963"
+        include:
+          - import_id: "7522bec4-40c5-4d0d-b744-de3b2496aa14"
+            filename: "Y1_02_Introduction_to_Skeleton.pptx"
+          - import_id: "7e118a39-99b8-4544-b033-e39e7c5a2693"
+            filename: "Y1_04_Muscles_Myology.pptx"
+          - import_id: "ec52e3fe-daad-405f-b33a-6fe7ba3051f0"
+            filename: "Y1_09_Skin_Integumentary_System.pptx"
+          - import_id: "6290e341-6083-4a18-a0d4-9ccd1614a114"
+            filename: "Y1_M0_How_to_Study_Anatomy.pptx"
+          - import_id: "f441d671-7316-4629-b679-0d6cc994eda3"
+            filename: "Y2_30_Development_of_CNS.pptx"
+          - import_id: "562e59ff-5fb5-482a-897b-100a1edf1575"
+            filename: "Y2_31_Meninges.pptx"
+          - import_id: "15662ee8-4e6e-4166-803d-2ab0e826eaff"
+            filename: "Y2_32_Ventricular_System_CSF.pptx"
+          - import_id: "b84e534d-02cb-4f3f-9a9b-8df96e3b9d54"
+            filename: "Y2_33_Spinal_Cord_External.pptx"
+          - import_id: "1635cfc0-6d06-4b61-b96a-45b30778bc7a"
+            filename: "Y3_A02_Anterior_Abdominal_Wall.pptx"
+          - import_id: "e74a3bb8-e1e2-4805-b13c-29e202aa0838"
+            filename: "Y3_A03_Inguinal_Canal.pptx"
+          - import_id: "c0c4865c-d895-45af-b312-0528b7cc9f27"
+            filename: "Y3_A04_Inguinal_Hernias.pptx"
+          - import_id: "81b07f5b-2273-4a06-905b-ab242be131bc"
+            filename: "Y3_A09_Abdominal_Esophagus.pptx"
+          - import_id: "c0197c2c-cd0c-43fa-890a-1b34d7f01675"
+            filename: "Y3_A10_Stomach.pptx"
+          - import_id: "20b92d8c-7539-4fb1-b56a-a1096de884d7"
+            filename: "Y3_A13_Cecum_Appendix.pptx"
+          - import_id: "589fb59b-7e02-47c5-a3a6-36b03eee40d6"
+            filename: "Y3_HN01_Oral_Cavity.pptx"
+          - import_id: "267b88de-45ac-4028-807b-b07959d19cd8"
+            filename: "Y3_HN02_Palate.pptx"
+          - import_id: "3830db95-c9fe-492d-ab1c-15fda30d4963"
+            filename: "Y3_HN03_Tongue.pptx"
     steps:
       - uses: actions/setup-node@v4
         with:
@@ -44,12 +61,18 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install --quiet pillow
       - run: npm install --silent @supabase/supabase-js@2
-      - name: Download source PowerPoint
+
+      - name: Download source PowerPoint from KIFARO Student Library
+        env:
+          FILE_NAME: ${{ matrix.filename }}
         run: |
-          curl -L --fail --show-error --silent --max-time 600 \
-            "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=source&id=${{ matrix.import_id }}" \
-            -o input.pptx
+          curl -L --fail --show-error --silent --max-time 600             "https://www.dropbox.com/scl/fo/7716uzv5l9jcoktktcxxx/AIhH7i76Iuy4mgEVLg0LcYc?rlkey=ffpidubd9g6nuucbkg5sc2m4e&preview=${FILE_NAME}&dl=1"             -o input.pptx
           test -s input.pptx
+          python - <<'PY'
+          import zipfile
+          assert zipfile.is_zipfile('input.pptx'), 'Dropbox did not return a valid PPTX file'
+          PY
+
       - name: Compress embedded images while preserving PPTX structure
         run: |
           cat > /tmp/compress_pptx.py <<'PY'
@@ -115,21 +138,22 @@ jobs:
               print('attempt',i,'maxdim',maxdim,'quality',q,'colors',colors,'bytes',size)
               if size <= target:
                   shutil.move(out,'output.pptx')
-                  for j in range(1,i):
-                      try: os.remove(f'output-{j}.pptx')
-                      except FileNotFoundError: pass
                   sys.exit(0)
           print('Could not reduce PowerPoint below upload limit',file=sys.stderr)
           sys.exit(2)
           PY
           python /tmp/compress_pptx.py
           test $(stat -c%s output.pptx) -le 47000000
+          python - <<'PY'
+          import zipfile
+          assert zipfile.is_zipfile('output.pptx'), 'Compressed file is not a valid PPTX archive'
+          PY
+
       - name: Create short-lived signed upload token
         run: |
-          curl --fail --show-error --silent --max-time 60 \
-            "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=prepare&id=${{ matrix.import_id }}" \
-            -o prep.json
+          curl --fail --show-error --silent --max-time 60             "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=prepare&id=${{ matrix.import_id }}"             -o prep.json
           python -c "import json; d=json.load(open('prep.json')); assert d.get('token') and d.get('path')"
+
       - name: Upload compressed PPTX to private storage
         env:
           SUPABASE_URL: https://gwwauaybbqmzbwvpbxly.supabase.co
@@ -140,13 +164,18 @@ jobs:
           import { createClient } from '@supabase/supabase-js'
           const prep=JSON.parse(fs.readFileSync('prep.json','utf8'))
           const body=fs.readFileSync('output.pptx')
-          const client=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}})
-          const { error }=await client.storage.from(prep.bucket).uploadToSignedUrl(prep.path,prep.token,body,{contentType:prep.contentType,upsert:true})
+          const client=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_PUBLISHABLE_KEY,{
+            auth:{persistSession:false,autoRefreshToken:false},
+            realtime:{params:{eventsPerSecond:1}},
+          })
+          const { error }=await client.storage
+            .from(prep.bucket)
+            .uploadToSignedUrl(prep.path,prep.token,body,{contentType:prep.contentType,upsert:true})
           if(error) throw error
           console.log('uploaded_bytes',body.length)
           NODE
           node upload.mjs
+
       - name: Finalize lecture asset mapping
         run: |
-          curl --fail --show-error --silent --max-time 60 \
-            "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=finish&id=${{ matrix.import_id }}"
+          curl --fail --show-error --silent --max-time 60             "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=finish&id=${{ matrix.import_id }}"
