@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ChevronLeft, ChevronRight, Lock, Maximize2, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Lock, Maximize2, ShieldCheck } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as pdfjsLib from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
@@ -11,41 +11,75 @@ import { supabase } from '../lib/supabase'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc
 
-const WATERMARK = 'Dr. Kirolus Fares'
+const OWNER_WATERMARK = 'Dr. Kirolus Fares'
+type ViewerMode = 'datashow' | 'pdf'
 
-function paintWatermark(canvas: HTMLCanvasElement) {
+function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, startSize: number, weight = 600) {
+  let size = startSize
+  while (size > 12) {
+    ctx.font = `${weight} ${size}px Arial, sans-serif`
+    if (ctx.measureText(text).width <= maxWidth) break
+    size -= 1
+  }
+  return size
+}
+
+function paintWatermark(
+  canvas: HTMLCanvasElement,
+  details: { studentName: string; email: string; studentId: string; viewedAt: string },
+) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  const fontSize = Math.max(22, Math.round(canvas.width / 24))
-  const stepX = Math.max(260, canvas.width / 2.2)
-  const stepY = Math.max(180, canvas.height / 3.3)
+  const ownerSize = Math.max(22, Math.round(canvas.width / 25))
+  const identity = `${details.studentName} · ${details.email}`
+  const trace = `ID ${details.studentId} · ${details.viewedAt}`
+  const stepX = Math.max(330, canvas.width / 1.9)
+  const stepY = Math.max(210, canvas.height / 3)
 
   ctx.save()
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.font = `600 ${fontSize}px Arial, sans-serif`
+  ctx.fillStyle = '#173b6d'
 
   for (let y = -stepY; y < canvas.height + stepY; y += stepY) {
     for (let x = -stepX; x < canvas.width + stepX; x += stepX) {
       ctx.save()
       ctx.translate(x, y)
       ctx.rotate(-Math.PI / 7)
-      ctx.globalAlpha = 0.14
-      ctx.fillStyle = '#173b6d'
-      ctx.fillText(WATERMARK, 0, 0)
+
+      ctx.globalAlpha = 0.13
+      ctx.font = `700 ${ownerSize}px Arial, sans-serif`
+      ctx.fillText(OWNER_WATERMARK, 0, -ownerSize * 0.45)
+
+      const studentSize = fitText(ctx, identity, stepX * 0.88, Math.max(14, Math.round(ownerSize * 0.48)), 600)
+      ctx.globalAlpha = 0.11
+      ctx.font = `600 ${studentSize}px Arial, sans-serif`
+      ctx.fillText(identity, 0, ownerSize * 0.42)
       ctx.restore()
     }
   }
 
-  ctx.globalAlpha = 0.34
-  ctx.font = `600 ${Math.max(18, Math.round(fontSize * 0.72))}px Arial, sans-serif`
+  ctx.globalAlpha = 0.42
   ctx.fillStyle = '#173b6d'
-  ctx.fillText(WATERMARK, canvas.width / 2, canvas.height - Math.max(28, fontSize))
+  const footerOwnerSize = Math.max(17, Math.round(ownerSize * 0.7))
+  ctx.font = `700 ${footerOwnerSize}px Arial, sans-serif`
+  ctx.fillText(OWNER_WATERMARK, canvas.width / 2, canvas.height - Math.max(54, footerOwnerSize * 2.2))
+
+  const footerStudentSize = fitText(ctx, identity, canvas.width * 0.88, Math.max(13, Math.round(footerOwnerSize * 0.72)), 600)
+  ctx.globalAlpha = 0.38
+  ctx.font = `600 ${footerStudentSize}px Arial, sans-serif`
+  ctx.fillText(identity, canvas.width / 2, canvas.height - Math.max(30, footerStudentSize * 1.4))
+
+  const traceSize = fitText(ctx, trace, canvas.width * 0.88, Math.max(11, Math.round(footerStudentSize * 0.78)), 500)
+  ctx.globalAlpha = 0.34
+  ctx.font = `500 ${traceSize}px Arial, sans-serif`
+  ctx.fillText(trace, canvas.width / 2, canvas.height - Math.max(12, traceSize * 0.45))
+
   ctx.restore()
 }
 
-export default function DatashowViewer() {
+export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMode }) {
   const { slug } = useParams()
   const nav = useNavigate()
   const { user, loading: authLoading } = useAuth()
@@ -62,6 +96,35 @@ export default function DatashowViewer() {
   const [loading, setLoading] = useState(false)
   const [rendering, setRendering] = useState(false)
   const [message, setMessage] = useState('')
+  const [watermarkTick, setWatermarkTick] = useState(() => Date.now())
+
+  const documentLabel = mode === 'pdf' ? 'PDF' : 'Datashow'
+  const displayName = String(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student')
+  const email = String(user?.email || 'student-account')
+  const studentId = String(user?.id || 'unknown').slice(0, 8).toUpperCase()
+  const viewedAt = new Date(watermarkTick).toLocaleString()
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setWatermarkTick(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const blockProtectedShortcuts = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase()
+      if ((event.ctrlKey || event.metaKey) && (key === 's' || key === 'p')) {
+        event.preventDefault()
+      }
+    }
+    const blockDrag = (event: DragEvent) => event.preventDefault()
+
+    window.addEventListener('keydown', blockProtectedShortcuts)
+    window.addEventListener('dragstart', blockDrag)
+    return () => {
+      window.removeEventListener('keydown', blockProtectedShortcuts)
+      window.removeEventListener('dragstart', blockDrag)
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -74,20 +137,20 @@ export default function DatashowViewer() {
       setMessage('')
 
       const { data, error } = await supabase.functions.invoke('lecture-asset', {
-        body: { lectureId: lecture.id, assetType: 'datashow' },
+        body: { lectureId: lecture.id, assetType: mode === 'pdf' ? 'document' : 'datashow' },
       })
 
       if (!active) return
 
       if (error || data?.error || !data?.signedUrl) {
-        setMessage(data?.error || error?.message || 'Datashow is not available yet.')
+        setMessage(data?.error || error?.message || documentLabel + ' is not available yet.')
         setLoading(false)
         return
       }
 
       try {
         const response = await fetch(data.signedUrl, { cache: 'no-store' })
-        if (!response.ok) throw new Error('Could not load the datashow.')
+        if (!response.ok) throw new Error('Could not load the protected ' + documentLabel + '.')
         const bytes = await response.arrayBuffer()
         loadingTask = pdfjsLib.getDocument({ data: bytes })
         const pdf = await loadingTask.promise
@@ -96,7 +159,7 @@ export default function DatashowViewer() {
         setPageCount(pdf.numPages)
         setPageNumber(1)
       } catch (err) {
-        if (active) setMessage(err instanceof Error ? err.message : 'Could not load the datashow.')
+        if (active) setMessage(err instanceof Error ? err.message : 'Could not load the protected document.')
       } finally {
         if (active) setLoading(false)
       }
@@ -108,7 +171,7 @@ export default function DatashowViewer() {
       active = false
       try { loadingTask?.destroy?.() } catch {}
     }
-  }, [lecture?.id, user?.id, hasAccess])
+  }, [lecture?.id, user?.id, hasAccess, mode])
 
   useEffect(() => {
     let cancelled = false
@@ -134,9 +197,16 @@ export default function DatashowViewer() {
         canvas.style.height = 'auto'
 
         await page.render({ canvasContext: context, viewport }).promise
-        if (!cancelled) paintWatermark(canvas)
+        if (!cancelled) {
+          paintWatermark(canvas, {
+            studentName: displayName,
+            email,
+            studentId,
+            viewedAt,
+          })
+        }
       } catch (err) {
-        if (!cancelled) setMessage(err instanceof Error ? err.message : 'Could not render this slide.')
+        if (!cancelled) setMessage(err instanceof Error ? err.message : 'Could not render this page.')
       } finally {
         if (!cancelled) setRendering(false)
       }
@@ -144,7 +214,7 @@ export default function DatashowViewer() {
 
     void renderPage()
     return () => { cancelled = true }
-  }, [documentProxy, pageNumber])
+  }, [documentProxy, pageNumber, watermarkTick, displayName, email, studentId])
 
   const toggleFullscreen = async () => {
     const target = stageRef.current
@@ -154,7 +224,7 @@ export default function DatashowViewer() {
   }
 
   if (!lecture) {
-    return <div className="page"><div className="contentbox"><h2>Datashow not found</h2></div></div>
+    return <div className="page"><div className="contentbox"><h2>{documentLabel} not found</h2></div></div>
   }
 
   if (authLoading || adminLoading || entitlementLoading) {
@@ -166,7 +236,7 @@ export default function DatashowViewer() {
       <div className="page">
         <div className="contentbox datashowlocked">
           <Lock size={34} />
-          <h2>Sign in to open this datashow</h2>
+          <h2>Sign in to open this {documentLabel}</h2>
           <button className="primary" onClick={() => nav('/login')}>Sign in</button>
         </div>
       </div>
@@ -178,9 +248,9 @@ export default function DatashowViewer() {
       <div className="page">
         <div className="contentbox datashowlocked">
           <Lock size={34} />
-          <small>ANATOMATE DATASHOW</small>
-          <h2>Datashow access is locked</h2>
-          <p>This viewer is available after purchasing the Datashow or Bundle option.</p>
+          <small>ANATOMATE {documentLabel.toUpperCase()}</small>
+          <h2>{documentLabel} access is locked</h2>
+          <p>This protected viewer is available after purchasing the Datashow or Bundle option.</p>
           <button className="primary" onClick={() => nav('/checkout/' + lecture.slug + '?product=datashow')}>Unlock Datashow</button>
           <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
         </div>
@@ -193,10 +263,16 @@ export default function DatashowViewer() {
       <div className="datashowtop">
         <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}><ArrowLeft size={17} /> Back</button>
         <div>
-          <small>ANATOMATE VIEWER · VIEW ONLY</small>
+          <small>ANATOMATE {documentLabel.toUpperCase()} VIEWER · VIEW ONLY</small>
           <h1>{lecture.title}</h1>
         </div>
-        <div className="datashowsecure"><ShieldCheck size={18} /> Watermarked</div>
+        <div className="datashowsecure"><ShieldCheck size={18} /> Personally watermarked</div>
+      </div>
+
+      <div className="vieweridentity">
+        <FileText size={17} />
+        <span>{displayName}</span>
+        <small>{email} · ID {studentId}</small>
       </div>
 
       <div
@@ -204,11 +280,15 @@ export default function DatashowViewer() {
         className="datashowstage"
         onContextMenu={(event) => event.preventDefault()}
       >
-        {loading && <div className="datashowstatus">Loading protected datashow…</div>}
+        {loading && <div className="datashowstatus">Loading protected {documentLabel}…</div>}
         {message && <div className="authmessage">{message}</div>}
         {!loading && !message && (
           <>
-            <canvas ref={canvasRef} className={rendering ? 'datashowcanvas rendering' : 'datashowcanvas'} />
+            <canvas
+              ref={canvasRef}
+              draggable={false}
+              className={rendering ? 'datashowcanvas rendering' : 'datashowcanvas'}
+            />
             <div className="datashowcontrols">
               <button
                 className="secondary"
@@ -217,7 +297,7 @@ export default function DatashowViewer() {
               >
                 <ChevronLeft size={18} /> Previous
               </button>
-              <span>Slide {pageNumber} / {pageCount || '—'}</span>
+              <span>{mode === 'pdf' ? 'Page' : 'Slide'} {pageNumber} / {pageCount || '—'}</span>
               <button
                 className="secondary"
                 disabled={pageNumber >= pageCount || rendering}
@@ -230,7 +310,11 @@ export default function DatashowViewer() {
           </>
         )}
       </div>
-      <p className="datashownote">Viewer-only access. The original PowerPoint file is not delivered to the student. Every displayed slide carries the watermark “{WATERMARK}”.</p>
+
+      <p className="datashownote">
+        Viewer-only access. The original file is not delivered to the student. Every displayed {mode === 'pdf' ? 'page' : 'slide'} carries
+        “{OWNER_WATERMARK}”, the signed-in student identity, a trace ID and viewing time.
+      </p>
     </div>
   )
 }
