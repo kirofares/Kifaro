@@ -866,14 +866,38 @@ export default function AdminPage() {
                   <label className="adminformwide">Description<textarea rows={4} value={lectureDraft.description} onChange={(e) => setLectureDraft((d) => ({...d,description:e.target.value}))}/></label>
                   <label className="adminformwide">Legacy/free preview video URL<input value={lectureDraft.videoUrl} onChange={(e) => setLectureDraft((d) => ({...d,videoUrl:e.target.value}))} placeholder="Optional. Do not use for paid content."/></label>
 
-                  <label className="adminformwide">Protected video path<input readOnly value={lectureDraft.videoPath} placeholder="No private video uploaded yet"/></label>
-                  <label className="adminformwide">Upload protected video
-                    <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setVideoFile(e.target.files?.[0] || null)}/>
+                  <div className="adminformwide bunnyuploadbox">
+                    <div>
+                      <small>BUNNY STREAM VIDEO</small>
+                      <strong>{lectureDraft.bunnyVideoId ? 'Connected to Bunny Stream' : 'No Bunny video uploaded yet'}</strong>
+                      <span>
+                        {lectureDraft.bunnyStatus
+                          ? lectureDraft.bunnyStatus + (lectureDraft.bunnyStatus === 'processing' ? ' · ' + lectureDraft.bunnyProgress + '%' : '')
+                          : 'Upload after Bunny Stream credentials are connected.'}
+                      </span>
+                    </div>
+                    {lectureDraft.bunnyVideoId && (
+                      <button className="secondary" disabled={assetUploading === 'video'} onClick={() => void refreshBunnyStatus()}>
+                        Refresh video status
+                      </button>
+                    )}
+                  </div>
+                  <label className="adminformwide">Upload lecture video to Bunny Stream
+                    <input type="file" accept="video/mp4,video/webm,video/quicktime,.m4v,.mkv" onChange={(e) => setVideoFile(e.target.files?.[0] || null)}/>
                   </label>
                   <div className="adminformwide adminquick">
-                    <button className="secondary" disabled={!videoFile || Boolean(assetUploading)} onClick={() => void uploadProtectedAsset('video')}>{assetUploading === 'video' ? 'Uploading…' : 'Upload video privately'}</button>
+                    <button className="secondary" disabled={!videoFile || Boolean(assetUploading)} onClick={() => void uploadVideoToBunny()}>
+                      {assetUploading === 'video' ? 'Uploading ' + videoUploadProgress + '%…' : 'Upload to Bunny Stream'}
+                    </button>
                     {videoFile && <small>{videoFile.name}</small>}
                   </div>
+                  {assetUploading === 'video' && (
+                    <div className="adminformwide bunnyprogress">
+                      <div><i style={{ width: videoUploadProgress + '%' }} /></div>
+                      <span>{videoUploadProgress}% uploaded</span>
+                    </div>
+                  )}
+                  {lectureDraft.videoPath && <label className="adminformwide">Legacy Supabase video path<input readOnly value={lectureDraft.videoPath}/></label>}
 
                   <label className="adminformwide">Protected PDF path<input readOnly value={lectureDraft.pdfPath} placeholder="No private PDF uploaded yet"/></label>
                   <label className="adminformwide">Upload protected PDF
