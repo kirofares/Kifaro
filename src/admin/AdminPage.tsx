@@ -316,7 +316,7 @@ export default function AdminPage() {
   const refreshBunnyStatus = async () => {
     if (!supabase || !editingLecture || !lectureDraft.bunnyVideoId) return
     setMessage('Checking Bunny Stream encoding status…')
-    const { data, error } = await supabase.functions.invoke('bunny-video-admin', {
+    const { data, error } = await client.functions.invoke('bunny-video-admin', {
       body: { action: 'status', lectureId: editingLecture },
     })
     if (error || data?.error) {
@@ -336,6 +336,7 @@ export default function AdminPage() {
 
   const uploadVideoToBunny = async () => {
     if (!supabase || !editingLecture || !videoFile) return
+    const client = supabase
 
     setAssetUploading('video')
     setVideoUploadProgress(0)
@@ -388,7 +389,7 @@ export default function AdminPage() {
       },
       onSuccess: () => {
         void (async () => {
-          const result = await supabase.functions.invoke('bunny-video-admin', {
+          const result = await client.functions.invoke('bunny-video-admin', {
             body: { action: 'uploaded', lectureId: editingLecture },
           })
           setVideoFile(null)
