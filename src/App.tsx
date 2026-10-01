@@ -454,9 +454,12 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const entitlement = entitlementByLecture.get(lecture.id)
   const videoUnlocked = lecture.status === 'free' || Boolean(entitlement?.video_access) || isAdmin
   const datashowUnlocked = Boolean(entitlement?.datashow_access) || isAdmin
-  const videoOffer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting), 'video')
-  const datashowOffer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting), 'datashow')
-  const bundleOffer = offerFor(lecture.id, getLecturePrice(lecture, lectureSetting), 'bundle')
+  const videoBasePrice = getLecturePrice(lecture, lectureSetting)
+  const datashowBasePrice = Math.max(30, videoBasePrice)
+  const bundleBasePrice = videoBasePrice + datashowBasePrice
+  const videoOffer = offerFor(lecture.id, videoBasePrice, 'video')
+  const datashowOffer = offerFor(lecture.id, datashowBasePrice, 'datashow')
+  const bundleOffer = offerFor(lecture.id, bundleBasePrice, 'bundle')
   const remainingViews = entitlement?.view_limit == null
     ? null
     : Math.max(0, entitlement.view_limit - entitlement.views_used)
@@ -667,9 +670,10 @@ function CheckoutPage() {
   }
 
   const basePrice = getLecturePrice(lecture, lectureSetting)
+  const datashowBasePrice = Math.max(30, basePrice)
   const videoOffer = offerFor(lecture.id, basePrice, 'video')
-  const datashowOffer = offerFor(lecture.id, basePrice, 'datashow')
-  const bundleOffer = offerFor(lecture.id, basePrice, 'bundle')
+  const datashowOffer = offerFor(lecture.id, datashowBasePrice, 'datashow')
+  const bundleOffer = offerFor(lecture.id, basePrice + datashowBasePrice, 'bundle')
   const offers = { video: videoOffer, datashow: datashowOffer, bundle: bundleOffer }
   const offer = offers[product]
   const entitlement = entitlementByLecture.get(lecture.id)
