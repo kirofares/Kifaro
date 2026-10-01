@@ -1,0 +1,152 @@
+name: Compress and restore oversized PPTX assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/compress-oversize-pptx.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        import_id:
+          - "7522bec4-40c5-4d0d-b744-de3b2496aa14"
+          - "7e118a39-99b8-4544-b033-e39e7c5a2693"
+          - "ec52e3fe-daad-405f-b33a-6fe7ba3051f0"
+          - "6290e341-6083-4a18-a0d4-9ccd1614a114"
+          - "f441d671-7316-4629-b679-0d6cc994eda3"
+          - "562e59ff-5fb5-482a-897b-100a1edf1575"
+          - "15662ee8-4e6e-4166-803d-2ab0e826eaff"
+          - "b84e534d-02cb-4f3f-9a9b-8df96e3b9d54"
+          - "1635cfc0-6d06-4b61-b96a-45b30778bc7a"
+          - "e74a3bb8-e1e2-4805-b13c-29e202aa0838"
+          - "c0c4865c-d895-45af-b312-0528b7cc9f27"
+          - "81b07f5b-2273-4a06-905b-ab242be131bc"
+          - "c0197c2c-cd0c-43fa-890a-1b34d7f01675"
+          - "20b92d8c-7539-4fb1-b56a-a1096de884d7"
+          - "589fb59b-7e02-47c5-a3a6-36b03eee40d6"
+          - "267b88de-45ac-4028-807b-b07959d19cd8"
+          - "3830db95-c9fe-492d-ab1c-15fda30d4963"
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet pillow
+      - run: npm install --silent @supabase/supabase-js@2
+      - name: Download source PowerPoint
+        run: |
+          curl -L --fail --show-error --silent --max-time 600 \
+            "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=source&id=${{ matrix.import_id }}" \
+            -o input.pptx
+          test -s input.pptx
+      - name: Compress embedded images while preserving PPTX structure
+        run: |
+          cat > /tmp/compress_pptx.py <<'PY'
+          import os, sys, tempfile, shutil, zipfile
+          from PIL import Image
+
+          src='input.pptx'
+          target=47_000_000
+          presets=[
+              (1800,82,256),
+              (1600,76,256),
+              (1400,70,192),
+              (1200,65,128),
+              (1000,60,96),
+          ]
+
+          def compress_once(maxdim, quality, colors, out):
+              root=tempfile.mkdtemp(prefix='pptx-')
+              try:
+                  with zipfile.ZipFile(src,'r') as z:
+                      z.extractall(root)
+                  media=os.path.join(root,'ppt','media')
+                  if os.path.isdir(media):
+                      for name in os.listdir(media):
+                          path=os.path.join(media,name)
+                          ext=os.path.splitext(name)[1].lower()
+                          if ext not in ('.jpg','.jpeg','.png'):
+                              continue
+                          try:
+                              with Image.open(path) as im:
+                                  im.load()
+                                  w,h=im.size
+                                  scale=min(1.0, maxdim/max(w,h))
+                                  if scale < 1.0:
+                                      im=im.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+                                  if ext in ('.jpg','.jpeg'):
+                                      if im.mode not in ('RGB','L'):
+                                          im=im.convert('RGB')
+                                      im.save(path,format='JPEG',quality=quality,optimize=True,progressive=True)
+                                  else:
+                                      if im.mode in ('RGBA','LA'):
+                                          im=im.convert('RGBA').quantize(colors=colors,method=Image.Quantize.FASTOCTREE,dither=Image.Dither.NONE)
+                                      elif im.mode not in ('P','L'):
+                                          im=im.convert('RGB').quantize(colors=colors,method=Image.Quantize.MEDIANCUT,dither=Image.Dither.NONE)
+                                      im.save(path,format='PNG',optimize=True,compress_level=9)
+                          except Exception:
+                              pass
+                  with zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+                      for base,_,files in os.walk(root):
+                          for fn in files:
+                              full=os.path.join(base,fn)
+                              arc=os.path.relpath(full,root)
+                              z.write(full,arc)
+              finally:
+                  shutil.rmtree(root,ignore_errors=True)
+
+          original=os.path.getsize(src)
+          print('original_bytes',original)
+          for i,(maxdim,q,colors) in enumerate(presets,1):
+              out=f'output-{i}.pptx'
+              compress_once(maxdim,q,colors,out)
+              size=os.path.getsize(out)
+              print('attempt',i,'maxdim',maxdim,'quality',q,'colors',colors,'bytes',size)
+              if size <= target:
+                  shutil.move(out,'output.pptx')
+                  for j in range(1,i):
+                      try: os.remove(f'output-{j}.pptx')
+                      except FileNotFoundError: pass
+                  sys.exit(0)
+          print('Could not reduce PowerPoint below upload limit',file=sys.stderr)
+          sys.exit(2)
+          PY
+          python /tmp/compress_pptx.py
+          test $(stat -c%s output.pptx) -le 47000000
+      - name: Create short-lived signed upload token
+        run: |
+          curl --fail --show-error --silent --max-time 60 \
+            "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=prepare&id=${{ matrix.import_id }}" \
+            -o prep.json
+          python -c "import json; d=json.load(open('prep.json')); assert d.get('token') and d.get('path')"
+      - name: Upload compressed PPTX to private storage
+        env:
+          SUPABASE_URL: https://gwwauaybbqmzbwvpbxly.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
+        run: |
+          cat > upload.mjs <<'NODE'
+          import fs from 'node:fs'
+          import { createClient } from '@supabase/supabase-js'
+          const prep=JSON.parse(fs.readFileSync('prep.json','utf8'))
+          const body=fs.readFileSync('output.pptx')
+          const client=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}})
+          const { error }=await client.storage.from(prep.bucket).uploadToSignedUrl(prep.path,prep.token,body,{contentType:prep.contentType,upsert:true})
+          if(error) throw error
+          console.log('uploaded_bytes',body.length)
+          NODE
+          node upload.mjs
+      - name: Finalize lecture asset mapping
+        run: |
+          curl --fail --show-error --silent --max-time 60 \
+            "https://gwwauaybbqmzbwvpbxly.supabase.co/functions/v1/asset-import-bridge?action=finish&id=${{ matrix.import_id }}"
