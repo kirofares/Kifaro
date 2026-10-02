@@ -26,6 +26,22 @@ type Lang = 'en' | 'ar'
 
 type LecturePrice = 0 | 40 | 50 | 60
 
+const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
+const LATEST_RELEASE_API = 'https://api.github.com/repos/kirofares/Kifaro/releases/latest'
+const LATEST_APK_URL = 'https://github.com/kirofares/Kifaro/releases/latest/download/AnatoMate.apk'
+
+function compareVersions(a: string, b: string) {
+  const pa = a.replace(/^v/i, '').split('.').map((part) => Number(part) || 0)
+  const pb = b.replace(/^v/i, '').split('.').map((part) => Number(part) || 0)
+  const max = Math.max(pa.length, pb.length)
+  for (let i = 0; i < max; i += 1) {
+    const av = pa[i] || 0
+    const bv = pb[i] || 0
+    if (av !== bv) return av > bv ? 1 : -1
+  }
+  return 0
+}
+
 function getLecturePrice(lecture: { status: string; duration: number; system: string }, setting?: LectureSetting): LecturePrice {
   if (setting?.access_mode === 'free' || lecture.status === 'free' && setting?.access_mode !== 'paid') return 0
   if (setting?.price_egp === 40 || setting?.price_egp === 50 || setting?.price_egp === 60) return setting.price_egp
@@ -115,6 +131,8 @@ export default function App() {
   const [prefs, setPrefs] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [toast, setToast] = useState('')
+  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+  const [updateAvailable, setUpdateAvailable] = useState(false)
   const t = copy[lang]
   const nav = useNavigate()
   const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
@@ -146,6 +164,24 @@ export default function App() {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
     document.body.dataset.theme = theme
   }, [lang, theme])
+
+  useEffect(() => {
+    let active = true
+    fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Release check failed')))
+      .then((release) => {
+        if (!active) return
+        const latest = String(release?.tag_name || '').replace(/^v/i, '')
+        if (!latest) return
+        setLatestVersion(latest)
+        setUpdateAvailable(compareVersions(latest, CURRENT_APP_VERSION) > 0)
+      })
+      .catch(() => {
+        if (active) setUpdateAvailable(false)
+      })
+
+    return () => { active = false }
+  }, [])
 
   const lectures = useMemo(
     () => anatomateLectures
@@ -182,6 +218,17 @@ export default function App() {
 
   return (
     <div className="shell">
+      {updateAvailable && (
+        <div className="appupdatebar">
+          <div>
+            <strong>AnatoMate {latestVersion} is available</strong>
+            <span>You are using version {CURRENT_APP_VERSION}.</span>
+          </div>
+          <a href={LATEST_APK_URL} target="_blank" rel="noreferrer">
+            <Download size={17} /> Update AnatoMate
+          </a>
+        </div>
+      )}
       <header className="topbar">
         <button className="icon mobile" onClick={() => setDrawer(true)} aria-label="Open menu"><Menu /></button>
         <button className="brand" onClick={() => nav('/')}>
