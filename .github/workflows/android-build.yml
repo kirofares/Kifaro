@@ -53,6 +53,40 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Apply Android system-bar insets
+        shell: bash
+        run: |
+          cat > android/app/src/main/java/com/kifaro/anatomate/MainActivity.java <<'EOF'
+          package com.kifaro.anatomate;
+
+          import android.os.Bundle;
+          import android.view.View;
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+
+              View content = findViewById(android.R.id.content);
+              ViewCompat.setOnApplyWindowInsetsListener(content, (view, insets) -> {
+                Insets nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+                view.setPadding(
+                  view.getPaddingLeft(),
+                  view.getPaddingTop(),
+                  view.getPaddingRight(),
+                  nav.bottom
+                );
+                return insets;
+              });
+              ViewCompat.requestApplyInsets(content);
+            }
+          }
+          EOF
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
