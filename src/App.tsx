@@ -355,11 +355,13 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
                 <button
                   key={module.slug}
                   className="modulecard"
-                  disabled={module.status === 'coming-soon'}
-                  onClick={() => module.status !== 'coming-soon' && go('/anatomate/year/' + year.year + '/module/' + module.slug)}
+                  onClick={() => go('/anatomate/year/' + year.year + '/module/' + module.slug)}
                 >
                   <div>
-                    <small>{module.status === 'coming-soon' ? 'Coming soon' : module.lectures.length + ' lectures'}</small>
+                    <small>
+                      {module.semester === 0 ? 'Orientation' : 'Semester ' + module.semester}
+                      {' · '}{module.code}{' · '}{module.lectures.length} lectures
+                    </small>
                     <h3>{module.title}</h3>
                     <p>{module.description}</p>
                   </div>
