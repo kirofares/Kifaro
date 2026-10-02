@@ -200,3 +200,43 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
     }
   }
 }
+
+
+/* Final mobile spacing polish */
+@media (max-width:780px) {
+  .hero{
+    padding-bottom:88px;
+  }
+  .hero .lightbtn{
+    margin-top:8px;
+    min-height:48px;
+    padding-inline:18px;
+  }
+  .continuecard,
+  .coursecard,
+  .lessonrow,
+  .topiccard,
+  .toolcard,
+  .stage{
+    overflow:hidden;
+  }
+  .primary,
+  .secondary,
+  .lightbtn{
+    min-height:44px;
+  }
+  .pagehead h1{
+    line-height:1.08;
+  }
+  .pagehead p{
+    line-height:1.55;
+  }
+}
+
+@supports (padding: max(0px)) {
+  @media (max-width:780px) {
+    .hero{
+      padding-bottom:max(88px, calc(64px + env(safe-area-inset-bottom)));
+    }
+  }
+}
