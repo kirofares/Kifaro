@@ -169,9 +169,7 @@ Deno.serve(async (req: Request) => {
     const specialReference = 'KF-' + issuedAt + '-' + nonce
 
     const functionBase = supabaseUrl + '/functions/v1'
-    const returnUrl =
-      'https://kifaroedu.com/#/checkout/' + encodeURIComponent(lectureId) +
-      '?product=' + encodeURIComponent(productType) + '&payment_return=1'
+    const returnUrl = 'https://kifaroedu.com/#/payment/return'
 
     const intentionPayload = {
       amount: amountCents,
