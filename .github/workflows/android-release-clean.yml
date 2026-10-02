@@ -70,6 +70,18 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Generate production Android icon and splash
+        shell: bash
+        run: |
+          npm install --no-save @capacitor/assets
+          npx @capacitor/assets generate --android \
+            --assetPath assets \
+            --iconBackgroundColor '#0F2D5B' \
+            --iconBackgroundColorDark '#0F2D5B' \
+            --splashBackgroundColor '#0F2D5B' \
+            --splashBackgroundColorDark '#0F2D5B' \
+            --logoSplashScale 0.22
+
       - name: Restore clean keystore
         shell: bash
         env:
