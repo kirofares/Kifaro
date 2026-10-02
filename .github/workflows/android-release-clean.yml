@@ -2,6 +2,17 @@ name: Build AnatoMate Release Clean
 
 on:
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: Android version name (example: 1.0.1)
+        required: true
+        default: '1.0.1'
+        type: string
+      version_code:
+        description: Android version code (must increase every release)
+        required: true
+        default: '2'
+        type: string
 
 permissions:
   contents: write
@@ -12,8 +23,9 @@ jobs:
     env:
       VITE_SUPABASE_URL: https://gwwauaybbqmzbwvpbxly.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
-      ANATOMATE_VERSION_NAME: 1.0.0
-      ANATOMATE_VERSION_CODE: 1
+      VITE_APP_VERSION: ${{ inputs.version_name }}
+      ANATOMATE_VERSION_NAME: ${{ inputs.version_name }}
+      ANATOMATE_VERSION_CODE: ${{ inputs.version_code }}
       ANATOMATE_KEY_ALIAS: anatomate
 
     steps:
@@ -30,6 +42,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+
+      - name: Verify version inputs
+        shell: bash
+        run: |
+          [[ "$ANATOMATE_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || (echo "Version name must look like 1.0.1" && exit 1)
+          [[ "$ANATOMATE_VERSION_CODE" =~ ^[0-9]+$ ]] || (echo "Version code must be an integer" && exit 1)
 
       - name: Verify clean signing secrets
         shell: bash
@@ -64,7 +82,10 @@ jobs:
         env:
           STORE_PASSWORD: ${{ secrets.ANATOMATE_KEYSTORE_PASSWORD_V2 }}
         run: |
-          keytool -list             -keystore android/app/anatomate-release-final.jks             -storepass "$STORE_PASSWORD"             -alias "$ANATOMATE_KEY_ALIAS" >/dev/null
+          keytool -list \
+            -keystore android/app/anatomate-release-final.jks \
+            -storepass "$STORE_PASSWORD" \
+            -alias "$ANATOMATE_KEY_ALIAS" >/dev/null
 
       - name: Configure Android release signing and version
         shell: bash
@@ -120,22 +141,22 @@ jobs:
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: AnatoMate-1.0.0-release-apk
+          name: AnatoMate-${{ inputs.version_name }}-release-apk
           path: AnatoMate.apk
 
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         with:
-          name: AnatoMate-1.0.0-release-aab
+          name: AnatoMate-${{ inputs.version_name }}-release-aab
           path: AnatoMate.aab
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: AnatoMate 1.0.0
+          tag_name: v${{ inputs.version_name }}
+          name: AnatoMate ${{ inputs.version_name }}
           body: |
-            AnatoMate by KIFARO — Android release 1.0.0.
+            AnatoMate by KIFARO — Android release ${{ inputs.version_name }}.
             APK: direct installation.
             AAB: Google Play submission.
           files: |
