@@ -215,6 +215,7 @@ export default function App() {
           <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
           <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
+          <Route path="/payment/return" element={<PaymentReturnPage />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
@@ -686,7 +687,7 @@ function CheckoutPage() {
   const nav = useNavigate()
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { entitlementByLecture, loading: entitlementsLoading } = useEntitlements(user?.id)
+  const { entitlementByLecture, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor, loading: offerLoading } = usePricingRules()
   const { byLecture: assetReadiness } = useAssetReadiness()
@@ -695,6 +696,8 @@ function CheckoutPage() {
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
   const requested = searchParams.get('product')
   const product = requested === 'video' || requested === 'datashow' || requested === 'bundle' ? requested : 'bundle'
+  const [paymentBusy, setPaymentBusy] = useState(false)
+  const [paymentMessage, setPaymentMessage] = useState('')
 
   if (!lecture) {
     return <div className="page"><PageHead eyebrow="KIFARO CHECKOUT" title="Lecture not found" body="This lecture is not available." /></div>
@@ -717,6 +720,26 @@ function CheckoutPage() {
     product === 'video' ? Boolean(entitlement?.video_access) :
     product === 'datashow' ? Boolean(entitlement?.datashow_access) :
     Boolean(entitlement?.video_access && entitlement?.datashow_access)
+
+  const startPayment = async () => {
+    if (!supabase || !user || paymentBusy) return
+    setPaymentBusy(true)
+    setPaymentMessage('')
+
+    const popup = window.open('', '_self')
+    const { data, error } = await supabase.functions.invoke('paymob-create-checkout', {
+      body: { lectureId: lecture.id, productType: product },
+    })
+
+    if (error || data?.error || !data?.checkoutUrl) {
+      setPaymentBusy(false)
+      setPaymentMessage(data?.error || error?.message || 'Could not start Paymob checkout.')
+      return
+    }
+
+    if (popup) popup.location.href = String(data.checkoutUrl)
+    else window.location.href = String(data.checkoutUrl)
+  }
 
   return (
     <div className="page">
@@ -771,13 +794,87 @@ function CheckoutPage() {
           </>
         ) : (
           <>
-            <small className="assetnote">Your final offer can be matched to academic year and nationality from the Admin pricing rules.</small>
-            <button className="primary full" disabled><CreditCard size={17} /> {entitlementsLoading || offerLoading ? 'Checking account…' : 'Payment gateway setup in progress'}</button>
+            <small className="assetnote">Your price is matched to your academic year and nationality. Paymob confirms payment server-to-server before KIFARO unlocks access.</small>
+            <button className="primary full" disabled={paymentBusy || entitlementsLoading || offerLoading} onClick={() => void startPayment()}>
+              <CreditCard size={17} /> {paymentBusy ? 'Opening Paymob…' : entitlementsLoading || offerLoading ? 'Checking account…' : 'Pay securely with Paymob'}
+            </button>
+            <small className="paymenttestnote">Paymob is currently in TEST MODE — no real money is charged during testing.</small>
+            {paymentMessage && <div className="authmessage">{paymentMessage}</div>}
           </>
         )}
 
         <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
         <small className="assetnote">Purchases are verified from Supabase. Students cannot grant access to themselves.</small>
+      </div>
+    </div>
+  )
+}
+
+function PaymentReturnPage() {
+  const nav = useNavigate()
+  const { user } = useAuth()
+  const [params] = useSearchParams()
+  const [checking, setChecking] = useState(true)
+  const [message, setMessage] = useState('Confirming payment with Paymob…')
+  const successHint = params.get('success')
+  const transactionId = params.get('id')
+
+  useEffect(() => {
+    let active = true
+    const verify = async () => {
+      if (!user) {
+        if (active) {
+          setChecking(false)
+          setMessage('Sign in to see your purchased content.')
+        }
+        return
+      }
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        if (!active) return
+        await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 800 : 1600))
+        if (!supabase) break
+        const { data } = await supabase
+          .from('lecture_entitlements')
+          .select('lecture_id, source, granted_at')
+          .eq('user_id', user.id)
+          .is('revoked_at', null)
+          .order('granted_at', { ascending: false })
+          .limit(1)
+
+        if (data?.length && String(data[0].source || '').startsWith('paymob:')) {
+          if (active) {
+            setChecking(false)
+            setMessage('Payment confirmed. Your KIFARO access is active.')
+          }
+          return
+        }
+      }
+
+      if (active) {
+        setChecking(false)
+        setMessage(successHint === 'true'
+          ? 'Paymob accepted the payment. KIFARO is still waiting for the secure server confirmation; refresh My Library in a moment.'
+          : 'Payment was not confirmed. No access has been granted.')
+      }
+    }
+
+    void verify()
+    return () => { active = false }
+  }, [user?.id, successHint])
+
+  return (
+    <div className="page">
+      <div className="contentbox paymentreturn">
+        <div className={checking ? 'paymentreturnicon checking' : 'paymentreturnicon'}>{checking ? <Clock3 size={30}/> : <ShieldCheck size={30}/>}</div>
+        <small>PAYMOB · KIFARO</small>
+        <h2>{checking ? 'Checking payment' : 'Payment status'}</h2>
+        <p>{message}</p>
+        {transactionId && <small className="assetnote">Transaction reference: {transactionId}</small>}
+        <div className="paymentreturnactions">
+          <button className="primary" onClick={() => nav('/library')}><Library size={17}/> My Library</button>
+          <button className="secondary" onClick={() => nav('/anatomate')}><BookOpen size={17}/> AnatoMate</button>
+        </div>
       </div>
     </div>
   )
