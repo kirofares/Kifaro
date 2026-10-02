@@ -2,6 +2,15 @@ name: Build AnatoMate Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
+      - 'capacitor.config.ts'
+      - 'src/**'
+      - 'public/**'
+      - '.github/workflows/android-build.yml'
   pull_request:
     paths:
       - 'package.json'
