@@ -103,10 +103,6 @@ jobs:
 
       - name: Configure Android release signing and version
         shell: bash
-        env:
-          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -118,28 +114,39 @@ jobs:
           s = re.sub(r'versionCode\s+\d+', f'versionCode {os.environ["ANATOMATE_VERSION_CODE"]}', s)
           s = re.sub(r'versionName\s+"[^"]+"', f'versionName "{os.environ["ANATOMATE_VERSION_NAME"]}"', s)
 
-          android_marker = "android {"
-          signing_block = f"""
-              signingConfigs {{
-                  release {{
+          signing_block = """
+              signingConfigs {
+                  release {
                       storeFile file("anatomate-release.jks")
-                      storePassword "{os.environ['STORE_PASSWORD']}"
-                      keyAlias "{os.environ['KEY_ALIAS']}"
-                      keyPassword "{os.environ['KEY_PASSWORD']}"
-                  }}
-              }}
-          """
-          s = s.replace(android_marker, android_marker + signing_block, 1)
+                      storePassword project.findProperty("ANATOMATE_STORE_PASSWORD")
+                      keyAlias project.findProperty("ANATOMATE_KEY_ALIAS")
+                      keyPassword project.findProperty("ANATOMATE_KEY_PASSWORD")
+                  }
+              }
 
-          release_marker = "release {"
-          release_signing = "release {\n            signingConfig signingConfigs.release"
-          s = s.replace(release_marker, release_signing, 1)
+          """
+
+          build_types_marker = re.search(r'^\s*buildTypes\s*\{', s, flags=re.MULTILINE)
+          if not build_types_marker:
+              raise SystemExit("Could not find buildTypes block in android/app/build.gradle")
+
+          s = s[:build_types_marker.start()] + signing_block + s[build_types_marker.start():]
+
+          pattern = r'(buildTypes\s*\{\s*release\s*\{)'
+          replacement = r'\1\n            signingConfig signingConfigs.release'
+          s, count = re.subn(pattern, replacement, s, count=1, flags=re.DOTALL)
+          if count != 1:
+              raise SystemExit("Could not configure release signing in buildTypes.release")
 
           p.write_text(s)
           PY
 
       - name: Build signed APK and AAB
         working-directory: android
+        env:
+          ORG_GRADLE_PROJECT_ANATOMATE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_ANATOMATE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_ANATOMATE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew assembleRelease bundleRelease
 
       - name: Verify signed APK
