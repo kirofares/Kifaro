@@ -240,3 +240,15 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
     }
   }
 }
+
+
+/* Keep the dashboard hero clear of Android navigation */
+@media (max-width:780px) {
+  .hero{
+    padding-bottom:32px;
+    margin-bottom:104px;
+  }
+  .hero .lightbtn{
+    margin-top:14px;
+  }
+}
