@@ -262,3 +262,53 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
   .heroactions{display:grid;grid-template-columns:1fr;gap:10px}
   .heroactions .lightbtn{width:100%;justify-content:center}
 }
+
+
+/* In-app Android update banner */
+.appupdatebar{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  z-index:1200;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  padding:10px 16px;
+  background:var(--primary);
+  color:#fff;
+  box-shadow:0 6px 18px rgba(0,0,0,.12);
+}
+.appupdatebar>div{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.appupdatebar strong{font-size:13px}
+.appupdatebar span{font-size:12px;opacity:.9}
+.appupdatebar a{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:38px;
+  padding:8px 13px;
+  border-radius:10px;
+  background:#fff;
+  color:var(--primary);
+  text-decoration:none;
+  font-size:12px;
+  font-weight:800;
+}
+.shell:has(.appupdatebar) .topbar{top:58px}
+.shell:has(.appupdatebar) .sidebar{top:58px}
+.shell:has(.appupdatebar) .main{padding-top:calc(64px + 58px)}
+@media(max-width:780px){
+  .appupdatebar{
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 10px;
+  }
+  .appupdatebar>div{display:grid;gap:2px}
+  .appupdatebar span{font-size:10px}
+  .appupdatebar a{min-height:36px;padding:7px 10px;font-size:11px;white-space:nowrap}
+  .shell:has(.appupdatebar) .topbar{top:54px}
+  .shell:has(.appupdatebar) .sidebar{top:54px}
+  .shell:has(.appupdatebar) .main{padding-top:calc(64px + 54px)}
+}
