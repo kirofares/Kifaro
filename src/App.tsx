@@ -687,7 +687,7 @@ function CheckoutPage() {
   const nav = useNavigate()
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { entitlementByLecture, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements(user?.id)
+  const { entitlementByLecture, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor, loading: offerLoading } = usePricingRules()
   const { byLecture: assetReadiness } = useAssetReadiness()
