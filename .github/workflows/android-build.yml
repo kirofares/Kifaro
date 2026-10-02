@@ -50,6 +50,40 @@ jobs:
       - name: Create Android project
         run: npx cap add android
 
+      - name: Respect Android navigation bar inset
+        shell: bash
+        run: |
+          cat > android/app/src/main/java/com/kifaro/anatomate/MainActivity.java <<'EOF'
+          package com.kifaro.anatomate;
+
+          import android.os.Bundle;
+          import android.view.View;
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+
+              View webView = bridge.getWebView();
+              ViewCompat.setOnApplyWindowInsetsListener(webView, (view, insets) -> {
+                Insets bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+                view.setPadding(
+                  view.getPaddingLeft(),
+                  view.getPaddingTop(),
+                  view.getPaddingRight(),
+                  bars.bottom
+                );
+                return insets;
+              });
+              ViewCompat.requestApplyInsets(webView);
+            }
+          }
+          EOF
+
       - name: Sync Capacitor
         run: npx cap sync android
 
