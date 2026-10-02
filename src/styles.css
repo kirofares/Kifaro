@@ -252,3 +252,13 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
     margin-top:14px;
   }
 }
+
+
+/* AnatoMate direct Android download */
+.heroactions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.heroactions .lightbtn{margin-top:8px}
+.downloadappbtn{text-decoration:none}
+@media(max-width:780px){
+  .heroactions{display:grid;grid-template-columns:1fr;gap:10px}
+  .heroactions .lightbtn{width:100%;justify-content:center}
+}
