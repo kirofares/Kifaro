@@ -109,6 +109,7 @@ export default function App() {
   const { progress, update } = useProgress()
   const { settings: lectureSettings } = useLectureSettings()
   const { user, configured, signOut } = useAuth()
+  const [profileName, setProfileName] = useState('')
   const { isAdmin } = useAdmin(user?.id)
   const [query, setQuery] = useState('')
   const [prefs, setPrefs] = useState(false)
@@ -116,7 +117,29 @@ export default function App() {
   const [toast, setToast] = useState('')
   const t = copy[lang]
   const nav = useNavigate()
-  const studentName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || (lang === 'ar' ? 'طالب KIFARO' : 'KIFARO Student')
+  const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
+  const studentName = (profileName || metadataName).split(' ')[0] || (lang === 'ar' ? 'طالب KIFARO' : 'KIFARO Student')
+
+  useEffect(() => {
+    if (!user || !supabase) {
+      setProfileName('')
+      return
+    }
+
+    let active = true
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setProfileName((data?.full_name as string | undefined)?.trim() || '')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user])
 
   useEffect(() => {
     document.documentElement.lang = lang
