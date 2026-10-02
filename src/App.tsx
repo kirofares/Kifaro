@@ -114,9 +114,34 @@ export default function App() {
   const [prefs, setPrefs] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [toast, setToast] = useState('')
+  const [profileFullName, setProfileFullName] = useState('')
   const t = copy[lang]
   const nav = useNavigate()
-  const studentName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || (lang === 'ar' ? 'طالب KIFARO' : 'KIFARO Student')
+  const studentName =
+    profileFullName.split(' ')[0] ||
+    (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] ||
+    (lang === 'ar' ? 'طالب KIFARO' : 'KIFARO Student')
+
+  useEffect(() => {
+    if (!user || !supabase) {
+      setProfileFullName('')
+      return
+    }
+
+    let active = true
+    void supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setProfileFullName(data?.full_name || '')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user])
 
   useEffect(() => {
     document.documentElement.lang = lang
