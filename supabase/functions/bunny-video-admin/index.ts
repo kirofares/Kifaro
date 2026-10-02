@@ -17,6 +17,71 @@ async function sha256Hex(value: string) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+
+const expectedAllowedReferrers = ['kifaroedu.com', 'www.kifaroedu.com', 'kirofares.github.io']
+
+async function syncAllowedReferrers(libraryId: string, apiKey: string) {
+  try {
+    const libraryResponse = await fetch(`https://api.bunny.net/videolibrary/${libraryId}`, {
+      headers: { 'AccessKey': apiKey, 'Accept': 'application/json' },
+    })
+
+    const libraryText = await libraryResponse.text()
+    let library: any = null
+    try { library = JSON.parse(libraryText) } catch {}
+
+    if (!libraryResponse.ok || !library) {
+      return { synced: false, allowedDomains: [], warning: library?.Message || library?.message || libraryText || 'Could not read Bunny library settings.' }
+    }
+
+    const rawAllowed = Array.isArray(library.AllowedReferrers)
+      ? library.AllowedReferrers
+      : Array.isArray(library.allowedReferrers)
+        ? library.allowedReferrers
+        : []
+
+    const allowed = rawAllowed.map((item: unknown) => String(item).toLowerCase())
+    const warnings: string[] = []
+
+    for (const hostname of expectedAllowedReferrers) {
+      if (allowed.includes(hostname.toLowerCase())) continue
+
+      const addResponse = await fetch(
+        `https://api.bunny.net/videolibrary/${libraryId}/addAllowedReferrer`,
+        {
+          method: 'POST',
+          headers: {
+            'AccessKey': apiKey,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ Hostname: hostname }),
+        },
+      )
+
+      if (addResponse.ok) {
+        allowed.push(hostname.toLowerCase())
+      } else {
+        const addText = await addResponse.text()
+        // A duplicate can race with another configuration request; keep the library usable.
+        if (!/already|exist|duplicate/i.test(addText)) warnings.push(`${hostname}: ${addText || addResponse.status}`)
+      }
+    }
+
+    return {
+      synced: warnings.length === 0,
+      allowedDomains: Array.from(new Set(allowed)),
+      warning: warnings.length ? warnings.join(' | ') : null,
+    }
+  } catch (error) {
+    return {
+      synced: false,
+      allowedDomains: [],
+      warning: error instanceof Error ? error.message : 'Could not sync Bunny allowed domains.',
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -57,7 +122,11 @@ Deno.serve(async (req: Request) => {
     const action = String(body?.action || 'configuration')
 
     if (action === 'configuration') {
-      return json({ configured, libraryId: configured ? libraryId : null })
+      if (!configured || !libraryId || !apiKey) {
+        return json({ configured: false, libraryId: null, domainSync: null })
+      }
+      const domainSync = await syncAllowedReferrers(libraryId, apiKey)
+      return json({ configured: true, libraryId, domainSync })
     }
 
     if (!configured || !libraryId || !apiKey) {
