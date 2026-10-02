@@ -3,7 +3,7 @@ import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
-  CreditCard, FileText, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
+  CreditCard, Download, FileText, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import AuthPage from './auth/AuthPage'
@@ -311,7 +311,17 @@ function Dashboard({ t, lectures, go, studentName }: { t: any; lectures: any[]; 
               <span className="pill">ANATOMATE BY KIFARO</span>
               <h2>{t.anatomyTitle}</h2>
               <p>{t.anatomyBody}</p>
-              <button className="lightbtn" onClick={() => go('/anatomate')}>{t.open}<ChevronRight size={17} /></button>
+              <div className="heroactions">
+                <button className="lightbtn" onClick={() => go('/anatomate')}>{t.open}<ChevronRight size={17} /></button>
+                <a
+                  className="lightbtn downloadappbtn"
+                  href="https://github.com/kirofares/Kifaro/releases/latest/download/AnatoMate.apk"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Download size={17} /> Download Android App
+                </a>
+              </div>
             </div>
             <Microscope className="heroicon" />
           </section>
