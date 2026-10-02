@@ -62,7 +62,7 @@ const copy = {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
     topics: 'Topics', studio: 'KIFARO Studio', library: 'My Library',
     preferences: 'Preferences', search: 'Search courses, topics, or exams',
-    hello: 'Good evening',
+    morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
     subtitle: 'Continue your medical journey with one focused step at a time.',
     continue: 'Continue Learning', open: 'Open AnatoMate', browse: 'Browse your pathways',
     revision: 'Revision Queue', weak: 'Weak topics to revisit',
@@ -77,7 +77,7 @@ const copy = {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
     topics: 'الموضوعات', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المقررات أو الموضوعات أو الاختبارات',
-    hello: 'مساء الخير،',
+    morning: 'صباح الخير،', afternoon: 'مساء الخير،', evening: 'مساء الخير،',
     subtitle: 'كمّلي رحلتك الطبية بخطوة مركزة كل مرة.',
     continue: 'متابعة التعلم', open: 'افتح AnatoMate', browse: 'استعرض مساراتك',
     revision: 'قائمة المراجعة', weak: 'موضوعات تحتاج مراجعة',
@@ -255,10 +255,18 @@ function PageHead({ eyebrow, title, body }: { eyebrow: string; title: string; bo
 
 function Dashboard({ t, lectures, go, studentName }: { t: any; lectures: any[]; go: (path: string) => void; studentName: string }) {
   const current = lectures.find((lecture) => lecture.progress > 0 && !lecture.completed) || lectures[0] || anatomateLectures[0]
+  const now = new Date()
+  const hour = now.getHours()
+  const greeting = hour < 12 ? t.morning : hour < 18 ? t.afternoon : t.evening
+  const dateLabel = now.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
 
   return (
     <div className="page">
-      <PageHead eyebrow="Tuesday · September 29" title={t.hello + ' ' + studentName + '.'} body={t.subtitle} />
+      <PageHead eyebrow={dateLabel} title={greeting + ' ' + studentName + '.'} body={t.subtitle} />
       <div className="dashgrid">
         <div>
           <section className="section">
