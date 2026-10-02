@@ -3,6 +3,9 @@ name: Build AnatoMate Release
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   release-android:
     runs-on: ubuntu-latest
@@ -142,16 +145,36 @@ jobs:
       - name: Verify signed APK
         run: jarsigner -verify -verbose -certs android/app/build/outputs/apk/release/app-release.apk
 
+      - name: Prepare release files
+        shell: bash
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk AnatoMate.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab AnatoMate.aab
+
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
           name: AnatoMate-1.0.0-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: AnatoMate.apk
           if-no-files-found: error
 
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         with:
           name: AnatoMate-1.0.0-release-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: AnatoMate.aab
           if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: AnatoMate 1.0.0
+          body: |
+            AnatoMate by KIFARO — Android release 1.0.0.
+            APK: direct installation.
+            AAB: Google Play submission.
+          files: |
+            AnatoMate.apk
+            AnatoMate.aab
+          make_latest: true
