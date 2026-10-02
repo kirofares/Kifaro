@@ -1,0 +1,130 @@
+name: Build AnatoMate Release Clean
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-android:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://gwwauaybbqmzbwvpbxly.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
+      ANATOMATE_VERSION_NAME: 1.0.0
+      ANATOMATE_VERSION_CODE: 1
+      ANATOMATE_KEY_ALIAS: anatomate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Verify clean signing secrets
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.ANATOMATE_KEYSTORE_BASE64_V2 }}
+          STORE_PASSWORD: ${{ secrets.ANATOMATE_KEYSTORE_PASSWORD_V2 }}
+        run: |
+          test -n "$KEYSTORE_B64" || (echo "Missing ANATOMATE_KEYSTORE_BASE64_V2" && exit 1)
+          test -n "$STORE_PASSWORD" || (echo "Missing ANATOMATE_KEYSTORE_PASSWORD_V2" && exit 1)
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Restore clean keystore
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.ANATOMATE_KEYSTORE_BASE64_V2 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 --decode > android/app/anatomate-release-final.jks
+
+      - name: Validate clean keystore
+        shell: bash
+        env:
+          STORE_PASSWORD: ${{ secrets.ANATOMATE_KEYSTORE_PASSWORD_V2 }}
+        run: |
+          keytool -list             -keystore android/app/anatomate-release-final.jks             -storepass "$STORE_PASSWORD"             -alias "$ANATOMATE_KEY_ALIAS" >/dev/null
+
+      - name: Configure Android release signing and version
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, re
+
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+
+          s = re.sub(r'versionCode\s+\d+', f'versionCode {os.environ["ANATOMATE_VERSION_CODE"]}', s)
+          s = re.sub(r'versionName\s+"[^"]+"', f'versionName "{os.environ["ANATOMATE_VERSION_NAME"]}"', s)
+
+          signing_block = """
+              signingConfigs {
+                  release {
+                      storeFile file("anatomate-release-final.jks")
+                      storePassword project.findProperty("ANATOMATE_STORE_PASSWORD")
+                      keyAlias "anatomate"
+                      keyPassword project.findProperty("ANATOMATE_STORE_PASSWORD")
+                  }
+              }
+
+          """
+
+          build_types_marker = re.search(r'^\s*buildTypes\s*\{', s, flags=re.MULTILINE)
+          if not build_types_marker:
+              raise SystemExit("Could not find buildTypes block")
+
+          s = s[:build_types_marker.start()] + signing_block + s[build_types_marker.start():]
+
+          pattern = r'(buildTypes\s*\{\s*release\s*\{)'
+          replacement = r'\1\n            signingConfig signingConfigs.release'
+          s, count = re.subn(pattern, replacement, s, count=1, flags=re.DOTALL)
+          if count != 1:
+              raise SystemExit("Could not configure release signing")
+
+          p.write_text(s)
+          PY
+
+      - name: Build signed APK and AAB
+        working-directory: android
+        env:
+          ORG_GRADLE_PROJECT_ANATOMATE_STORE_PASSWORD: ${{ secrets.ANATOMATE_KEYSTORE_PASSWORD_V2 }}
+        run: ./gradlew assembleRelease bundleRelease
+
+      - name: Prepare release files
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk AnatoMate.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab AnatoMate.aab
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnatoMate-1.0.0-release-apk
+          path: AnatoMate.apk
+
+      - name: Upload signed AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnatoMate-1.0.0-release-aab
+          path: AnatoMate.aab
