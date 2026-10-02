@@ -128,3 +128,17 @@ jobs:
         with:
           name: AnatoMate-1.0.0-release-aab
           path: AnatoMate.aab
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: AnatoMate 1.0.0
+          body: |
+            AnatoMate by KIFARO — Android release 1.0.0.
+            APK: direct installation.
+            AAB: Google Play submission.
+          files: |
+            AnatoMate.apk
+            AnatoMate.aab
+          make_latest: true
