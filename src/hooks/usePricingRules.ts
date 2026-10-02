@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../auth/AuthContext'
 
 export type PricingRule = {
   id: string
@@ -29,8 +30,10 @@ function ruleScore(rule: PricingRule) {
 }
 
 export function usePricingRules() {
+  const { user } = useAuth()
   const [rows, setRows] = useState<PricingRule[]>([])
   const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<{ medical_year: number | null; nationality: string | null } | null>(null)
 
   const refresh = async () => {
     if (!supabase) {
@@ -53,6 +56,27 @@ export function usePricingRules() {
     void refresh()
   }, [])
 
+  useEffect(() => {
+    let active = true
+    const loadProfile = async () => {
+      if (!supabase || !user?.id) {
+        if (active) setProfile(null)
+        return
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('medical_year, nationality')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (active) setProfile(data ? {
+        medical_year: data.medical_year == null ? null : Number(data.medical_year),
+        nationality: data.nationality == null ? null : String(data.nationality),
+      } : null)
+    }
+    void loadProfile()
+    return () => { active = false }
+  }, [user?.id])
+
   const byLecture = useMemo(() => {
     const map = new Map<string, PricingRule[]>()
     for (const row of rows) {
@@ -65,7 +89,20 @@ export function usePricingRules() {
   }, [rows])
 
   const offerFor = (lectureId: string, fallbackPrice: number, productType: 'video' | 'datashow' | 'bundle' = 'bundle'): LectureOffer => {
-    const rule = byLecture.get(lectureId)?.filter((item) => item.product_type === productType)[0] || null
+    const candidates = (byLecture.get(lectureId) || []).filter((item) => item.product_type === productType)
+    const nationality = String(profile?.nationality || '').trim().toLowerCase()
+    const matched = candidates.filter((rule) => {
+      if (!profile) return rule.academic_year == null && rule.nationality_match === '*'
+      const nationalityRule = String(rule.nationality_match || '*').trim()
+      const nationalityMatches =
+        nationalityRule === '*' ||
+        nationalityRule.toLowerCase() === nationality ||
+        (nationalityRule === 'NON_EGYPTIAN' && !['egyptian', 'egypt'].includes(nationality))
+      const yearMatches = rule.academic_year == null || rule.academic_year === profile.medical_year
+      return nationalityMatches && yearMatches
+    }).sort((a, b) => ruleScore(b) - ruleScore(a))
+    const rule = matched[0] || null
+
     return {
       price: rule ? Number(rule.price_egp) : fallbackPrice,
       viewLimit: rule?.view_limit ?? null,
