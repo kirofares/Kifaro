@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Lock, Maximize2, ShieldCheck } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as pdfjsLib from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { getLectureBySlug } from '../data/anatomate'
@@ -83,6 +83,8 @@ function paintWatermark(
 export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMode }) {
   const { slug } = useParams()
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
+  const requestedPage = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1)
   const { user, loading: authLoading } = useAuth()
   const tr = useTr()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
@@ -169,7 +171,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
         if (!active) return
         setDocumentProxy(pdf)
         setPageCount(pdf.numPages)
-        setPageNumber(1)
+        setPageNumber(Math.min(requestedPage, pdf.numPages))
       } catch (err) {
         if (active) setMessage(err instanceof Error ? err.message : 'Could not load the protected document.')
       } finally {
@@ -183,7 +185,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
       active = false
       try { loadingTask?.destroy?.() } catch {}
     }
-  }, [lecture?.id, user?.id, hasAccess, mode])
+  }, [lecture?.id, user?.id, hasAccess, mode, requestedPage])
 
   useEffect(() => {
     let cancelled = false

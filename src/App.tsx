@@ -7,6 +7,7 @@ import {
   CreditCard, Download, FileText, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
+import { getStudyResources, type StudyResource } from './data/anatomate/studyResources'
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import AdminPage from './admin/AdminPage'
@@ -638,6 +639,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
   const state = progress[lecture.id] || { progress: 0 }
   const quiz = lecture.mcqs[0]
+  const recallResources = getStudyResources(lecture.id, 'recall')
+  const mcqResources = getStudyResources(lecture.id, 'mcq')
   const entitlement = entitlementByLecture.get(lecture.id)
   const videoUnlocked = lecture.status === 'free' || Boolean(entitlement?.video_access) || isAdmin
   const datashowUnlocked = Boolean(entitlement?.datashow_access) || isAdmin
@@ -838,23 +841,47 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           {tab === 'learn' && <ContentList title={tr('Learning objectives', 'أهداف المحاضرة')} items={lecture.objectives} />}
           {tab === 'clinical' && <ContentList title={tr('Clinical relevance', 'الأهمية الإكلينيكية')} items={lecture.clinical} />}
           {tab === 'pearls' && <ContentList title={tr('AnatoMate Exam Pearls', 'نقاط الامتحان من AnatoMate')} items={lecture.pearls} />}
-          {tab === 'recall' && <ContentList title={tr('Active Recall', 'استرجاع نشط')} items={lecture.activeRecall} />}
-          {tab === 'mcq' && quiz && (
-            <div className="contentbox">
-              <h2>{tr('MCQ Challenge', 'تحدي MCQ')}</h2>
-              <div className="quiz">
-                <p>{quiz.question}</p>
-                {quiz.options.map((option, index) => (
-                  <button key={option} className={answer === index ? 'selected' : ''} onClick={() => setAnswer(index)}>
-                    <span>{String.fromCharCode(65 + index)}</span>{option}
-                  </button>
-                ))}
-                {answer !== null && (
-                  <div className={answer === quiz.answer ? 'feedback ok' : 'feedback bad'}>
-                    {answer === quiz.answer ? tr('Correct. ', 'إجابة صحيحة. ') : tr('Not quite. ', 'ليست الإجابة الصحيحة. ')}<span dir="auto">{quiz.explanation}</span>
+          {tab === 'recall' && (
+            <div className="studytabstack">
+              <ContentList title={tr('Active Recall', 'استرجاع نشط')} items={lecture.activeRecall} />
+              <StudyResourcePanel
+                title={tr('Active Recall Visuals', 'صور الاسترجاع النشط')}
+                resources={recallResources}
+                lectureSlug={lecture.slug}
+                available={datashowAvailable}
+                unlocked={datashowUnlocked}
+                go={nav}
+              />
+            </div>
+          )}
+          {tab === 'mcq' && (
+            <div className="studytabstack">
+              {quiz && (
+                <div className="contentbox">
+                  <h2>{tr('MCQ Challenge', 'تحدي MCQ')}</h2>
+                  <div className="quiz">
+                    <p>{quiz.question}</p>
+                    {quiz.options.map((option, index) => (
+                      <button key={option} className={answer === index ? 'selected' : ''} onClick={() => setAnswer(index)}>
+                        <span>{String.fromCharCode(65 + index)}</span>{option}
+                      </button>
+                    ))}
+                    {answer !== null && (
+                      <div className={answer === quiz.answer ? 'feedback ok' : 'feedback bad'}>
+                        {answer === quiz.answer ? tr('Correct. ', 'إجابة صحيحة. ') : tr('Not quite. ', 'ليست الإجابة الصحيحة. ')}<span dir="auto">{quiz.explanation}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+              <StudyResourcePanel
+                title={tr('MCQ & Spotter Visuals', 'صور MCQ وSpotters')}
+                resources={mcqResources}
+                lectureSlug={lecture.slug}
+                available={datashowAvailable}
+                unlocked={datashowUnlocked}
+                go={nav}
+              />
             </div>
           )}
         </section>
@@ -1062,6 +1089,71 @@ function PaymentReturnPage() {
           <button className="primary" onClick={() => nav('/library')}><Library size={17}/> {tr('My Library', 'مكتبتي')}</button>
           <button className="secondary" onClick={() => nav('/anatomate')}><BookOpen size={17}/> AnatoMate</button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function StudyResourcePanel({
+  title,
+  resources,
+  lectureSlug,
+  available,
+  unlocked,
+  go,
+}: {
+  title: string
+  resources: StudyResource[]
+  lectureSlug: string
+  available: boolean
+  unlocked: boolean
+  go: (path: string) => void
+}) {
+  const tr = useTr()
+  if (!resources.length) return null
+
+  return (
+    <div className="contentbox studyresources">
+      <div className="studyresourceshead">
+        <div>
+          <small>{tr('END-OF-LECTURE STUDY IMAGES', 'صور المراجعة في نهاية المحاضرة')}</small>
+          <h2>{title}</h2>
+        </div>
+        <span>{resources.length} {resources.length === 1 ? tr('visual', 'صورة') : tr('visuals', 'صور')}</span>
+      </div>
+      <p className="studyresourcesnote">
+        {tr(
+          'Open the original study slide inside KIFARO. It stays view-only and carries the same personal watermark as the Datashow.',
+          'افتح شريحة المراجعة الأصلية داخل KIFARO. تظل للعرض فقط وتحمل نفس العلامة المائية الشخصية الخاصة بالداتاشو.'
+        )}
+      </p>
+      <div className="studyresourcegrid">
+        {resources.map((resource) => {
+          const target = unlocked
+            ? '/anatomate/lecture/' + lectureSlug + '/datashow?page=' + resource.page
+            : '/checkout/' + lectureSlug + '?product=datashow'
+          return (
+            <button
+              key={resource.page + '-' + resource.title}
+              className={unlocked ? 'studyresourcecard' : 'studyresourcecard locked'}
+              disabled={!available}
+              onClick={() => go(target)}
+            >
+              <span className="studyresourceicon">{unlocked ? <BookOpen size={21} /> : <Lock size={20} />}</span>
+              <span className="studyresourcecopy">
+                <strong>{resource.title}</strong>
+                <small>
+                  {available
+                    ? (unlocked
+                      ? tr('Open protected slide ', 'افتح الشريحة المحمية ') + resource.page
+                      : tr('Unlock Datashow to open', 'افتح الداتاشو للوصول'))
+                    : tr('Study slide not uploaded yet', 'شريحة المراجعة لم تُرفع بعد')}
+                </small>
+              </span>
+              {available && <ChevronRight size={18} />}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
