@@ -541,3 +541,13 @@ html[dir="rtl"] .studyresourcecard>svg{transform:scaleX(-1)}
   .studyresourceshead{align-items:center}
   .studyresourcecard{padding:12px}
 }
+.pageloading{color:var(--muted);font-weight:700}
+
+/* Phones: show the video, then the lecture content, then the secondary panels (Datashow, bundle, progress) */
+@media(max-width:780px){
+  .lecturepanel{display:contents}
+  .lecturepanel>*{order:3}
+  .lecturepanel>.videobox{order:1}
+  .lecturepanel>.videobox+*{order:1}
+  .lecturelayout>.lecturecontent{order:2}
+}

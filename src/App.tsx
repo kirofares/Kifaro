@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
 import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
@@ -10,11 +10,8 @@ import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anat
 import { getStudyResources, type StudyResource } from './data/anatomate/studyResources'
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
-import AdminPage from './admin/AdminPage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
 import LegalPage from './components/LegalPage'
-import DatashowViewer from './components/DatashowViewer'
-import ProtectedVideoPlayer from './components/ProtectedVideoPlayer'
 import { useAdmin } from './hooks/useAdmin'
 import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
@@ -29,7 +26,31 @@ type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
 type LecturePrice = 0 | 40 | 50 | 60
 
+// After a deploy the old chunk files are gone, so a tab opened before it can fail to load a lazy page.
+// Reload once to pick up the new build instead of showing the error screen.
+function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ default: T }>) {
+  return lazy(() => load().catch((error) => {
+    const key = 'kifaro-chunk-reload'
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1')
+      window.location.reload()
+      return new Promise<{ default: T }>(() => undefined)
+    }
+    throw error
+  }).then((module) => {
+    sessionStorage.removeItem('kifaro-chunk-reload')
+    return module
+  }))
+}
+
+// Heavy pages (PDF rendering, admin tools) load on demand to keep the first load small.
+const AdminPage = lazyPage(() => import('./admin/AdminPage'))
+const DatashowViewer = lazyPage(() => import('./components/DatashowViewer'))
+const ProtectedVideoPlayer = lazyPage(() => import('./components/ProtectedVideoPlayer'))
+
 const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
+// Set VITE_PAYMOB_TEST_MODE=true in the build env while Paymob runs against its sandbox.
+const PAYMOB_TEST_MODE = import.meta.env.VITE_PAYMOB_TEST_MODE === 'true'
 const LATEST_RELEASE_API = 'https://api.github.com/repos/kirofares/Kifaro/releases/latest'
 const LATEST_APK_URL = 'https://github.com/kirofares/Kifaro/releases/latest/download/AnatoMate.apk'
 
@@ -328,12 +349,14 @@ export default function App() {
       {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
 
       <main className="main">
+        <Suspense fallback={<div className="page pageloading" role="status">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</div>}>
         <Routes>
           <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          {/* The admin dashboard is English-only, so keep it left-to-right even in Arabic mode. */}
+          <Route path="/admin" element={<div dir="ltr" lang="en"><AdminPage /></div>} />
           <Route path="/curriculum" element={<Curriculum lectures={filtered} go={nav} />} />
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
@@ -352,6 +375,7 @@ export default function App() {
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
           <Route path="*" element={<NotFound go={nav} />} />
         </Routes>
+        </Suspense>
       </main>
 
       {prefs && (
@@ -1007,7 +1031,7 @@ function CheckoutPage() {
             <button className="primary full" disabled={paymentBusy || entitlementsLoading || offerLoading} onClick={() => void startPayment()}>
               <CreditCard size={17} /> {paymentBusy ? tr('Opening Paymob…', 'جارٍ فتح Paymob…') : entitlementsLoading || offerLoading ? tr('Checking account…', 'جارٍ التحقق من الحساب…') : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
             </button>
-            <small className="paymenttestnote">{tr('Paymob is currently in TEST MODE — no real money is charged during testing.', 'بوابة Paymob حاليًا في وضع التجربة — مفيش فلوس حقيقية بتتخصم.')}</small>
+            {PAYMOB_TEST_MODE && <small className="paymenttestnote">{tr('Paymob is currently in TEST MODE — no real money is charged during testing.', 'بوابة Paymob حاليًا في وضع التجربة — مفيش فلوس حقيقية بتتخصم.')}</small>}
             {paymentMessage && <div className="authmessage">{paymentMessage}</div>}
           </>
         )}
