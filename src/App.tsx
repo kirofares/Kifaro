@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
-  Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
-  HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
+  BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
+  Home, Library, Menu, Microscope, Palette,
   CreditCard, Download, FileText, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
@@ -79,12 +79,21 @@ const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
     topics: 'Topics', studio: 'KIFARO Studio', library: 'My Library',
-    preferences: 'Preferences', search: 'Search courses, topics, or exams',
-    morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
+    preferences: 'Preferences', search: 'Search lectures, modules, or systems',
+    morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', nameSep: ', ',
     subtitle: 'Continue your medical journey with one focused step at a time.',
     continue: 'Continue Learning', open: 'Open AnatoMate', browse: 'Browse your pathways',
-    revision: 'Revision Queue', weak: 'Weak topics to revisit',
-    exams: 'Upcoming KIFARO Exams', weekly: 'Weekly progress',
+    pickUp: 'Pick up where you left off', startHere: 'Start your first lecture',
+    resume: 'Continue', start: 'Start',
+    yourYears: 'Your progress by year', year: 'Year', complete: 'Complete', inProgress: 'In progress', notStarted: 'Not started',
+    downloadAndroid: 'Download Android App',
+    min: 'min', lecture: 'Lecture',
+    activeNow: 'In progress', noneActive: 'No lectures in progress yet.',
+    favorites: 'Favorites', noFavorites: 'Save lectures to find them here.',
+    overall: 'Overall progress', completedOf: 'lectures completed',
+    profile: 'My Profile', admin: 'Admin Dashboard', signOut: 'Sign out', logIn: 'Log in', demo: 'Demo mode',
+    openMenu: 'Open menu', closeMenu: 'Close menu', openProfile: 'Open profile',
+    privacy: 'Privacy', terms: 'Terms', refunds: 'Refunds',
     mark: 'Mark as complete', fav: 'Add to favorites', unfav: 'Remove favorite',
     theme: 'Theme color', language: 'Language', saved: 'Saved to favorites',
     removed: 'Removed from favorites', done: 'Lesson completed',
@@ -94,12 +103,21 @@ const copy = {
   ar: {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
     topics: 'الموضوعات', studio: 'KIFARO Studio', library: 'مكتبتي',
-    preferences: 'التفضيلات', search: 'ابحث في المقررات أو الموضوعات أو الاختبارات',
-    morning: 'صباح الخير،', afternoon: 'مساء الخير،', evening: 'مساء الخير،',
-    subtitle: 'كمّلي رحلتك الطبية بخطوة مركزة كل مرة.',
+    preferences: 'التفضيلات', search: 'ابحث في المحاضرات أو الموديولات أو الأجهزة',
+    morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير', nameSep: '، ',
+    subtitle: 'كمّل رحلتك الطبية بخطوة مركزة كل مرة.',
     continue: 'متابعة التعلم', open: 'افتح AnatoMate', browse: 'استعرض مساراتك',
-    revision: 'قائمة المراجعة', weak: 'موضوعات تحتاج مراجعة',
-    exams: 'اختبارات KIFARO القادمة', weekly: 'التقدم الأسبوعي',
+    pickUp: 'كمّل من حيث توقفت', startHere: 'ابدأ أول محاضرة',
+    resume: 'متابعة', start: 'ابدأ',
+    yourYears: 'تقدمك حسب السنة', year: 'السنة', complete: 'مكتمل', inProgress: 'جارٍ', notStarted: 'لم يبدأ',
+    downloadAndroid: 'حمّل تطبيق أندرويد',
+    min: 'دقيقة', lecture: 'محاضرة',
+    activeNow: 'قيد الدراسة', noneActive: 'لا توجد محاضرات قيد الدراسة بعد.',
+    favorites: 'المفضلة', noFavorites: 'احفظ المحاضرات لتجدها هنا.',
+    overall: 'التقدم الكلي', completedOf: 'محاضرة مكتملة',
+    profile: 'ملفي الشخصي', admin: 'لوحة الإدارة', signOut: 'تسجيل الخروج', logIn: 'تسجيل الدخول', demo: 'وضع تجريبي',
+    openMenu: 'فتح القائمة', closeMenu: 'إغلاق القائمة', openProfile: 'فتح الملف الشخصي',
+    privacy: 'الخصوصية', terms: 'الشروط', refunds: 'الاسترداد',
     mark: 'تحديد كمكتمل', fav: 'أضف للمفضلة', unfav: 'إزالة من المفضلة',
     theme: 'لون الواجهة', language: 'اللغة', saved: 'تمت الإضافة للمفضلة',
     removed: 'تمت الإزالة من المفضلة', done: 'تم إكمال المحاضرة',
@@ -107,6 +125,12 @@ const copy = {
     anatomyBody: 'تشريح بصري مرتبط سريريًا، مصمم للفهم الحقيقي وليس للحفظ فقط.',
   },
 }
+
+const isNativeApp = Capacitor.isNativePlatform()
+const isIOSDevice = typeof navigator !== 'undefined'
+  && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+// The APK download only makes sense for web visitors on non-iOS devices.
+const showAndroidDownload = !isNativeApp && !isIOSDevice
 
 function useStored<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
@@ -133,13 +157,13 @@ export default function App() {
   const [prefs, setPrefs] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [toast, setToast] = useState('')
-  const [showOpeningSplash, setShowOpeningSplash] = useState(Capacitor.isNativePlatform())
+  const [showOpeningSplash, setShowOpeningSplash] = useState(isNativeApp)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const t = copy[lang]
   const nav = useNavigate()
   const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
-  const studentName = (profileName || metadataName).split(' ')[0] || (lang === 'ar' ? 'طالب KIFARO' : 'KIFARO Student')
+  const studentName = (profileName || metadataName).split(' ')[0] || ''
 
   useEffect(() => {
     if (!user || !supabase) {
@@ -175,6 +199,8 @@ export default function App() {
   }, [showOpeningSplash])
 
   useEffect(() => {
+    // Only the installed Android app can be out of date; web visitors always get the latest build.
+    if (!isNativeApp) return
     let active = true
     fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Release check failed')))
@@ -221,8 +247,8 @@ export default function App() {
     ['/topics', t.topics, Brain],
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
-    ['/profile', 'My Profile', UserRound],
-    ...(isAdmin ? [['/admin', 'Admin Dashboard', ShieldCheck] as const] : []),
+    ['/profile', t.profile, UserRound],
+    ...(isAdmin ? [['/admin', t.admin, ShieldCheck] as const] : []),
   ] as const
 
   if (showOpeningSplash) {
@@ -251,33 +277,33 @@ export default function App() {
         </div>
       )}
       <header className="topbar">
-        <button className="icon mobile" onClick={() => setDrawer(true)} aria-label="Open menu"><Menu /></button>
+        <button className="icon mobile" onClick={() => setDrawer(true)} aria-label={t.openMenu}><Menu /></button>
         <button className="brand" onClick={() => nav('/')}>
           <span className="brandmark"><Stethoscope /></span><strong>KIFARO</strong>
         </button>
 
         <div className="search">
           <Search size={18} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} />
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} aria-label={t.search} />
         </div>
 
         <div className="actions">
-          <button className="icon" aria-label="Messages"><MessageSquare /></button>
-          <button className="icon" aria-label="Notifications"><Bell /></button>
           <button className="prefbtn" onClick={() => setPrefs(true)}><Palette size={18} /><span>{t.preferences}</span></button>
           {user ? (
-            <button className="accountbtn" onClick={() => void signOut()}><LogOut size={17} /><span>Sign out</span></button>
+            <button className="accountbtn" onClick={() => void signOut()}><LogOut size={17} /><span>{t.signOut}</span></button>
           ) : (
-            <button className="accountbtn" onClick={() => nav('/login')}><LogIn size={17} /><span>{configured ? 'Log in' : 'Demo mode'}</span></button>
+            <button className="accountbtn" onClick={() => nav('/login')}><LogIn size={17} /><span>{configured ? t.logIn : t.demo}</span></button>
           )}
-          <button className="avatar avatarbtn" onClick={() => nav('/profile')} aria-label="Open profile">{studentName.slice(0, 2).toUpperCase()}</button>
+          <button className="avatar avatarbtn" onClick={() => nav('/profile')} aria-label={t.openProfile}>
+            {studentName ? studentName.slice(0, 2).toUpperCase() : <UserRound size={18} />}
+          </button>
         </div>
       </header>
 
       <aside className={drawer ? 'sidebar open' : 'sidebar'}>
         <div className="mobile sidehead">
           <strong>KIFARO</strong>
-          <button className="icon" onClick={() => setDrawer(false)} aria-label="Close menu"><X /></button>
+          <button className="icon" onClick={() => setDrawer(false)} aria-label={t.closeMenu}><X /></button>
         </div>
         <nav>
           {links.map(([to, label, Icon]) => (
@@ -286,14 +312,22 @@ export default function App() {
             </NavLink>
           ))}
         </nav>
-        <NavLink to="/preferences"><Settings size={19} /><span>{t.preferences}</span></NavLink>
+        <div className="sidefoot">
+          <NavLink to="/preferences" onClick={() => setDrawer(false)}><Settings size={19} /><span>{t.preferences}</span></NavLink>
+          {/* The top bar hides account actions on phones, so offer them in the drawer. */}
+          {user ? (
+            <button className="mobile sideaccount" onClick={() => { setDrawer(false); void signOut() }}><LogOut size={19} /><span>{t.signOut}</span></button>
+          ) : (
+            <button className="mobile sideaccount" onClick={() => { setDrawer(false); nav('/login') }}><LogIn size={19} /><span>{configured ? t.logIn : t.demo}</span></button>
+          )}
+        </div>
       </aside>
 
       {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
 
       <main className="main">
         <Routes>
-          <Route path="/" element={<Dashboard t={t} lectures={filtered} go={nav} studentName={studentName} />} />
+          <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -331,9 +365,9 @@ export default function App() {
       )}
 
       <footer className="sitefooter">
-        <button onClick={() => nav('/privacy')}>Privacy</button>
-        <button onClick={() => nav('/terms')}>Terms</button>
-        <button onClick={() => nav('/refund')}>Refunds</button>
+        <button onClick={() => nav('/privacy')}>{t.privacy}</button>
+        <button onClick={() => nav('/terms')}>{t.terms}</button>
+        <button onClick={() => nav('/refund')}>{t.refunds}</button>
         <span>© 2026 KIFARO · AnatoMate</span>
       </footer>
 
@@ -354,33 +388,46 @@ function PageHead({ eyebrow, title, body }: { eyebrow: string; title: string; bo
   )
 }
 
-function Dashboard({ t, lectures, go, studentName }: { t: any; lectures: any[]; go: (path: string) => void; studentName: string }) {
-  const current = lectures.find((lecture) => lecture.progress > 0 && !lecture.completed) || lectures[0] || anatomateLectures[0]
+function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any; lang: Lang; lectures: any[]; allLectures: any[]; go: (path: string) => void; studentName: string }) {
+  const active = allLectures.filter((lecture) => lecture.progress > 0 && !lecture.completed)
+  const favorites = allLectures.filter((lecture) => lecture.favorite)
+  const completedCount = allLectures.filter((lecture) => lecture.completed).length
+  const current = active[0] || allLectures.find((lecture) => !lecture.completed) || allLectures[0] || anatomateLectures[0]
+  const started = (current.progress || 0) > 0
   const now = new Date()
   const hour = now.getHours()
   const greeting = hour < 12 ? t.morning : hour < 18 ? t.afternoon : t.evening
-  const dateLabel = now.toLocaleDateString(undefined, {
+  const dateLabel = now.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   })
+  const yearStats = anatomateYears.map((year) => {
+    const yearLectures = allLectures.filter((lecture) => lecture.year === year.year)
+    const done = yearLectures.filter((lecture) => lecture.completed).length
+    const touched = yearLectures.some((lecture) => lecture.progress > 0)
+    const pct = yearLectures.length ? Math.round((done / yearLectures.length) * 100) : 0
+    const status = pct === 100 ? t.complete : touched ? t.inProgress : t.notStarted
+    return { year: year.year, pct, status }
+  })
+  const titles = (items: any[]) => items.slice(0, 2).map((lecture) => lecture.title).join(' · ')
 
   return (
     <div className="page">
-      <PageHead eyebrow={dateLabel} title={greeting + ' ' + studentName + '.'} body={t.subtitle} />
+      <PageHead eyebrow={dateLabel} title={studentName ? greeting + t.nameSep + studentName : greeting} body={t.subtitle} />
       <div className="dashgrid">
         <div>
           <section className="section">
-            <div className="sectiontitle"><div><span>{t.continue}</span><h2>Pick up where you left off</h2></div></div>
+            <div className="sectiontitle"><div><span>{t.continue}</span><h2>{started ? t.pickUp : t.startHere}</h2></div></div>
             <div className="continuecard">
               <div className="softicon"><Brain /></div>
               <div className="grow">
                 <small>{current.module}</small>
                 <h3>{current.title}</h3>
-                <div className="meta"><span><Clock3 size={14} />{current.duration} min</span><span>{current.progress || 0}%</span></div>
+                <div className="meta"><span><Clock3 size={14} /><bdi>{current.duration} {t.min}</bdi></span><bdi>{current.progress || 0}%</bdi></div>
                 <div className="progress"><i style={{ width: (current.progress || 0) + '%' }} /></div>
               </div>
-              <button className="primary" onClick={() => go('/anatomate/lecture/' + current.slug)}>Continue <ChevronRight size={17} /></button>
+              <button className="primary" onClick={() => go('/anatomate/lecture/' + current.slug)}>{started ? t.resume : t.start} <ChevronRight size={17} className="dirarrow" /></button>
             </div>
           </section>
 
@@ -390,43 +437,39 @@ function Dashboard({ t, lectures, go, studentName }: { t: any; lectures: any[]; 
               <h2>{t.anatomyTitle}</h2>
               <p>{t.anatomyBody}</p>
               <div className="heroactions">
-                <button className="lightbtn" onClick={() => go('/anatomate')}>{t.open}<ChevronRight size={17} /></button>
-                <a
-                  className="lightbtn downloadappbtn"
-                  href="https://github.com/kirofares/Kifaro/releases/latest/download/AnatoMate.apk"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Download size={17} /> Download Android App
-                </a>
+                <button className="lightbtn" onClick={() => go('/anatomate')}>{t.open}<ChevronRight size={17} className="dirarrow" /></button>
+                {showAndroidDownload && (
+                  <a className="lightbtn downloadappbtn" href={LATEST_APK_URL} target="_blank" rel="noreferrer">
+                    <Download size={17} /> {t.downloadAndroid}
+                  </a>
+                )}
               </div>
             </div>
             <Microscope className="heroicon" />
           </section>
 
           <section className="section">
-            <div className="sectiontitle"><h2>KIFARO Map</h2></div>
+            <div className="sectiontitle"><h2>{t.yourYears}</h2></div>
             <div className="pathmap">
-              {['Foundations', 'Musculoskeletal', 'Systems', 'Clinical Reasoning'].map((item, index) => (
-                <div className="pathcard" key={item}>
-                  <small>0{index + 1}</small><h3>{item}</h3>
-                  <span>{index === 0 ? 'Complete' : index === 1 ? 'In progress' : index === 2 ? 'Up next' : 'Future branch'}</span>
-                </div>
+              {yearStats.map((item) => (
+                <button className="pathcard clickable" key={item.year} onClick={() => go('/anatomate')}>
+                  <small><bdi>{item.pct}%</bdi></small><h3>{t.year} {item.year}</h3>
+                  <span>{item.status}</span>
+                </button>
               ))}
             </div>
           </section>
 
           <section className="section">
             <div className="sectiontitle"><h2>{t.browse}</h2></div>
-            <div className="cards">{lectures.slice(0, 3).map((lecture) => <Course key={lecture.id} l={lecture} go={go} />)}</div>
+            <div className="cards">{lectures.slice(0, 3).map((lecture) => <Course key={lecture.id} l={lecture} go={go} t={t} />)}</div>
           </section>
         </div>
 
         <aside className="rightcol">
-          <Mini icon={<BookOpen />} title={t.revision} body="Meninges · Ventricular system" />
-          <Mini icon={<HeartPulse />} title={t.weak} body="Ascending tracts · Brainstem localization" />
-          <Mini icon={<GraduationCap />} title={t.exams} body="CNS Module Quiz · Friday" />
-          <Mini icon={<Sparkles />} title={t.weekly} body="4.8 hours · 72% target" />
+          <Mini icon={<BookOpen />} title={t.activeNow} body={active.length ? titles(active) : t.noneActive} />
+          <Mini icon={<Star />} title={t.favorites} body={favorites.length ? titles(favorites) : t.noFavorites} />
+          <Mini icon={<Sparkles />} title={t.overall} body={<><bdi dir="ltr">{completedCount} / {allLectures.length}</bdi> {t.completedOf}</>} />
         </aside>
       </div>
     </div>
@@ -1111,19 +1154,19 @@ function Prefs({ lang, setLang, theme, setTheme, t }: { lang: Lang; setLang: any
   )
 }
 
-function Course({ l, go }: { l: any; go: (path: string) => void }) {
+function Course({ l, go, t }: { l: any; go: (path: string) => void; t: any }) {
   return (
     <button className="coursecard clickable" onClick={() => go('/anatomate/lecture/' + l.slug)}>
-      <div className="cover"><Microscope /><span>LECTURE {l.sequence}</span></div>
+      <div className="cover"><Microscope /><span>{t.lecture} {l.sequence}</span></div>
       <div className="cardbody">
         <small>{l.module}</small><h3>{l.title}</h3><p>{l.system}</p>
-        <div className="meta"><span>{l.duration} min</span><span>{l.progress || 0}%</span></div>
+        <div className="meta"><bdi>{l.duration} {t.min}</bdi><bdi>{l.progress || 0}%</bdi></div>
         <div className="progress"><i style={{ width: (l.progress || 0) + '%' }} /></div>
       </div>
     </button>
   )
 }
 
-function Mini({ icon, title, body }: { icon: any; title: string; body: string }) {
+function Mini({ icon, title, body }: { icon: any; title: string; body: ReactNode }) {
   return <div className="minicard"><div className="minihead"><span className="softicon">{icon}</span><h3>{title}</h3></div><p>{body}</p></div>
 }
