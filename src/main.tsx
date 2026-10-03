@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import App from './App'
+import AppErrorBoundary from './components/AppErrorBoundary'
+import { reportClientError } from './lib/errorReporting'
 import { AuthProvider } from './auth/AuthContext'
 import './styles.css'
 
@@ -29,12 +31,22 @@ if ('serviceWorker' in navigator) {
   })
 }
 
+window.addEventListener('error', (event) => {
+  void reportClientError(event.error || event.message, 'window-error')
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  void reportClientError(event.reason, 'unhandled-rejection')
+})
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <HashRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </HashRouter>
+    <AppErrorBoundary>
+      <HashRouter>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </HashRouter>
+    </AppErrorBoundary>
   </React.StrictMode>,
 )
