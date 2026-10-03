@@ -40,7 +40,7 @@ jobs:
 
       - name: Build iOS simulator app
         run: |
-          xcodebuild             -workspace ios/App/App.xcworkspace             -scheme App             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             build
+          xcodebuild             -project ios/App/App.xcodeproj             -scheme App             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             build
 
       - name: Upload Xcode project
         uses: actions/upload-artifact@v4
