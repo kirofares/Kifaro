@@ -12,6 +12,8 @@ jobs:
     env:
       VITE_SUPABASE_URL: https://gwwauaybbqmzbwvpbxly.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
+      # Shows the Paymob sandbox notice at checkout; set to 'false' when live payments are enabled.
+      VITE_PAYMOB_TEST_MODE: 'true'
       VITE_APP_VERSION: 1.0.1
       ANATOMATE_VERSION_NAME: 1.0.1
       ANATOMATE_VERSION_CODE: 2
