@@ -48,7 +48,18 @@ type ProgressRow = {
   updated_at: string
 }
 
-type Tab = 'overview' | 'students' | 'purchases' | 'lectures'
+type ClientErrorRow = {
+  id: number
+  created_at: string
+  user_id: string | null
+  source: string
+  message: string
+  route: string | null
+  app_version: string | null
+  platform: string | null
+}
+
+type Tab = 'overview' | 'students' | 'purchases' | 'lectures' | 'errors'
 
 function pricingRuleScore(rule: PricingRule) {
   const yearScore = rule.academic_year == null ? 0 : 20
@@ -85,6 +96,7 @@ export default function AdminPage() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [entitlements, setEntitlements] = useState<Entitlement[]>([])
   const [progressRows, setProgressRows] = useState<ProgressRow[]>([])
+  const [clientErrors, setClientErrors] = useState<ClientErrorRow[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [studentLecture, setStudentLecture] = useState('')
   const [loading, setLoading] = useState(true)
@@ -120,19 +132,22 @@ export default function AdminPage() {
     setLoading(true)
     setMessage('')
 
-    const [profilesResult, entitlementsResult, progressResult] = await Promise.all([
+    const [profilesResult, entitlementsResult, progressResult, errorsResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, medical_year, faculty, university, nationality, phone_no, email, role, created_at').order('created_at', { ascending: false }),
       supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at, view_limit, views_used, offer_academic_year, offer_nationality, video_access, datashow_access, product_type').order('granted_at', { ascending: false }),
       supabase.from('lecture_progress').select('user_id, lecture_id, progress, completed, favorite, updated_at').order('updated_at', { ascending: false }),
+      supabase.from('client_errors').select('id, created_at, user_id, source, message, route, app_version, platform').order('created_at', { ascending: false }).limit(50),
     ])
 
     if (profilesResult.error) setMessage(profilesResult.error.message)
     if (entitlementsResult.error) setMessage(entitlementsResult.error.message)
     if (progressResult.error) setMessage(progressResult.error.message)
+    if (errorsResult.error) setMessage(errorsResult.error.message)
 
     setProfiles((profilesResult.data || []) as Profile[])
     setEntitlements((entitlementsResult.data || []) as Entitlement[])
     setProgressRows((progressResult.data || []) as ProgressRow[])
+    setClientErrors((errorsResult.data || []) as ClientErrorRow[])
     setLoading(false)
   }
 
@@ -655,6 +670,7 @@ export default function AdminPage() {
         <button className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}><Users size={17}/>Students</button>
         <button className={tab === 'purchases' ? 'active' : ''} onClick={() => setTab('purchases')}><CreditCard size={17}/>Purchases</button>
         <button className={tab === 'lectures' ? 'active' : ''} onClick={() => setTab('lectures')}><GraduationCap size={17}/>Lectures</button>
+        <button className={tab === 'errors' ? 'active' : ''} onClick={() => setTab('errors')}><XCircle size={17}/>Errors</button>
       </div>
 
       {message && <div className="adminmessage"><Check size={17}/>{message}</div>}
@@ -677,6 +693,34 @@ export default function AdminPage() {
             </div>
           </div>
         </>
+      )}
+
+      {tab === 'errors' && (
+        <div className="adminpanel">
+          <div className="adminpanelhead">
+            <div><h2>App errors</h2><p>Latest technical errors reported by signed-in students and app sessions.</p></div>
+            <button className="secondary" onClick={() => void load()}>Refresh</button>
+          </div>
+          <div className="admintablewrap">
+            <table className="admintable">
+              <thead><tr><th>Time</th><th>User</th><th>Source</th><th>Message</th><th>App</th><th>Platform</th></tr></thead>
+              <tbody>
+                {clientErrors.length ? clientErrors.map((item) => (
+                  <tr key={item.id}>
+                    <td>{new Date(item.created_at).toLocaleString()}</td>
+                    <td>{item.user_id ? nameForUser(item.user_id) : '—'}</td>
+                    <td><span className="adminbadge">{item.source}</span></td>
+                    <td><strong>{item.message}</strong><small>{item.route || '—'}</small></td>
+                    <td>{item.app_version || '—'}</td>
+                    <td>{item.platform || '—'}</td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={6}>No client errors recorded.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {tab === 'students' && (
