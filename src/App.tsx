@@ -22,9 +22,9 @@ import { useLectureSettings, type LectureSetting } from './hooks/useLectureSetti
 import { usePricingRules } from './hooks/usePricingRules'
 import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { supabase } from './lib/supabase'
+import { LangProvider, useTr, type Lang } from './i18n'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
-type Lang = 'en' | 'ar'
 
 type LecturePrice = 0 | 40 | 50 | 60
 
@@ -264,15 +264,16 @@ export default function App() {
   }
 
   return (
+    <LangProvider value={lang}>
     <div className="shell">
       {updateAvailable && (
         <div className="appupdatebar">
           <div>
-            <strong>AnatoMate {latestVersion} is available</strong>
-            <span>You are using version {CURRENT_APP_VERSION}.</span>
+            <strong>{lang === 'ar' ? `إصدار AnatoMate ${latestVersion} متاح` : `AnatoMate ${latestVersion} is available`}</strong>
+            <span>{lang === 'ar' ? `أنت تستخدم الإصدار ${CURRENT_APP_VERSION}.` : `You are using version ${CURRENT_APP_VERSION}.`}</span>
           </div>
           <a href={LATEST_APK_URL} target="_blank" rel="noreferrer">
-            <Download size={17} /> Update AnatoMate
+            <Download size={17} /> {lang === 'ar' ? 'حدّث AnatoMate' : 'Update AnatoMate'}
           </a>
         </div>
       )}
@@ -374,6 +375,7 @@ export default function App() {
 
       {toast && <div className="toast"><Check size={18} />{toast}</div>}
     </div>
+    </LangProvider>
   )
 }
 
@@ -425,7 +427,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any
               <div className="grow">
                 <small>{current.module}</small>
                 <h3>{current.title}</h3>
-                <div className="meta"><span><Clock3 size={14} /><bdi>{current.duration} {t.min}</bdi></span><bdi>{current.progress || 0}%</bdi></div>
+                <div className="meta"><span><Clock3 size={14} /><bdi>{current.duration} {t.min}</bdi></span><bdi dir="ltr">{current.progress || 0}%</bdi></div>
                 <div className="progress"><i style={{ width: (current.progress || 0) + '%' }} /></div>
               </div>
               <button className="primary" onClick={() => go('/anatomate/lecture/' + current.slug)}>{started ? t.resume : t.start} <ChevronRight size={17} className="dirarrow" /></button>
@@ -454,7 +456,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any
             <div className="pathmap">
               {yearStats.map((item) => (
                 <button className="pathcard clickable" key={item.year} onClick={() => go('/anatomate')}>
-                  <small><bdi>{item.pct}%</bdi></small><h3>{t.year} {item.year}</h3>
+                  <small><bdi dir="ltr">{item.pct}%</bdi></small><h3>{t.year} {item.year}</h3>
                   <span>{item.status}</span>
                 </button>
               ))}
@@ -478,29 +480,31 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any
 }
 
 function NotFound({ go }: { go: (path: string) => void }) {
+  const tr = useTr()
   return (
     <div className="page">
-      <PageHead eyebrow="404" title="Page not found" body="This link may be outdated or mistyped." />
-      <button className="primary" onClick={() => go('/')}><Home size={17} /> Back to overview</button>
+      <PageHead eyebrow="404" title={tr('Page not found', 'الصفحة غير موجودة')} body={tr('This link may be outdated or mistyped.', 'ربما يكون الرابط قديمًا أو مكتوبًا بشكل خاطئ.')} />
+      <button className="primary" onClick={() => go('/')}><Home size={17} /> {tr('Back to overview', 'العودة للرئيسية')}</button>
     </div>
   )
 }
 
 function Curriculum({ lectures, go }: { lectures: any[]; go: (path: string) => void }) {
+  const tr = useTr()
   return (
     <div className="page">
-      <PageHead eyebrow="ANATOMATE CURRICULUM" title="Curriculum" body="Structured by academic year, module and lecture sequence." />
+      <PageHead eyebrow={tr('ANATOMATE CURRICULUM', 'منهج ANATOMATE')} title={tr('Curriculum', 'المنهج')} body={tr('Structured by academic year, module and lecture sequence.', 'مرتب حسب السنة الدراسية والموديول وتسلسل المحاضرات.')} />
       <div className="list">
         {lectures.map((lecture) => (
           <button className="lessonrow clickable" key={lecture.id} onClick={() => go('/anatomate/lecture/' + lecture.slug)}>
             <div className="softicon"><GraduationCap /></div>
             <div className="grow">
-              <small>Year {lecture.year} · Lecture {lecture.sequence}</small>
+              <small>{tr('Year', 'السنة')} {lecture.year} · {tr('Lecture', 'محاضرة')} {lecture.sequence}</small>
               <h3>{lecture.title}</h3>
-              <p>{lecture.module} · {lecture.duration} min</p>
+              <p>{lecture.module} · <bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi></p>
               <div className="progress"><i style={{ width: (lecture.progress || 0) + '%' }} /></div>
             </div>
-            <ChevronRight />
+            <ChevronRight className="dirarrow" />
           </button>
         ))}
       </div>
@@ -509,6 +513,7 @@ function Curriculum({ lectures, go }: { lectures: any[]; go: (path: string) => v
 }
 
 function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
+  const tr = useTr()
   return (
     <div className="page">
       <section className="hero compact">
@@ -519,9 +524,9 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
       <div className="yeargrid">
         {anatomateYears.map((year) => (
           <section className="yearcard" key={year.year}>
-            <div className="yearbadge">YEAR {year.year}</div>
-            <h2>Medical Year {year.year}</h2>
-            <p>Structured anatomy curriculum organized by modules.</p>
+            <div className="yearbadge">{tr('YEAR', 'السنة')} {year.year}</div>
+            <h2>{tr('Medical Year', 'السنة الطبية')} {year.year}</h2>
+            <p>{tr('Structured anatomy curriculum organized by modules.', 'منهج تشريح منظم حسب الموديولات.')}</p>
             <div className="modulelist">
               {year.modules.map((module) => (
                 <button
@@ -531,13 +536,13 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
                 >
                   <div>
                     <small>
-                      {module.semester === 0 ? 'Orientation' : 'Semester ' + module.semester}
-                      {' · '}{module.code}{' · '}{module.lectures.length} lectures
+                      {module.semester === 0 ? tr('Orientation', 'تمهيدي') : tr('Semester', 'الترم') + ' ' + module.semester}
+                      {' · '}<bdi>{module.code}</bdi>{' · '}{module.lectures.length} {tr('lectures', 'محاضرات')}
                     </small>
                     <h3>{module.title}</h3>
                     <p>{module.description}</p>
                   </div>
-                  <ChevronRight />
+                  <ChevronRight className="dirarrow" />
                 </button>
               ))}
             </div>
@@ -555,11 +560,12 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   const { entitlements } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
+  const tr = useTr()
   const yearData = anatomateYears.find((item) => String(item.year) === year)
   const moduleData = yearData?.modules.find((item) => item.slug === module)
 
   if (!yearData || !moduleData) {
-    return <div className="page"><PageHead eyebrow="ANATOMATE" title="Module not found" body="This module is not available." /></div>
+    return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Module not found', 'الموديول غير موجود')} body={tr('This module is not available.', 'هذا الموديول غير متاح.')} /></div>
   }
 
   const visibleLectures = moduleData.lectures
@@ -570,11 +576,11 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
 
   return (
     <div className="page">
-      <PageHead eyebrow={'YEAR ' + yearData.year} title={moduleData.title} body={moduleData.description} />
+      <PageHead eyebrow={tr('YEAR', 'السنة') + ' ' + yearData.year} title={moduleData.title} body={moduleData.description} />
       <div className="modulehero">
-        <div><small>MODULE PROGRESS</small><strong>{pct}%</strong></div>
+        <div><small>{tr('MODULE PROGRESS', 'تقدم الموديول')}</small><strong><bdi dir="ltr">{pct}%</bdi></strong></div>
         <div className="progress"><i style={{ width: pct + '%' }} /></div>
-        <span>{completed} of {visibleLectures.length} lectures completed</span>
+        <span>{tr(`${completed} of ${visibleLectures.length} lectures completed`, `${completed} من ${visibleLectures.length} محاضرات مكتملة`)}</span>
       </div>
 
       <div className="list">
@@ -586,12 +592,12 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p>{lecture.duration} min · {lecture.status === 'free' ? 'Free preview' : entitlements.has(lecture.id) ? 'Purchased' : offerFor(lecture.id, getLecturePrice(lecture, lectureSettings.get(lecture.id))).price + ' EGP · Locked'}</p>
+                <p><bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi> · {lecture.status === 'free' ? tr('Free preview', 'معاينة مجانية') : entitlements.has(lecture.id) ? tr('Purchased', 'تم الشراء') : <><bdi>{offerFor(lecture.id, getLecturePrice(lecture, lectureSettings.get(lecture.id))).price} {tr('EGP', 'ج.م')}</bdi> · {tr('Locked', 'مقفلة')}</>}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
                 className="icon star"
-                aria-label="Toggle favorite"
+                aria-label={tr('Toggle favorite', 'تبديل المفضلة')}
                 onClick={() => {
                   update(lecture.id, { favorite: !state.favorite })
                   flash(state.favorite ? t.removed : t.saved)
@@ -599,7 +605,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               >
                 <Star fill={state.favorite ? 'currentColor' : 'none'} />
               </button>
-              <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Open</button>
+              <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>{tr('Open', 'فتح')}</button>
             </div>
           )
         })}
@@ -624,9 +630,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const [answer, setAnswer] = useState<number | null>(null)
   const [videoBusy, setVideoBusy] = useState(false)
   const [videoMessage, setVideoMessage] = useState('')
+  const tr = useTr()
 
   if (!lecture) {
-    return <div className="page"><PageHead eyebrow="ANATOMATE" title="Lecture not found" body="This lecture is not available." /></div>
+    return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Lecture not found', 'المحاضرة غير موجودة')} body={tr('This lecture is not available.', 'هذه المحاضرة غير متاحة.')} /></div>
   }
 
   const state = progress[lecture.id] || { progress: 0 }
@@ -656,7 +663,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
         window.open(lecture.videoUrl, '_blank', 'noopener,noreferrer')
         return
       }
-      setVideoMessage('Please sign in first.')
+      setVideoMessage(tr('Please sign in first.', 'من فضلك سجّل الدخول أولًا.'))
       return
     }
 
@@ -671,7 +678,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
     if (error || data?.error) {
       popup?.close()
-      setVideoMessage(data?.error || error?.message || 'Could not open protected content.')
+      setVideoMessage(data?.error || error?.message || tr('Could not open protected content.', 'تعذّر فتح المحتوى المحمي.'))
       await refreshEntitlements()
       return
     }
@@ -679,7 +686,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
     const url = data?.signedUrl as string | undefined
     if (!url) {
       popup?.close()
-      setVideoMessage('This file is not available yet.')
+      setVideoMessage(tr('This file is not available yet.', 'هذا الملف غير متاح بعد.'))
       return
     }
 
@@ -692,9 +699,9 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
     <div className="page">
       <div className="lecturehead">
         <div>
-          <span className="eyebrow">YEAR {lecture.year} · LECTURE {lecture.sequence}</span>
+          <span className="eyebrow">{tr('YEAR', 'السنة')} {lecture.year} · {tr('LECTURE', 'محاضرة')} {lecture.sequence}</span>
           <h1>{lecture.title}</h1>
-          <p>{lecture.module} · {lecture.duration} min · {lecture.system}</p>
+          <p>{lecture.module} · <bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi> · {lecture.system}</p>
         </div>
         <div className="lectureactions">
           <button
@@ -723,8 +730,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
         <aside className="lecturepanel">
           <div className="videobox">
             <PlayCircle />
-            <span>Lecture video</span>
-            <small>{!videoAvailable ? 'Coming soon' : videoUnlocked ? 'Video access available' : 'Video purchase required'}</small>
+            <span>{tr('Lecture video', 'فيديو المحاضرة')}</span>
+            <small>{!videoAvailable ? tr('Coming soon', 'قريبًا') : videoUnlocked ? tr('Video access available', 'الفيديو متاح لك') : tr('Video purchase required', 'يتطلب شراء الفيديو')}</small>
           </div>
 
           {videoAvailable && videoUnlocked ? (
@@ -736,105 +743,105 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                 else void openProtectedAsset('video')
               }}
             >
-              {videoBusy ? 'Opening…' : remainingViews === 0 ? 'View limit reached' : 'Watch video'}
+              {videoBusy ? tr('Opening…', 'جارٍ الفتح…') : remainingViews === 0 ? tr('View limit reached', 'وصلت للحد الأقصى للمشاهدات') : tr('Watch video', 'شاهد الفيديو')}
             </button>
           ) : videoAvailable ? (
             <div className="contentbox compactpurchase">
               <Lock size={24} />
-              <small>VIDEO ACCESS</small>
-              <div className="price"><strong>{videoOffer.price} EGP</strong><span>{videoOffer.viewLimit == null ? 'video access' : videoOffer.viewLimit + ' video views'}</span></div>
+              <small>{tr('VIDEO ACCESS', 'الوصول للفيديو')}</small>
+              <div className="price"><strong><bdi>{videoOffer.price} {tr('EGP', 'ج.م')}</bdi></strong><span>{videoOffer.viewLimit == null ? tr('video access', 'وصول للفيديو') : tr(videoOffer.viewLimit + ' video views', videoOffer.viewLimit + ' مشاهدات للفيديو')}</span></div>
               <button className="primary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug + '?product=video')}>
-                <CreditCard size={17} /> Unlock Video
+                <CreditCard size={17} /> {tr('Unlock Video', 'افتح الفيديو')}
               </button>
             </div>
           ) : (
             <div className="contentbox compactpurchase unavailableproduct">
               <Clock3 size={24} />
-              <small>VIDEO</small>
-              <h3>Coming soon</h3>
-              <p>The video for this lecture will be available soon.</p>
+              <small>{tr('VIDEO', 'الفيديو')}</small>
+              <h3>{tr('Coming soon', 'قريبًا')}</h3>
+              <p>{tr('The video for this lecture will be available soon.', 'فيديو هذه المحاضرة سيكون متاحًا قريبًا.')}</p>
             </div>
           )}
 
           <div className="datashowcard">
             <div className="datashowcardhead">
               <BookOpen size={24} />
-              <div><strong>Datashow</strong><small>Protected slide viewer · watermarked</small></div>
+              <div><strong>{tr('Datashow', 'الداتاشو')}</strong><small>{tr('Protected slide viewer · watermarked', 'عارض شرائح محمي · بعلامة مائية')}</small></div>
             </div>
             {datashowAvailable && datashowUnlocked ? (
               <div className="protectedviewerbuttons">
                 <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
-                  <BookOpen size={17} /> Open Datashow
+                  <BookOpen size={17} /> {tr('Open Datashow', 'افتح الداتاشو')}
                 </button>
                 <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/pdf')}>
-                  <FileText size={17} /> Open PDF Viewer
+                  <FileText size={17} /> {tr('Open PDF Viewer', 'افتح عارض PDF')}
                 </button>
               </div>
             ) : datashowAvailable ? (
               <>
-                <div className="price"><strong>{datashowOffer.price} EGP</strong><span>viewer-only access</span></div>
+                <div className="price"><strong><bdi>{datashowOffer.price} {tr('EGP', 'ج.م')}</bdi></strong><span>{tr('viewer-only access', 'عرض فقط بدون تحميل')}</span></div>
                 <button className="secondary full" disabled={entitlementsLoading} onClick={() => nav('/checkout/' + lecture.slug + '?product=datashow')}>
-                  <Lock size={17} /> Unlock Datashow
+                  <Lock size={17} /> {tr('Unlock Datashow', 'افتح الداتاشو')}
                 </button>
               </>
             ) : (
               <div className="unavailableproduct">
                 <Clock3 size={20} />
-                <strong>Datashow coming soon</strong>
-                <small>The protected PDF has not been uploaded yet.</small>
+                <strong>{tr('Datashow coming soon', 'الداتاشو قريبًا')}</strong>
+                <small>{tr('The slides for this lecture will be available soon.', 'شرائح هذه المحاضرة ستكون متاحة قريبًا.')}</small>
               </div>
             )}
-            <small className="assetnote">Datashow and PDF open inside KIFARO only. Every displayed page carries “Dr. Kirolus Fares” plus the signed-in student's identity and viewing time.</small>
+            <small className="assetnote">{tr('Datashow and PDF open inside KIFARO only. Every displayed page carries “Dr. Kirolus Fares” plus the signed-in student\'s identity and viewing time.', 'الداتاشو والـ PDF يفتحوا داخل KIFARO فقط. كل صفحة معروضة تحمل اسم “Dr. Kirolus Fares” مع بيانات الطالب المسجّل ووقت المشاهدة.')}</small>
           </div>
 
           {bundleAvailable && !videoUnlocked && !datashowUnlocked && (
             <div className="contentbox compactpurchase">
-              <small>BEST VALUE</small>
-              <h3>Video + Datashow Bundle</h3>
-              <div className="price"><strong>{bundleOffer.price} EGP</strong><span>both access types</span></div>
+              <small>{tr('BEST VALUE', 'الأوفر')}</small>
+              <h3>{tr('Video + Datashow Bundle', 'باقة الفيديو + الداتاشو')}</h3>
+              <div className="price"><strong><bdi>{bundleOffer.price} {tr('EGP', 'ج.م')}</bdi></strong><span>{tr('both access types', 'الاتنين معًا')}</span></div>
               <button className="primary full" onClick={() => nav('/checkout/' + lecture.slug + '?product=bundle')}>
-                <CreditCard size={17} /> View Bundle
+                <CreditCard size={17} /> {tr('View Bundle', 'عرض الباقة')}
               </button>
             </div>
           )}
 
           {isAdmin && (
             <div className="adminoriginals">
-              <small>ADMIN ORIGINAL FILES</small>
+              <small>{tr('ADMIN ORIGINAL FILES', 'الملفات الأصلية (للإدارة)')}</small>
               <div className="adminquick">
-                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>Original PDF</button>
-                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>Original PowerPoint</button>
+                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>{tr('Original PDF', 'ملف PDF الأصلي')}</button>
+                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>{tr('Original PowerPoint', 'ملف PowerPoint الأصلي')}</button>
               </div>
             </div>
           )}
 
-          {lecture.status !== 'free' && videoUnlocked && <small className="assetnote">{entitlement?.view_limit == null ? 'Unlimited video views for this purchase.' : remainingViews + ' of ' + entitlement.view_limit + ' video views remaining.'}</small>}
+          {lecture.status !== 'free' && videoUnlocked && <small className="assetnote">{entitlement?.view_limit == null ? tr('Unlimited video views for this purchase.', 'مشاهدات غير محدودة للفيديو مع هذا الشراء.') : tr(remainingViews + ' of ' + entitlement.view_limit + ' video views remaining.', 'متبقي ' + remainingViews + ' من ' + entitlement.view_limit + ' مشاهدات.')}</small>}
           {videoMessage && <div className="authmessage">{videoMessage}</div>}
 
           <div className="lectureprogress">
-            <small>YOUR PROGRESS</small>
+            <small>{tr('YOUR PROGRESS', 'تقدمك')}</small>
             <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
-            <span>{state.completed ? 'Completed' : (state.progress || 0) + '% complete'}</span>
+            <span>{state.completed ? tr('Completed', 'مكتملة') : <>{tr('', 'مكتمل ')}<bdi dir="ltr">{state.progress || 0}%</bdi>{tr(' complete', '')}</>}</span>
           </div>
         </aside>
 
         <section className="lecturecontent">
           <p className="lead">{lecture.description}</p>
           <div className="tabs">
-            <button className={tab === 'learn' ? 'active' : ''} onClick={() => setTab('learn')}>Learning objectives</button>
-            <button className={tab === 'clinical' ? 'active' : ''} onClick={() => setTab('clinical')}>Clinical relevance</button>
-            <button className={tab === 'pearls' ? 'active' : ''} onClick={() => setTab('pearls')}>Exam Pearls</button>
-            <button className={tab === 'recall' ? 'active' : ''} onClick={() => setTab('recall')}>Active Recall</button>
-            <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}>MCQ Challenge</button>
+            <button className={tab === 'learn' ? 'active' : ''} onClick={() => setTab('learn')}>{tr('Learning objectives', 'أهداف المحاضرة')}</button>
+            <button className={tab === 'clinical' ? 'active' : ''} onClick={() => setTab('clinical')}>{tr('Clinical relevance', 'الأهمية الإكلينيكية')}</button>
+            <button className={tab === 'pearls' ? 'active' : ''} onClick={() => setTab('pearls')}>{tr('Exam Pearls', 'نقاط الامتحان')}</button>
+            <button className={tab === 'recall' ? 'active' : ''} onClick={() => setTab('recall')}>{tr('Active Recall', 'استرجاع نشط')}</button>
+            <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}>{tr('MCQ Challenge', 'تحدي MCQ')}</button>
           </div>
 
-          {tab === 'learn' && <ContentList title="Learning objectives" items={lecture.objectives} />}
-          {tab === 'clinical' && <ContentList title="Clinical relevance" items={lecture.clinical} />}
-          {tab === 'pearls' && <ContentList title="AnatoMate Exam Pearls" items={lecture.pearls} />}
-          {tab === 'recall' && <ContentList title="Active Recall" items={lecture.activeRecall} />}
+          {tab === 'learn' && <ContentList title={tr('Learning objectives', 'أهداف المحاضرة')} items={lecture.objectives} />}
+          {tab === 'clinical' && <ContentList title={tr('Clinical relevance', 'الأهمية الإكلينيكية')} items={lecture.clinical} />}
+          {tab === 'pearls' && <ContentList title={tr('AnatoMate Exam Pearls', 'نقاط الامتحان من AnatoMate')} items={lecture.pearls} />}
+          {tab === 'recall' && <ContentList title={tr('Active Recall', 'استرجاع نشط')} items={lecture.activeRecall} />}
           {tab === 'mcq' && quiz && (
             <div className="contentbox">
-              <h2>MCQ Challenge</h2>
+              <h2>{tr('MCQ Challenge', 'تحدي MCQ')}</h2>
               <div className="quiz">
                 <p>{quiz.question}</p>
                 {quiz.options.map((option, index) => (
@@ -844,7 +851,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                 ))}
                 {answer !== null && (
                   <div className={answer === quiz.answer ? 'feedback ok' : 'feedback bad'}>
-                    {answer === quiz.answer ? 'Correct. ' : 'Not quite. '}{quiz.explanation}
+                    {answer === quiz.answer ? tr('Correct. ', 'إجابة صحيحة. ') : tr('Not quite. ', 'ليست الإجابة الصحيحة. ')}<span dir="auto">{quiz.explanation}</span>
                   </div>
                 )}
               </div>
@@ -872,9 +879,10 @@ function CheckoutPage() {
   const product = requested === 'video' || requested === 'datashow' || requested === 'bundle' ? requested : 'bundle'
   const [paymentBusy, setPaymentBusy] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState('')
+  const tr = useTr()
 
   if (!lecture) {
-    return <div className="page"><PageHead eyebrow="KIFARO CHECKOUT" title="Lecture not found" body="This lecture is not available." /></div>
+    return <div className="page"><PageHead eyebrow={tr('KIFARO CHECKOUT', 'الدفع في KIFARO')} title={tr('Lecture not found', 'المحاضرة غير موجودة')} body={tr('This lecture is not available.', 'هذه المحاضرة غير متاحة.')} /></div>
   }
 
   const basePrice = getLecturePrice(lecture, lectureSetting)
@@ -907,7 +915,7 @@ function CheckoutPage() {
 
     if (error || data?.error || !data?.checkoutUrl) {
       setPaymentBusy(false)
-      setPaymentMessage(data?.error || error?.message || 'Could not start Paymob checkout.')
+      setPaymentMessage(data?.error || error?.message || tr('Could not start Paymob checkout.', 'تعذّر بدء الدفع عبر Paymob.'))
       return
     }
 
@@ -917,68 +925,68 @@ function CheckoutPage() {
 
   return (
     <div className="page">
-      <PageHead eyebrow="SECURE CHECKOUT" title="Choose your access" body="Video and Datashow are separate products. Bundle unlocks both." />
+      <PageHead eyebrow={tr('SECURE CHECKOUT', 'دفع آمن')} title={tr('Choose your access', 'اختر نوع الوصول')} body={tr('Video and Datashow are separate products. Bundle unlocks both.', 'الفيديو والداتاشو منتجان منفصلان، والباقة تفتح الاتنين.')} />
 
       <div className="productchooser">
         <button disabled={!videoAvailable} className={product === 'video' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'video' })}>
-          <PlayCircle size={24} /><strong>Video</strong><span>{videoAvailable ? videoOffer.price + ' EGP' : 'Coming soon'}</span>
+          <PlayCircle size={24} /><strong>{tr('Video', 'الفيديو')}</strong><span>{videoAvailable ? <bdi>{videoOffer.price} {tr('EGP', 'ج.م')}</bdi> : tr('Coming soon', 'قريبًا')}</span>
         </button>
         <button disabled={!datashowAvailable} className={product === 'datashow' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'datashow' })}>
-          <BookOpen size={24} /><strong>Datashow</strong><span>{datashowAvailable ? datashowOffer.price + ' EGP' : 'Coming soon'}</span>
+          <BookOpen size={24} /><strong>{tr('Datashow', 'الداتاشو')}</strong><span>{datashowAvailable ? <bdi>{datashowOffer.price} {tr('EGP', 'ج.م')}</bdi> : tr('Coming soon', 'قريبًا')}</span>
         </button>
         <button disabled={!availability.bundle} className={product === 'bundle' ? 'selected' : ''} onClick={() => setSearchParams({ product: 'bundle' })}>
-          <Sparkles size={24} /><strong>Bundle</strong><span>{availability.bundle ? bundleOffer.price + ' EGP' : 'Not ready'}</span>
+          <Sparkles size={24} /><strong>{tr('Bundle', 'الباقة')}</strong><span>{availability.bundle ? <bdi>{bundleOffer.price} {tr('EGP', 'ج.م')}</bdi> : tr('Not ready', 'غير جاهزة')}</span>
         </button>
       </div>
 
       <div className="contentbox">
         <small>ANATOMATE BY KIFARO</small>
         <h2>{lecture.title}</h2>
-        <p>Year {lecture.year} · {lecture.module}</p>
+        <p>{tr('Year', 'السنة')} {lecture.year} · {lecture.module}</p>
 
         <div className="price">
-          <strong>{offer.price} EGP</strong>
-          <span>{product === 'datashow' ? 'viewer-only Datashow access' : product === 'bundle' ? 'video + Datashow access' : offer.viewLimit == null ? 'video access' : offer.viewLimit + ' video views'}</span>
+          <strong><bdi>{offer.price} {tr('EGP', 'ج.م')}</bdi></strong>
+          <span>{product === 'datashow' ? tr('viewer-only Datashow access', 'وصول للداتاشو (عرض فقط)') : product === 'bundle' ? tr('video + Datashow access', 'وصول للفيديو + الداتاشو') : offer.viewLimit == null ? tr('video access', 'وصول للفيديو') : tr(offer.viewLimit + ' video views', offer.viewLimit + ' مشاهدات للفيديو')}</span>
         </div>
 
         {product !== 'video' && (
           <div className="watermarkpromise">
             <ShieldCheck size={22} />
-            <div><strong>Protected Datashow + PDF Viewer</strong><p>No student PowerPoint or original PDF download. Content opens inside KIFARO with “Dr. Kirolus Fares” plus the student's identity and viewing time on every displayed page.</p></div>
+            <div><strong>{tr('Protected Datashow + PDF Viewer', 'داتاشو وعارض PDF محميين')}</strong><p>{tr('No student PowerPoint or original PDF download. Content opens inside KIFARO with “Dr. Kirolus Fares” plus the student\'s identity and viewing time on every displayed page.', 'لا يوجد تحميل لملف PowerPoint أو PDF الأصلي. المحتوى يفتح داخل KIFARO، وكل صفحة معروضة تحمل اسم “Dr. Kirolus Fares” مع بيانات الطالب ووقت المشاهدة.')}</p></div>
           </div>
         )}
 
         {!selectedAvailable ? (
           <div className="unavailablecheckout">
             <Clock3 size={24} />
-            <strong>This product is not ready for sale yet.</strong>
-            <p>KIFARO only enables checkout after the required protected content has been uploaded.</p>
+            <strong>{tr('This option is not available yet.', 'هذا الاختيار غير متاح بعد.')}</strong>
+            <p>{tr('Checkout opens as soon as this lecture\'s content is ready.', 'الدفع هيتفتح أول ما محتوى المحاضرة يبقى جاهز.')}</p>
           </div>
         ) : !user ? (
           <>
-            <p>Sign in first so the purchase can be permanently attached to your KIFARO account.</p>
-            <button className="primary full" onClick={() => nav('/login')}><LogIn size={17} /> Sign in to continue</button>
+            <p>{tr('Sign in first so the purchase can be permanently attached to your KIFARO account.', 'سجّل الدخول أولًا علشان الشراء يتربط بحسابك في KIFARO بشكل دائم.')}</p>
+            <button className="primary full" onClick={() => nav('/login')}><LogIn size={17} /> {tr('Sign in to continue', 'سجّل الدخول للمتابعة')}</button>
           </>
         ) : ownsSelected ? (
           <>
-            <div className="price"><strong>Purchased</strong><span>access is active</span></div>
+            <div className="price"><strong>{tr('Purchased', 'تم الشراء')}</strong><span>{tr('access is active', 'الوصول مفعّل')}</span></div>
             <button className="primary full" onClick={() => nav(product === 'datashow' ? '/anatomate/lecture/' + lecture.slug + '/datashow' : '/anatomate/lecture/' + lecture.slug)}>
-              <Check size={17} /> Open content
+              <Check size={17} /> {tr('Open content', 'افتح المحتوى')}
             </button>
           </>
         ) : (
           <>
-            <small className="assetnote">Your price is matched to your academic year and nationality. Paymob confirms payment server-to-server before KIFARO unlocks access.</small>
+            <small className="assetnote">{tr('Your price is matched to your academic year and nationality. Paymob confirms payment server-to-server before KIFARO unlocks access.', 'السعر محسوب حسب سنتك الدراسية وجنسيتك. Paymob بيأكد الدفع مع السيرفر قبل ما KIFARO يفتح المحتوى.')}</small>
             <button className="primary full" disabled={paymentBusy || entitlementsLoading || offerLoading} onClick={() => void startPayment()}>
-              <CreditCard size={17} /> {paymentBusy ? 'Opening Paymob…' : entitlementsLoading || offerLoading ? 'Checking account…' : 'Pay securely with Paymob'}
+              <CreditCard size={17} /> {paymentBusy ? tr('Opening Paymob…', 'جارٍ فتح Paymob…') : entitlementsLoading || offerLoading ? tr('Checking account…', 'جارٍ التحقق من الحساب…') : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
             </button>
-            <small className="paymenttestnote">Paymob is currently in TEST MODE — no real money is charged during testing.</small>
+            <small className="paymenttestnote">{tr('Paymob is currently in TEST MODE — no real money is charged during testing.', 'بوابة Paymob حاليًا في وضع التجربة — مفيش فلوس حقيقية بتتخصم.')}</small>
             {paymentMessage && <div className="authmessage">{paymentMessage}</div>}
           </>
         )}
 
-        <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
-        <small className="assetnote">Purchases are verified from Supabase. Students cannot grant access to themselves.</small>
+        <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>{tr('Back to lecture', 'العودة للمحاضرة')}</button>
+        <small className="assetnote">{tr('Every purchase is verified on our servers before access is granted.', 'كل عملية شراء بيتم التحقق منها على السيرفر قبل فتح المحتوى.')}</small>
       </div>
     </div>
   )
@@ -989,7 +997,8 @@ function PaymentReturnPage() {
   const { user } = useAuth()
   const [params] = useSearchParams()
   const [checking, setChecking] = useState(true)
-  const [message, setMessage] = useState('Confirming payment with Paymob…')
+  const tr = useTr()
+  const [status, setStatus] = useState<'checking' | 'signin' | 'confirmed' | 'pending' | 'failed'>('checking')
   const successHint = params.get('success')
   const transactionId = params.get('id')
 
@@ -999,7 +1008,7 @@ function PaymentReturnPage() {
       if (!user) {
         if (active) {
           setChecking(false)
-          setMessage('Sign in to see your purchased content.')
+          setStatus('signin')
         }
         return
       }
@@ -1019,7 +1028,7 @@ function PaymentReturnPage() {
         if (data?.length && String(data[0].source || '').startsWith('paymob:')) {
           if (active) {
             setChecking(false)
-            setMessage('Payment confirmed. Your KIFARO access is active.')
+            setStatus('confirmed')
           }
           return
         }
@@ -1027,9 +1036,7 @@ function PaymentReturnPage() {
 
       if (active) {
         setChecking(false)
-        setMessage(successHint === 'true'
-          ? 'Paymob accepted the payment. KIFARO is still waiting for the secure server confirmation; refresh My Library in a moment.'
-          : 'Payment was not confirmed. No access has been granted.')
+        setStatus(successHint === 'true' ? 'pending' : 'failed')
       }
     }
 
@@ -1042,11 +1049,17 @@ function PaymentReturnPage() {
       <div className="contentbox paymentreturn">
         <div className={checking ? 'paymentreturnicon checking' : 'paymentreturnicon'}>{checking ? <Clock3 size={30}/> : <ShieldCheck size={30}/>}</div>
         <small>PAYMOB · KIFARO</small>
-        <h2>{checking ? 'Checking payment' : 'Payment status'}</h2>
-        <p>{message}</p>
-        {transactionId && <small className="assetnote">Transaction reference: {transactionId}</small>}
+        <h2>{checking ? tr('Checking payment', 'جارٍ التحقق من الدفع') : tr('Payment status', 'حالة الدفع')}</h2>
+        <p>{{
+          checking: tr('Confirming payment with Paymob…', 'جارٍ تأكيد الدفع مع Paymob…'),
+          signin: tr('Sign in to see your purchased content.', 'سجّل الدخول لتشوف المحتوى اللي اشتريته.'),
+          confirmed: tr('Payment confirmed. Your KIFARO access is active.', 'تم تأكيد الدفع. وصولك في KIFARO مفعّل.'),
+          pending: tr('Paymob accepted the payment. KIFARO is still waiting for the secure server confirmation; refresh My Library in a moment.', 'تم قبول الدفع من Paymob، وKIFARO لسه مستني التأكيد من السيرفر. حدّث صفحة مكتبتي بعد شوية.'),
+          failed: tr('Payment was not confirmed. No access has been granted.', 'لم يتم تأكيد الدفع، ولم يُفتح أي محتوى.'),
+        }[status]}</p>
+        {transactionId && <small className="assetnote">{tr('Transaction reference:', 'رقم العملية:')} <bdi>{transactionId}</bdi></small>}
         <div className="paymentreturnactions">
-          <button className="primary" onClick={() => nav('/library')}><Library size={17}/> My Library</button>
+          <button className="primary" onClick={() => nav('/library')}><Library size={17}/> {tr('My Library', 'مكتبتي')}</button>
           <button className="secondary" onClick={() => nav('/anatomate')}><BookOpen size={17}/> AnatoMate</button>
         </div>
       </div>
@@ -1060,7 +1073,7 @@ function ContentList({ title, items }: { title: string; items: string[] }) {
       <h2>{title}</h2>
       <div className="learninglist">
         {items.map((item, index) => (
-          <div key={item}><span>{String(index + 1).padStart(2, '0')}</span><p>{item}</p></div>
+          <div key={item}><span>{String(index + 1).padStart(2, '0')}</span><p dir="auto">{item}</p></div>
         ))}
       </div>
     </div>
@@ -1068,16 +1081,17 @@ function ContentList({ title, items }: { title: string; items: string[] }) {
 }
 
 function Topics({ lectures, go }: { lectures: any[]; go: (path: string) => void }) {
+  const tr = useTr()
   return (
     <div className="page">
-      <PageHead eyebrow="ANATOMATE" title="Topics" body="Review anatomy by region, system and clinical relevance." />
+      <PageHead eyebrow="ANATOMATE" title={tr('Topics', 'الموضوعات')} body={tr('Review anatomy by region, system and clinical relevance.', 'راجع التشريح حسب المنطقة والجهاز والأهمية الإكلينيكية.')} />
       <div className="topicgrid">
         {lectures.map((lecture, index) => (
           <button className="topiccard clickable" key={lecture.id} onClick={() => go('/anatomate/lecture/' + lecture.slug)}>
             <span className="topicindex">{String(index + 1).padStart(2, '0')}</span>
             <div>
               <small>{lecture.system}</small><h3>{lecture.title}</h3><p>{lecture.description}</p>
-              <div className="tags"><span>Year {lecture.year}</span><span>{lecture.duration} min</span><span>Lecture {lecture.sequence}</span></div>
+              <div className="tags"><span>{tr('Year', 'السنة')} {lecture.year}</span><span><bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi></span><span>{tr('Lecture', 'محاضرة')} {lecture.sequence}</span></div>
             </div>
           </button>
         ))}
@@ -1087,18 +1101,19 @@ function Topics({ lectures, go }: { lectures: any[]; go: (path: string) => void 
 }
 
 function Studio() {
+  const tr = useTr()
   const tools = [
-    ['Flashcards', 'Rapid active-recall decks from your modules.'],
-    ['Revision Builder', 'Build a focused revision session.'],
-    ['Exam Preparation', 'Practice clinically oriented MCQs.'],
-    ['Saved Notes', 'Keep important concepts in one place.'],
+    [tr('Flashcards', 'بطاقات المراجعة'), tr('Rapid active-recall decks from your modules.', 'بطاقات استرجاع سريعة من موديولاتك.')],
+    [tr('Revision Builder', 'منشئ المراجعة'), tr('Build a focused revision session.', 'جهّز جلسة مراجعة مركزة.')],
+    [tr('Exam Preparation', 'التحضير للامتحان'), tr('Practice clinically oriented MCQs.', 'تدرب على أسئلة MCQ إكلينيكية.')],
+    [tr('Saved Notes', 'الملاحظات المحفوظة'), tr('Keep important concepts in one place.', 'احتفظ بالمفاهيم المهمة في مكان واحد.')],
   ]
   return (
     <div className="page">
-      <PageHead eyebrow="TOOLS" title="KIFARO Studio" body="Study tools that turn content into active revision." />
+      <PageHead eyebrow={tr('TOOLS', 'الأدوات')} title="KIFARO Studio" body={tr('Study tools that turn content into active revision.', 'أدوات مذاكرة بتحوّل المحتوى لمراجعة نشطة.')} />
       <div className="toolgrid">
         {tools.map(([title, body]) => (
-          <div className="toolcard" key={title}><div className="softicon"><Sparkles /></div><h3>{title}</h3><p>{body}</p><button className="secondary">Open</button></div>
+          <div className="toolcard" key={title}><div className="softicon"><Sparkles /></div><h3>{title}</h3><p>{body}</p><button className="secondary" disabled>{tr('Coming soon', 'قريبًا')}</button></div>
         ))}
       </div>
     </div>
@@ -1108,20 +1123,21 @@ function Studio() {
 function LibraryPage({ lectures, update, flash, t, go }: { lectures: any[]; update: any; flash: any; t: any; go: (path: string) => void }) {
   const favorites = lectures.filter((lecture) => lecture.favorite)
   const visible = favorites.length ? favorites : lectures.slice(0, 3)
+  const tr = useTr()
   return (
     <div className="page">
-      <PageHead eyebrow="MY LIBRARY" title={t.library} body="Favorites and saved learning items." />
+      <PageHead eyebrow={tr('MY LIBRARY', 'مكتبتي')} title={t.library} body={tr('Favorites and saved learning items.', 'المفضلة والمحتوى المحفوظ.')} />
       <div className="cards wide">
         {visible.map((lecture) => (
           <div className="coursecard" key={lecture.id}>
-            <div className="cover"><Library /><span>YEAR {lecture.year}</span></div>
+            <div className="cover"><Library /><span>{tr('YEAR', 'السنة')} {lecture.year}</span></div>
             <div className="cardbody">
               <small>{lecture.module}</small><h3>{lecture.title}</h3><p>{lecture.system}</p>
               <div className="cardactions">
-                <button className="secondary" onClick={() => go('/anatomate/lecture/' + lecture.slug)}>Open</button>
+                <button className="secondary" onClick={() => go('/anatomate/lecture/' + lecture.slug)}>{tr('Open', 'فتح')}</button>
                 <button
                   className="icon star"
-                  aria-label="Toggle favorite"
+                  aria-label={tr('Toggle favorite', 'تبديل المفضلة')}
                   onClick={() => {
                     update(lecture.id, { favorite: !lecture.favorite })
                     flash(lecture.favorite ? t.removed : t.saved)
@@ -1139,6 +1155,9 @@ function LibraryPage({ lectures, update, flash, t, go }: { lectures: any[]; upda
 }
 
 function Prefs({ lang, setLang, theme, setTheme, t }: { lang: Lang; setLang: any; theme: Theme; setTheme: any; t: any }) {
+  const themeNames: Record<Theme, [string, string]> = {
+    blue: ['KIFARO Blue', 'أزرق KIFARO'], teal: ['Teal', 'فيروزي'], violet: ['Violet', 'بنفسجي'], forest: ['Forest', 'أخضر'],
+  }
   return (
     <div className="prefscontent">
       <section>
@@ -1147,7 +1166,7 @@ function Prefs({ lang, setLang, theme, setTheme, t }: { lang: Lang; setLang: any
           {(['blue', 'teal', 'violet', 'forest'] as Theme[]).map((item) => (
             <button key={item} className={theme === item ? 'selected' : ''} onClick={() => setTheme(item)}>
               <span className={'swatch ' + item} />
-              {item === 'blue' ? 'KIFARO Blue' : item[0].toUpperCase() + item.slice(1)}
+              {themeNames[item][lang === 'ar' ? 1 : 0]}
               {theme === item && <Check />}
             </button>
           ))}
@@ -1170,7 +1189,7 @@ function Course({ l, go, t }: { l: any; go: (path: string) => void; t: any }) {
       <div className="cover"><Microscope /><span>{t.lecture} {l.sequence}</span></div>
       <div className="cardbody">
         <small>{l.module}</small><h3>{l.title}</h3><p>{l.system}</p>
-        <div className="meta"><bdi>{l.duration} {t.min}</bdi><bdi>{l.progress || 0}%</bdi></div>
+        <div className="meta"><bdi>{l.duration} {t.min}</bdi><bdi dir="ltr">{l.progress || 0}%</bdi></div>
         <div className="progress"><i style={{ width: (l.progress || 0) + '%' }} /></div>
       </div>
     </button>

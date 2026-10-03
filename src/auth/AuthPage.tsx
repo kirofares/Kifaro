@@ -4,6 +4,7 @@ import { Building2, Flag, GraduationCap, LockKeyhole, Mail, Phone, School, Steth
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { ACADEMIC_LEVELS, EGYPTIAN_UNIVERSITIES, FACULTIES, LEARNING_DEPTHS } from '../data/academicOptions'
+import { useTr } from '../i18n'
 
 export default function AuthPage() {
   const { configured, user, signIn, signUp } = useAuth()
@@ -21,20 +22,21 @@ export default function AuthPage() {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const tr = useTr()
 
   if (user) return <Navigate to="/" replace />
 
   const forgotPassword = async () => {
     if (!supabase) return
     if (!email.trim()) {
-      setMessage('Enter your email first.')
+      setMessage(tr('Enter your email first.', 'اكتب بريدك الإلكتروني أولًا.'))
       return
     }
     setBusy(true)
     setMessage('')
     const redirectTo = window.location.origin + window.location.pathname + '#/reset-password'
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
-    setMessage(error ? error.message : 'Password reset link sent. Check your email.')
+    setMessage(error ? error.message : tr('Password reset link sent. Check your email.', 'تم إرسال رابط إعادة تعيين كلمة المرور. راجع بريدك.'))
     setBusy(false)
   }
 
@@ -49,13 +51,13 @@ export default function AuthPage() {
       else navigate('/')
     } else {
       if (!termsAccepted) {
-        setMessage('Please accept the Terms of Use and Privacy Policy.')
+        setMessage(tr('Please accept the Terms of Use and Privacy Policy.', 'من فضلك وافق على شروط الاستخدام وسياسة الخصوصية.'))
         setBusy(false)
         return
       }
       const result = await signUp({ email, password, fullName, academicYear, faculty, university, nationality, phoneNo, preferredLearningDepth })
       if (result.error) setMessage(result.error)
-      else if (result.needsEmailConfirmation) setMessage('Check your email to confirm your KIFARO account.')
+      else if (result.needsEmailConfirmation) setMessage(tr('Check your email to confirm your KIFARO account.', 'راجع بريدك لتأكيد حسابك في KIFARO.'))
       else navigate('/')
     }
 
@@ -67,43 +69,43 @@ export default function AuthPage() {
       <section className="authbrand">
         <div className="authlogo"><Stethoscope /></div>
         <span>ANATOMATE BY KIFARO</span>
-        <h1>Your medical learning journey, organized.</h1>
-        <p>Learn anatomy visually, track your progress, revise actively and return exactly where you stopped.</p>
+        <h1>{tr('Your medical learning journey, organized.', 'رحلتك في دراسة الطب، منظمة.')}</h1>
+        <p>{tr('Learn anatomy visually, track your progress, revise actively and return exactly where you stopped.', 'اتعلم التشريح بصريًا، تابع تقدمك، راجع بشكل نشط وارجع بالظبط للمكان اللي وقفت عنده.')}</p>
       </section>
 
       <section className="authcard">
         <div className="authswitch">
-          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Log in</button>
-          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>Create account</button>
+          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>{tr('Log in', 'تسجيل الدخول')}</button>
+          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>{tr('Create account', 'إنشاء حساب')}</button>
         </div>
 
-        {!configured && <div className="authnotice">Student accounts are being connected. The public preview is still available.</div>}
+        {!configured && <div className="authnotice">{tr('Student accounts are being connected. The public preview is still available.', 'جارٍ ربط حسابات الطلاب. المعاينة العامة لسه متاحة.')}</div>}
 
         <form onSubmit={submit}>
           {mode === 'signup' && (
             <>
-              <label>Full name<div className="authinput"><UserRound /><input value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" /></div></label>
-              <label>Academic year<div className="authinput"><GraduationCap /><select value={academicYear} onChange={(e) => setAcademicYear(Number(e.target.value))}>{ACADEMIC_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></div></label>
-              <label>Faculty<div className="authinput"><School /><select value={faculty} onChange={(e) => setFaculty(e.target.value)} required>{FACULTIES.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
-              <label>Preferred learning depth<div className="authinput"><GraduationCap /><select value={preferredLearningDepth} onChange={(e) => setPreferredLearningDepth(e.target.value)}>{LEARNING_DEPTHS.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
-              <label>University<div className="authinput"><Building2 /><select value={university} onChange={(e) => setUniversity(e.target.value)} required><option value="">Select university</option>{Object.entries(EGYPTIAN_UNIVERSITIES).map(([group, universities]) => <optgroup key={group} label={group}>{universities.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}</select></div></label>
-              <label>Nationality<div className="authinput"><Flag /><input value={nationality} onChange={(e) => setNationality(e.target.value)} required /></div></label>
-              <label>Phone no<div className="authinput"><Phone /><input type="tel" value={phoneNo} onChange={(e) => setPhoneNo(e.target.value)} required autoComplete="tel" placeholder="+20..." /></div></label>
+              <label>{tr('Full name', 'الاسم بالكامل')}<div className="authinput"><UserRound /><input value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" /></div></label>
+              <label>{tr('Academic year', 'السنة الدراسية')}<div className="authinput"><GraduationCap /><select value={academicYear} onChange={(e) => setAcademicYear(Number(e.target.value))}>{ACADEMIC_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></div></label>
+              <label>{tr('Faculty', 'الكلية')}<div className="authinput"><School /><select value={faculty} onChange={(e) => setFaculty(e.target.value)} required>{FACULTIES.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
+              <label>{tr('Preferred learning depth', 'مستوى التعمق المفضل')}<div className="authinput"><GraduationCap /><select value={preferredLearningDepth} onChange={(e) => setPreferredLearningDepth(e.target.value)}>{LEARNING_DEPTHS.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
+              <label>{tr('University', 'الجامعة')}<div className="authinput"><Building2 /><select value={university} onChange={(e) => setUniversity(e.target.value)} required><option value="">{tr('Select university', 'اختر الجامعة')}</option>{Object.entries(EGYPTIAN_UNIVERSITIES).map(([group, universities]) => <optgroup key={group} label={group}>{universities.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}</select></div></label>
+              <label>{tr('Nationality', 'الجنسية')}<div className="authinput"><Flag /><input value={nationality} onChange={(e) => setNationality(e.target.value)} required /></div></label>
+              <label>{tr('Phone number', 'رقم الموبايل')}<div className="authinput"><Phone /><input dir="ltr" type="tel" value={phoneNo} onChange={(e) => setPhoneNo(e.target.value)} required autoComplete="tel" placeholder="+20..." /></div></label>
             </>
           )}
 
-          <label>Email<div className="authinput"><Mail /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div></label>
-          <label>Password<div className="authinput"><LockKeyhole /><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required /></div></label>
+          <label>{tr('Email', 'البريد الإلكتروني')}<div className="authinput"><Mail /><input dir="ltr" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div></label>
+          <label>{tr('Password', 'كلمة المرور')}<div className="authinput"><LockKeyhole /><input dir="ltr" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required /></div></label>
           {mode === 'signup' && (
             <label className="legalconsent">
               <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-              <span>I agree to the <Link to="/terms">Terms of Use</Link> and <Link to="/privacy">Privacy Policy</Link>.</span>
+              <span>{tr('I agree to the ', 'أوافق على ')}<Link to="/terms">{tr('Terms of Use', 'شروط الاستخدام')}</Link>{tr(' and ', ' و')}<Link to="/privacy">{tr('Privacy Policy', 'سياسة الخصوصية')}</Link>.</span>
             </label>
           )}
-          {mode === 'login' && <button type="button" className="secondary" disabled={busy || !configured} onClick={() => void forgotPassword()}>Forgot password?</button>}
+          {mode === 'login' && <button type="button" className="secondary" disabled={busy || !configured} onClick={() => void forgotPassword()}>{tr('Forgot password?', 'نسيت كلمة المرور؟')}</button>}
 
           {message && <div className="authmessage">{message}</div>}
-          <button className="primary authsubmit" disabled={!configured || busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Log in to KIFARO' : 'Create KIFARO account'}</button>
+          <button className="primary authsubmit" disabled={!configured || busy}>{busy ? tr('Please wait…', 'برجاء الانتظار…') : mode === 'login' ? tr('Log in to KIFARO', 'الدخول إلى KIFARO') : tr('Create KIFARO account', 'إنشاء حساب KIFARO')}</button>
         </form>
       </section>
     </div>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useLang, useTr } from '../i18n'
 
 type LegalKind = 'privacy' | 'terms' | 'refund'
 
@@ -50,8 +51,15 @@ const sections: Record<LegalKind, { title: string; intro: string; items: { headi
 
 export default function LegalPage({ kind }: { kind: LegalKind }) {
   const content = sections[kind]
+  const lang = useLang()
+  const tr = useTr()
   return (
     <div className="page legalpage">
+      {lang === 'ar' && (
+        <div className="legallangnote">النص الرسمي لهذه السياسة باللغة الإنجليزية، ويُعرض كما هو.</div>
+      )}
+      {/* Legal text is English-only; keep it left-to-right so punctuation renders correctly in RTL mode. */}
+      <div dir="ltr" lang="en">
       <div className="legalhero">
         <small>KIFARO · ANATOMATE</small>
         <h1>{content.title}</h1>
@@ -67,12 +75,13 @@ export default function LegalPage({ kind }: { kind: LegalKind }) {
           </section>
         ))}
       </div>
+      </div>
 
       <div className="legalnav">
-        <Link to="/privacy">Privacy Policy</Link>
-        <Link to="/terms">Terms of Use</Link>
-        <Link to="/refund">Refund Policy</Link>
-        <Link to="/">Back to KIFARO</Link>
+        <Link to="/privacy">{tr('Privacy Policy', 'سياسة الخصوصية')}</Link>
+        <Link to="/terms">{tr('Terms of Use', 'شروط الاستخدام')}</Link>
+        <Link to="/refund">{tr('Refund Policy', 'سياسة الاسترداد')}</Link>
+        <Link to="/">{tr('Back to KIFARO', 'العودة إلى KIFARO')}</Link>
       </div>
     </div>
   )
