@@ -505,3 +505,31 @@ html[dir="rtl"] .dirarrow{transform:scaleX(-1)}
   .sidefoot .sideaccount{display:flex}
   .pathmap{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}
 }
+
+
+/* End-of-lecture MCQ + Active Recall visual library */
+.studytabstack{display:grid;gap:14px}
+.studyresources{display:grid;gap:13px}
+.studyresourceshead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.studyresourceshead>div{display:grid;gap:4px}
+.studyresourceshead small{font-size:10px;font-weight:900;letter-spacing:.8px;color:var(--primary)}
+.studyresourceshead h2{margin:0}
+.studyresourceshead>span{flex:0 0 auto;padding:6px 9px;border-radius:999px;background:var(--soft);color:var(--primary);font-size:10px;font-weight:800}
+.studyresourcesnote{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
+.studyresourcegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.studyresourcecard{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;text-align:left;color:var(--text);transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease;cursor:pointer}
+.studyresourcecard:hover{border-color:var(--primary);transform:translateY(-1px);box-shadow:0 8px 24px rgba(16,39,75,.08)}
+.studyresourcecard.locked{background:#fbfcfe}
+.studyresourcecard:disabled{cursor:not-allowed;opacity:.55;transform:none;box-shadow:none}
+.studyresourceicon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--soft);color:var(--primary)}
+.studyresourcecopy{min-width:0;display:grid;gap:3px}
+.studyresourcecopy strong{font-size:13px;line-height:1.35}
+.studyresourcecopy small{color:var(--muted);font-size:10px;line-height:1.4}
+.studyresourcecard>svg{color:var(--primary);flex:0 0 auto}
+html[dir="rtl"] .studyresourcecard{text-align:right}
+html[dir="rtl"] .studyresourcecard>svg{transform:scaleX(-1)}
+@media(max-width:720px){
+  .studyresourcegrid{grid-template-columns:1fr}
+  .studyresourceshead{align-items:center}
+  .studyresourcecard{padding:12px}
+}
