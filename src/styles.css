@@ -180,9 +180,6 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
   .page{
     padding-bottom:72px;
   }
-  .hero{
-    margin-bottom:20px;
-  }
   .roomactions,
   .cardactions,
   .lectureactions{
@@ -205,7 +202,7 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
 /* Final mobile spacing polish */
 @media (max-width:780px) {
   .hero{
-    padding-bottom:88px;
+    padding-bottom:24px;
   }
   .hero .lightbtn{
     margin-top:8px;
@@ -233,25 +230,6 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
   }
 }
 
-@supports (padding: max(0px)) {
-  @media (max-width:780px) {
-    .hero{
-      padding-bottom:max(88px, calc(64px + env(safe-area-inset-bottom)));
-    }
-  }
-}
-
-
-/* Keep the dashboard hero clear of Android navigation */
-@media (max-width:780px) {
-  .hero{
-    padding-bottom:32px;
-    margin-bottom:104px;
-  }
-  .hero .lightbtn{
-    margin-top:14px;
-  }
-}
 
 
 /* AnatoMate direct Android download */
@@ -431,4 +409,24 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
   .sitefooter{padding-bottom:max(32px,calc(22px + env(safe-area-inset-bottom)))}
   .legalhero{padding:24px 18px;border-radius:16px}
   .legalhero h1{font-size:30px}
+}
+
+
+/* Dashboard polish */
+.pathmap{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.pathcard.clickable{display:block;text-align:start}
+.pathcard.clickable:hover,.coursecard.clickable:hover{border-color:var(--primary)}
+.coursecard.clickable{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:0;text-align:start}
+.coursecard .cover{flex:0 0 110px}
+.coursecard .cardbody{flex:1;display:flex;flex-direction:column}
+.coursecard .cardbody .meta{margin-top:auto;padding-top:10px}
+.minicard p bdi{font-weight:800;color:var(--primary)}
+html[dir="rtl"] .dirarrow{transform:scaleX(-1)}
+.sidebar nav{flex:1}
+.sidefoot{display:grid;gap:6px}
+.sideaccount{border:0;background:transparent;color:#bdc9d8;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;font-size:14px;text-align:start}
+.sideaccount:hover{background:#ffffff12;color:#fff}
+@media(max-width:780px){
+  .sidefoot .sideaccount{display:flex}
+  .pathmap{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}
 }
