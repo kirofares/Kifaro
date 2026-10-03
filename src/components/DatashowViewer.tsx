@@ -156,7 +156,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
         } else if (data instanceof ArrayBuffer) {
           bytes = data
         } else if (ArrayBuffer.isView(data)) {
-          bytes = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+          bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice().buffer
         } else {
           throw new Error('Could not load the protected ' + documentLabel + '.')
         }
