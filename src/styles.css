@@ -432,3 +432,19 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
   .legalhero{padding:24px 18px;border-radius:16px}
   .legalhero h1{font-size:30px}
 }
+
+.legalconsent{
+  display:flex!important;
+  align-items:flex-start;
+  gap:10px;
+  font-size:12px;
+  line-height:1.5;
+  color:var(--muted);
+}
+.legalconsent input{
+  width:16px;
+  height:16px;
+  margin-top:2px;
+  flex:0 0 auto;
+}
+.legalconsent a{color:var(--primary);font-weight:800;text-decoration:none}
