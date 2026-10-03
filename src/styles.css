@@ -505,3 +505,11 @@ html[dir="rtl"] .dirarrow{transform:scaleX(-1)}
   .sidefoot .sideaccount{display:flex}
   .pathmap{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}
 }
+
+/* RTL: lecture content is English, so let each content line pick its own direction */
+html[dir="rtl"] :is(.pagehead h1,.pagehead p,.lecturehead h1,.lecturehead p,.lead,.quiz p,.quiz button,.feedback,
+  .continuecard h3,.continuecard small,.coursecard h3,.coursecard small,.coursecard p,.lessonrow h3,.lessonrow small,
+  .topiccard h3,.topiccard small,.topiccard p,.modulecard h3,.modulecard p,.contentbox h2,.minicard p,.protectedvideotop h1,.datashowtop h1){
+  unicode-bidi:plaintext;
+}
+.legallangnote{margin-bottom:14px;padding:12px 16px;border-radius:12px;background:var(--soft);color:var(--primary);font-weight:700;font-size:13px}

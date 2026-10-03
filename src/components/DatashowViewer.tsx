@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
 import { useEntitlements } from '../hooks/useEntitlements'
 import { supabase } from '../lib/supabase'
+import { useTr } from '../i18n'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc
 
@@ -83,6 +84,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
   const { slug } = useParams()
   const nav = useNavigate()
   const { user, loading: authLoading } = useAuth()
+  const tr = useTr()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
   const { entitlementByLecture, loading: entitlementLoading } = useEntitlements(user?.id)
   const lecture = getLectureBySlug(slug)
@@ -99,6 +101,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
   const [watermarkTick, setWatermarkTick] = useState(() => Date.now())
 
   const documentLabel = mode === 'pdf' ? 'PDF' : 'Datashow'
+  const docLabel = mode === 'pdf' ? 'PDF' : tr('Datashow', 'الداتاشو')
   const displayName = String(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student')
   const email = String(user?.email || 'student-account')
   const studentId = String(user?.id || 'unknown').slice(0, 8).toUpperCase()
@@ -233,11 +236,11 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
   }
 
   if (!lecture) {
-    return <div className="page"><div className="contentbox"><h2>{documentLabel} not found</h2></div></div>
+    return <div className="page"><div className="contentbox"><h2>{tr(documentLabel + ' not found', docLabel + ' غير موجود')}</h2></div></div>
   }
 
   if (authLoading || adminLoading || entitlementLoading) {
-    return <div className="page"><div className="contentbox"><h2>Checking access…</h2></div></div>
+    return <div className="page"><div className="contentbox"><h2>{tr('Checking access…', 'جارٍ التحقق من الصلاحية…')}</h2></div></div>
   }
 
   if (!user) {
@@ -245,8 +248,8 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
       <div className="page">
         <div className="contentbox datashowlocked">
           <Lock size={34} />
-          <h2>Sign in to open this {documentLabel}</h2>
-          <button className="primary" onClick={() => nav('/login')}>Sign in</button>
+          <h2>{tr('Sign in to open this ' + documentLabel, 'سجّل الدخول لفتح ' + docLabel)}</h2>
+          <button className="primary" onClick={() => nav('/login')}>{tr('Sign in', 'تسجيل الدخول')}</button>
         </div>
       </div>
     )
@@ -258,10 +261,10 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
         <div className="contentbox datashowlocked">
           <Lock size={34} />
           <small>ANATOMATE {documentLabel.toUpperCase()}</small>
-          <h2>{documentLabel} access is locked</h2>
-          <p>This protected viewer is available after purchasing the Datashow or Bundle option.</p>
-          <button className="primary" onClick={() => nav('/checkout/' + lecture.slug + '?product=datashow')}>Unlock Datashow</button>
-          <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>Back to lecture</button>
+          <h2>{tr(documentLabel + ' access is locked', docLabel + ' مقفل')}</h2>
+          <p>{tr('This protected viewer is available after purchasing the Datashow or Bundle option.', 'العارض المحمي متاح بعد شراء الداتاشو أو الباقة.')}</p>
+          <button className="primary" onClick={() => nav('/checkout/' + lecture.slug + '?product=datashow')}>{tr('Unlock Datashow', 'افتح الداتاشو')}</button>
+          <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>{tr('Back to lecture', 'العودة للمحاضرة')}</button>
         </div>
       </div>
     )
@@ -270,18 +273,18 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
   return (
     <div className="page datashowpage">
       <div className="datashowtop">
-        <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}><ArrowLeft size={17} /> Back</button>
+        <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}><ArrowLeft size={17} className="dirarrow" /> {tr('Back', 'رجوع')}</button>
         <div>
-          <small>ANATOMATE {documentLabel.toUpperCase()} VIEWER · VIEW ONLY</small>
+          <small>{tr('ANATOMATE ' + documentLabel.toUpperCase() + ' VIEWER · VIEW ONLY', 'عارض ' + docLabel + ' · عرض فقط')}</small>
           <h1>{lecture.title}</h1>
         </div>
-        <div className="datashowsecure"><ShieldCheck size={18} /> Personally watermarked</div>
+        <div className="datashowsecure"><ShieldCheck size={18} /> {tr('Personally watermarked', 'بعلامة مائية شخصية')}</div>
       </div>
 
       <div className="vieweridentity">
         <FileText size={17} />
         <span>{displayName}</span>
-        <small>{email} · ID {studentId}</small>
+        <small><bdi>{email}</bdi> · ID <bdi>{studentId}</bdi></small>
       </div>
 
       <div
@@ -289,7 +292,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
         className="datashowstage"
         onContextMenu={(event) => event.preventDefault()}
       >
-        {loading && <div className="datashowstatus">Loading protected {documentLabel}…</div>}
+        {loading && <div className="datashowstatus">{tr('Loading protected ' + documentLabel + '…', 'جارٍ تحميل ' + docLabel + ' المحمي…')}</div>}
         {message && <div className="authmessage">{message}</div>}
         {!loading && !message && (
           <>
@@ -304,25 +307,27 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
                 disabled={pageNumber <= 1 || rendering}
                 onClick={() => setPageNumber((page) => Math.max(1, page - 1))}
               >
-                <ChevronLeft size={18} /> Previous
+                <ChevronLeft size={18} className="dirarrow" /> {tr('Previous', 'السابق')}
               </button>
-              <span>{mode === 'pdf' ? 'Page' : 'Slide'} {pageNumber} / {pageCount || '—'}</span>
+              <span>{mode === 'pdf' ? tr('Page', 'صفحة') : tr('Slide', 'شريحة')} <bdi dir="ltr">{pageNumber} / {pageCount || '—'}</bdi></span>
               <button
                 className="secondary"
                 disabled={pageNumber >= pageCount || rendering}
                 onClick={() => setPageNumber((page) => Math.min(pageCount, page + 1))}
               >
-                Next <ChevronRight size={18} />
+                {tr('Next', 'التالي')} <ChevronRight size={18} className="dirarrow" />
               </button>
-              <button className="secondary" onClick={() => void toggleFullscreen()}><Maximize2 size={18} /> Full screen</button>
+              <button className="secondary" onClick={() => void toggleFullscreen()}><Maximize2 size={18} /> {tr('Full screen', 'ملء الشاشة')}</button>
             </div>
           </>
         )}
       </div>
 
       <p className="datashownote">
-        Viewer-only access. The original file is not delivered to the student. Every displayed {mode === 'pdf' ? 'page' : 'slide'} carries
-        “{OWNER_WATERMARK}”, the signed-in student identity, a trace ID and viewing time.
+        {tr(
+          `Viewer-only access. The original file is not delivered to the student. Every displayed ${mode === 'pdf' ? 'page' : 'slide'} carries “${OWNER_WATERMARK}”, the signed-in student identity, a trace ID and viewing time.`,
+          `عرض فقط. الملف الأصلي لا يُسلَّم للطالب. كل ${mode === 'pdf' ? 'صفحة' : 'شريحة'} معروضة تحمل “${OWNER_WATERMARK}” وبيانات الطالب المسجّل ورقم تتبع ووقت المشاهدة.`,
+        )}
       </p>
     </div>
   )

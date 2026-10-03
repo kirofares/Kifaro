@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getLectureBySlug } from '../data/anatomate'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useTr } from '../i18n'
 
 const OWNER = 'Dr. Kirolus Fares'
 
@@ -19,6 +20,7 @@ export default function ProtectedVideoPlayer() {
   const { slug } = useParams()
   const nav = useNavigate()
   const { user, loading: authLoading } = useAuth()
+  const tr = useTr()
   const lecture = getLectureBySlug(slug)
   const playerRef = useRef<HTMLDivElement | null>(null)
   const [embedUrl, setEmbedUrl] = useState('')
@@ -65,9 +67,9 @@ export default function ProtectedVideoPlayer() {
 
       if (error || data?.error || !data?.embedUrl) {
         const missing = data?.requiredSecrets?.length
-          ? ' Bunny Stream security keys still need to be connected by the administrator.'
+          ? ' ' + tr('The video service is not fully configured yet.', 'خدمة الفيديو لم تكتمل إعداداتها بعد.')
           : ''
-        setMessage((data?.error || error?.message || 'Could not open this video.') + missing)
+        setMessage((data?.error || error?.message || tr('Could not open this video.', 'تعذّر فتح هذا الفيديو.')) + missing)
         setLoading(false)
         return
       }
@@ -89,11 +91,11 @@ export default function ProtectedVideoPlayer() {
   }
 
   if (!lecture) {
-    return <div className="page"><div className="contentbox"><h2>Video not found</h2></div></div>
+    return <div className="page"><div className="contentbox"><h2>{tr('Video not found', 'الفيديو غير موجود')}</h2></div></div>
   }
 
   if (authLoading) {
-    return <div className="page"><div className="contentbox"><h2>Checking access…</h2></div></div>
+    return <div className="page"><div className="contentbox"><h2>{tr('Checking access…', 'جارٍ التحقق من الصلاحية…')}</h2></div></div>
   }
 
   if (!user) {
@@ -101,8 +103,8 @@ export default function ProtectedVideoPlayer() {
       <div className="page">
         <div className="contentbox videolocked">
           <Lock size={34} />
-          <h2>Sign in to watch this video</h2>
-          <button className="primary" onClick={() => nav('/login')}>Sign in</button>
+          <h2>{tr('Sign in to watch this video', 'سجّل الدخول لمشاهدة الفيديو')}</h2>
+          <button className="primary" onClick={() => nav('/login')}>{tr('Sign in', 'تسجيل الدخول')}</button>
         </div>
       </div>
     )
@@ -112,23 +114,23 @@ export default function ProtectedVideoPlayer() {
     <div className="page protectedvideopage">
       <div className="protectedvideotop">
         <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}>
-          <ArrowLeft size={17} /> Back
+          <ArrowLeft size={17} className="dirarrow" /> {tr('Back', 'رجوع')}
         </button>
         <div>
-          <small>ANATOMATE PROTECTED VIDEO</small>
+          <small>{tr('ANATOMATE PROTECTED VIDEO', 'فيديو ANATOMATE محمي')}</small>
           <h1>{lecture.title}</h1>
-          <p>{lecture.module} · Year {lecture.year}</p>
+          <p>{lecture.module} · {tr('Year', 'السنة')} {lecture.year}</p>
         </div>
-        <div className="protectedvideosecure"><ShieldCheck size={18} /> Signed playback</div>
+        <div className="protectedvideosecure"><ShieldCheck size={18} /> {tr('Signed playback', 'تشغيل موقّع')}</div>
       </div>
 
       <div className="videoidentity">
         <PlayCircle size={18} />
-        <div><strong>{studentName}</strong><span>{email} · ID {studentId}</span></div>
+        <div><strong>{studentName}</strong><span><bdi>{email}</bdi> · ID <bdi>{studentId}</bdi></span></div>
       </div>
 
       <div ref={playerRef} className="protectedvideoframe" onContextMenu={(event) => event.preventDefault()}>
-        {loading && <div className="protectedvideostatus"><PlayCircle size={36} />Preparing secure video…</div>}
+        {loading && <div className="protectedvideostatus"><PlayCircle size={36} />{tr('Preparing secure video…', 'جارٍ تجهيز الفيديو المحمي…')}</div>}
         {message && <div className="protectedvideoerror">{message}</div>}
         {!loading && !message && embedUrl && (
           <>
@@ -149,7 +151,7 @@ export default function ProtectedVideoPlayer() {
               <small>{traceLine}</small>
             </div>
             <button className="videofullscreen" onClick={() => void toggleFullscreen()}>
-              <Maximize2 size={17} /> Full screen
+              <Maximize2 size={17} /> {tr('Full screen', 'ملء الشاشة')}
             </button>
           </>
         )}
@@ -158,8 +160,8 @@ export default function ProtectedVideoPlayer() {
       <div className="protectedvideonote">
         <ShieldCheck size={17} />
         <span>
-          Protected viewing session. The player link expires automatically and the on-screen watermark identifies the signed-in account.
-          {remainingViews !== null ? ' ' + remainingViews + ' paid view' + (remainingViews === 1 ? '' : 's') + ' remain after this session starts.' : ''}
+          {tr('Protected viewing session. The player link expires automatically and the on-screen watermark identifies the signed-in account.', 'جلسة مشاهدة محمية. رابط المشغل بينتهي تلقائيًا، والعلامة المائية على الشاشة بتوضح الحساب المسجّل.')}
+          {remainingViews !== null ? ' ' + tr(remainingViews + ' paid view' + (remainingViews === 1 ? '' : 's') + ' remain after this session starts.', 'متبقي ' + remainingViews + ' مشاهدات مدفوعة بعد بدء هذه الجلسة.') : ''}
         </span>
       </div>
     </div>
