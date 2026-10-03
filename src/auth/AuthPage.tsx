@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Building2, Flag, GraduationCap, LockKeyhole, Mail, Phone, School, Stethoscope, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
@@ -20,6 +20,7 @@ export default function AuthPage() {
   const [preferredLearningDepth, setPreferredLearningDepth] = useState('CORE')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   if (user) return <Navigate to="/" replace />
 
@@ -47,6 +48,11 @@ export default function AuthPage() {
       if (result.error) setMessage(result.error)
       else navigate('/')
     } else {
+      if (!termsAccepted) {
+        setMessage('Please accept the Terms of Use and Privacy Policy.')
+        setBusy(false)
+        return
+      }
       const result = await signUp({ email, password, fullName, academicYear, faculty, university, nationality, phoneNo, preferredLearningDepth })
       if (result.error) setMessage(result.error)
       else if (result.needsEmailConfirmation) setMessage('Check your email to confirm your KIFARO account.')
@@ -88,6 +94,12 @@ export default function AuthPage() {
 
           <label>Email<div className="authinput"><Mail /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div></label>
           <label>Password<div className="authinput"><LockKeyhole /><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required /></div></label>
+          {mode === 'signup' && (
+            <label className="legalconsent">
+              <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+              <span>I agree to the <Link to="/terms">Terms of Use</Link> and <Link to="/privacy">Privacy Policy</Link>.</span>
+            </label>
+          )}
           {mode === 'login' && <button type="button" className="secondary" disabled={busy || !configured} onClick={() => void forgotPassword()}>Forgot password?</button>}
 
           {message && <div className="authmessage">{message}</div>}
