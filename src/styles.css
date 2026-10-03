@@ -312,3 +312,73 @@ html[dir="rtl"] .sidebar{left:auto;right:0}html[dir="rtl"] .main{margin-left:0;m
   .shell:has(.appupdatebar) .sidebar{top:54px}
   .shell:has(.appupdatebar) .main{padding-top:calc(64px + 54px)}
 }
+
+
+/* Branded native opening splash */
+.nativebrandedsplash{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(37,99,235,.26), transparent 34%),
+    linear-gradient(180deg,#0F2D5B 0%,#081C3B 100%);
+  color:#fff;
+  text-align:center;
+  padding:env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
+}
+.nativebrandedsplashglow{
+  position:absolute;
+  width:320px;
+  height:320px;
+  border-radius:50%;
+  background:rgba(37,99,235,.18);
+  filter:blur(36px);
+  transform:translateY(-72px);
+}
+.nativebrandedsplash img{
+  position:relative;
+  width:150px;
+  height:150px;
+  border-radius:34px;
+  box-shadow:0 24px 60px rgba(0,0,0,.28);
+  animation:splashLogoIn .45s ease-out both;
+}
+.nativebrandedsplash h1{
+  position:relative;
+  margin:24px 0 0;
+  font-size:38px;
+  line-height:1;
+  letter-spacing:-1.2px;
+  font-weight:800;
+  animation:splashTextIn .45s .1s ease-out both;
+}
+.nativebrandedsplash p{
+  position:relative;
+  margin:8px 0 0;
+  color:#9EC5FF;
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:3px;
+  animation:splashTextIn .45s .16s ease-out both;
+}
+.nativebrandedsplash span{
+  position:absolute;
+  bottom:max(42px,calc(24px + env(safe-area-inset-bottom)));
+  color:rgba(255,255,255,.78);
+  font-size:13px;
+  letter-spacing:2.5px;
+  animation:splashTextIn .45s .22s ease-out both;
+}
+@keyframes splashLogoIn{
+  from{opacity:0;transform:translateY(10px) scale(.94)}
+  to{opacity:1;transform:none}
+}
+@keyframes splashTextIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:none}
+}
