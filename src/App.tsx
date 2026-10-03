@@ -11,6 +11,7 @@ import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import AdminPage from './admin/AdminPage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
+import LegalPage from './components/LegalPage'
 import DatashowViewer from './components/DatashowViewer'
 import ProtectedVideoPlayer from './components/ProtectedVideoPlayer'
 import { useAdmin } from './hooks/useAdmin'
@@ -306,6 +307,9 @@ export default function App() {
           <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/payment/return" element={<PaymentReturnPage />} />
+          <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+          <Route path="/terms" element={<LegalPage kind="terms" />} />
+          <Route path="/refund" element={<LegalPage kind="refund" />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
@@ -325,6 +329,13 @@ export default function App() {
           </div>
         </>
       )}
+
+      <footer className="sitefooter">
+        <button onClick={() => nav('/privacy')}>Privacy</button>
+        <button onClick={() => nav('/terms')}>Terms</button>
+        <button onClick={() => nav('/refund')}>Refunds</button>
+        <span>© 2026 KIFARO · AnatoMate</span>
+      </footer>
 
       {toast && <div className="toast"><Check size={18} />{toast}</div>}
     </div>
