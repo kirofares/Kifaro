@@ -348,6 +348,7 @@ export default function App() {
           <Route path="/studio" element={<Studio />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
+          <Route path="*" element={<NotFound go={nav} />} />
         </Routes>
       </main>
 
@@ -472,6 +473,15 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any
           <Mini icon={<Sparkles />} title={t.overall} body={<><bdi dir="ltr">{completedCount} / {allLectures.length}</bdi> {t.completedOf}</>} />
         </aside>
       </div>
+    </div>
+  )
+}
+
+function NotFound({ go }: { go: (path: string) => void }) {
+  return (
+    <div className="page">
+      <PageHead eyebrow="404" title="Page not found" body="This link may be outdated or mistyped." />
+      <button className="primary" onClick={() => go('/')}><Home size={17} /> Back to overview</button>
     </div>
   )
 }
@@ -714,7 +724,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           <div className="videobox">
             <PlayCircle />
             <span>Lecture video</span>
-            <small>{videoUnlocked ? 'Video access available' : 'Video purchase required'}</small>
+            <small>{!videoAvailable ? 'Coming soon' : videoUnlocked ? 'Video access available' : 'Video purchase required'}</small>
           </div>
 
           {videoAvailable && videoUnlocked ? (
@@ -742,7 +752,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
               <Clock3 size={24} />
               <small>VIDEO</small>
               <h3>Coming soon</h3>
-              <p>The protected video has not been uploaded yet, so it cannot be sold.</p>
+              <p>The video for this lecture will be available soon.</p>
             </div>
           )}
 
