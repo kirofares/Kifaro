@@ -136,22 +136,31 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
       setLoading(true)
       setMessage('')
 
-      const { data, error } = await supabase.functions.invoke('lecture-asset', {
-        body: { lectureId: lecture.id, assetType: mode === 'pdf' ? 'document' : 'datashow' },
+      const functionName = mode === 'pdf' ? 'lecture-watermarked-pdf' : 'lecture-watermarked-pdf'
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { lectureId: lecture.id },
       })
 
       if (!active) return
 
-      if (error || data?.error || !data?.signedUrl) {
-        setMessage(data?.error || error?.message || documentLabel + ' is not available yet.')
+      if (error || !data) {
+        setMessage(error?.message || documentLabel + ' is not available yet.')
         setLoading(false)
         return
       }
 
       try {
-        const response = await fetch(data.signedUrl, { cache: 'no-store' })
-        if (!response.ok) throw new Error('Could not load the protected ' + documentLabel + '.')
-        const bytes = await response.arrayBuffer()
+        let bytes: ArrayBuffer
+        if (data instanceof Blob) {
+          bytes = await data.arrayBuffer()
+        } else if (data instanceof ArrayBuffer) {
+          bytes = data
+        } else if (ArrayBuffer.isView(data)) {
+          bytes = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+        } else {
+          throw new Error('Could not load the protected ' + documentLabel + '.')
+        }
+
         loadingTask = pdfjsLib.getDocument({ data: bytes })
         const pdf = await loadingTask.promise
         if (!active) return
