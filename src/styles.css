@@ -551,3 +551,7 @@ html[dir="rtl"] .studyresourcecard>svg{transform:scaleX(-1)}
   .lecturepanel>.videobox+*{order:1}
   .lecturelayout>.lecturecontent{order:2}
 }
+
+/* RTL: MCQs are English content, so lay the whole question and its options out left-to-right */
+html[dir="rtl"] .quiz{direction:ltr}
+html[dir="rtl"] .quiz button{text-align:left}
