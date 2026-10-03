@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
 import {
   Bell, BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
   HeartPulse, Home, Library, Menu, MessageSquare, Microscope, Palette,
@@ -131,6 +132,7 @@ export default function App() {
   const [prefs, setPrefs] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [toast, setToast] = useState('')
+  const [showOpeningSplash, setShowOpeningSplash] = useState(Capacitor.isNativePlatform())
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const t = copy[lang]
@@ -164,6 +166,12 @@ export default function App() {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
     document.body.dataset.theme = theme
   }, [lang, theme])
+
+  useEffect(() => {
+    if (!showOpeningSplash) return
+    const timer = window.setTimeout(() => setShowOpeningSplash(false), 1400)
+    return () => window.clearTimeout(timer)
+  }, [showOpeningSplash])
 
   useEffect(() => {
     let active = true
@@ -215,6 +223,18 @@ export default function App() {
     ['/profile', 'My Profile', UserRound],
     ...(isAdmin ? [['/admin', 'Admin Dashboard', ShieldCheck] as const] : []),
   ] as const
+
+  if (showOpeningSplash) {
+    return (
+      <div className="nativebrandedsplash" role="presentation">
+        <div className="nativebrandedsplashglow" />
+        <img src="/anatomate-logo.svg" alt="" />
+        <h1>AnatoMate</h1>
+        <p>by KIFARO</p>
+        <span>Anatomy Made Simple</span>
+      </div>
+    )
+  }
 
   return (
     <div className="shell">
