@@ -82,6 +82,8 @@ function paintWatermark(
 export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMode }) {
   const { slug } = useParams()
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
+  const requestedPage = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1)
   const { user, loading: authLoading } = useAuth()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
   const { entitlementByLecture, loading: entitlementLoading } = useEntitlements(user?.id)
@@ -166,7 +168,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
         if (!active) return
         setDocumentProxy(pdf)
         setPageCount(pdf.numPages)
-        setPageNumber(1)
+        setPageNumber(Math.min(requestedPage, pdf.numPages))
       } catch (err) {
         if (active) setMessage(err instanceof Error ? err.message : 'Could not load the protected document.')
       } finally {
