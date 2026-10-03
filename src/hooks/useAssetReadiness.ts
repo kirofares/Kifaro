@@ -22,8 +22,7 @@ export function useAssetReadiness() {
 
     setLoading(true)
     const { data, error } = await supabase
-      .from('lecture_asset_readiness')
-      .select('lecture_id, has_video, has_datashow, has_pdf, has_pptx')
+      .rpc('get_lecture_asset_readiness')
 
     if (!error) setRows((data || []) as LectureAssetReadiness[])
     setLoading(false)
