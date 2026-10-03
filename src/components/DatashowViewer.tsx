@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Lock, Maximize2, ShieldCheck } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as pdfjsLib from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { getLectureBySlug } from '../data/anatomate'
@@ -180,7 +180,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
       active = false
       try { loadingTask?.destroy?.() } catch {}
     }
-  }, [lecture?.id, user?.id, hasAccess, mode])
+  }, [lecture?.id, user?.id, hasAccess, mode, requestedPage])
 
   useEffect(() => {
     let cancelled = false
