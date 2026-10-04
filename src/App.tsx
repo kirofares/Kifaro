@@ -152,6 +152,7 @@ const copy = {
 }
 
 const isNativeApp = Capacitor.isNativePlatform()
+const isAndroidApp = isNativeApp && Capacitor.getPlatform() === 'android'
 const isIOSDevice = typeof navigator !== 'undefined'
   && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 // The APK download only makes sense for web visitors on non-iOS devices.
@@ -225,7 +226,7 @@ export default function App() {
 
   useEffect(() => {
     // Only the installed Android app can be out of date; web visitors always get the latest build.
-    if (!isNativeApp) return
+    if (!isAndroidApp) return
     let active = true
     fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Release check failed')))
