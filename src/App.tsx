@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import { getStudyResources, type StudyResource } from './data/anatomate/studyResources'
+import { getVivaDeck } from './viva/content'
+import './viva/viva.css'
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
@@ -47,6 +49,7 @@ function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ default: T
 const AdminPage = lazyPage(() => import('./admin/AdminPage'))
 const DatashowViewer = lazyPage(() => import('./components/DatashowViewer'))
 const ProtectedVideoPlayer = lazyPage(() => import('./components/ProtectedVideoPlayer'))
+const VivaPage = lazyPage(() => import('./viva/VivaPage'))
 
 const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
 // Set VITE_PAYMOB_TEST_MODE=true in the build env while Paymob runs against its sandbox.
@@ -361,6 +364,7 @@ export default function App() {
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
+          <Route path="/anatomate/lecture/:slug/viva" element={<VivaPage />} />
           <Route path="/anatomate/lecture/:slug/datashow" element={<DatashowViewer mode="datashow" />} />
           <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
           <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
@@ -854,6 +858,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
         <section className="lecturecontent">
           <p className="lead">{lecture.description}</p>
+          {getVivaDeck(lecture.id) && <div className="viva-launch">
+            <div><h2>KIFARO Viva</h2><p>{tr('5 short questions · Free self-assessment pilot', '٥ أسئلة قصيرة · تجربة مجانية بتقييم ذاتي')}</p></div>
+            <button className="primary" onClick={() => nav(`/anatomate/lecture/${lecture.slug}/viva`)}><Brain size={18} />{tr('Test me on this lecture', 'امتحنّي في المحاضرة دي')}</button>
+          </div>}
           <div className="tabs">
             <button className={tab === 'learn' ? 'active' : ''} onClick={() => setTab('learn')}>{tr('Learning objectives', 'أهداف المحاضرة')}</button>
             <button className={tab === 'clinical' ? 'active' : ''} onClick={() => setTab('clinical')}>{tr('Clinical relevance', 'الأهمية الإكلينيكية')}</button>
