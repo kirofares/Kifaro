@@ -551,3 +551,116 @@ html[dir="rtl"] .studyresourcecard>svg{transform:scaleX(-1)}
   .lecturepanel>.videobox+*{order:1}
   .lecturelayout>.lecturecontent{order:2}
 }
+
+
+/* Contact & social channels */
+.contactchannels{
+  margin-left:236px;
+  padding:8px 36px 6px;
+}
+.contactinner{
+  max-width:1428px;
+  margin:0 auto;
+  position:relative;
+  overflow:hidden;
+  border-radius:24px;
+  padding:28px;
+  background:
+    radial-gradient(circle at 86% 18%,rgba(255,255,255,.12),transparent 28%),
+    linear-gradient(135deg,#10213d 0%,#123e7f 52%,var(--primary) 100%);
+  color:#fff;
+  box-shadow:0 18px 45px rgba(16,33,61,.18);
+}
+.contactinner:after{
+  content:"";
+  position:absolute;
+  width:240px;
+  height:240px;
+  right:-80px;
+  bottom:-120px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.14);
+}
+.contactintro{position:relative;z-index:1;max-width:720px}
+.contacteyebrow{
+  display:inline-flex;
+  padding:6px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1px;
+}
+.contactintro h2{font-size:27px;margin:12px 0 8px}
+.contactintro p{margin:0;color:rgba(255,255,255,.78);line-height:1.65;max-width:650px}
+.channelgrid{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:10px;
+  margin-top:22px;
+}
+.channelcard{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:13px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.09);
+  color:#fff;
+  border-radius:14px;
+  text-decoration:none;
+  backdrop-filter:blur(10px);
+  transition:transform .18s ease,border-color .18s ease,background .18s ease;
+}
+.channelcard:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.3);
+}
+.channelicon{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:rgba(255,255,255,.13);
+}
+.channelcopy{min-width:0;display:grid;gap:3px;flex:1}
+.channelcopy small{font-size:10px;color:rgba(255,255,255,.65);font-weight:800;letter-spacing:.45px}
+.channelcopy strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.channelcard>svg{flex:0 0 auto;opacity:.65}
+.tiktokglyph{font-size:22px;font-weight:900;line-height:1}
+.contactsignature{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.12);
+}
+.contactsignature span{font-weight:900;letter-spacing:1.3px}
+.contactsignature small{color:rgba(255,255,255,.6)}
+@media(max-width:1180px){
+  .channelgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:780px){
+  .contactchannels{margin-left:0;padding:4px 16px 0}
+  html[dir="rtl"] .contactchannels{margin-right:0}
+  .contactinner{padding:22px 16px;border-radius:18px}
+  .contactintro h2{font-size:23px}
+  .channelgrid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .channelgrid{grid-template-columns:1fr}
+  .channelcard{padding:12px}
+  .contactsignature{align-items:flex-start;flex-direction:column;gap:4px}
+}
+html[dir="rtl"] .contactchannels{margin-left:0;margin-right:236px}
+html[dir="rtl"] .channelcard>svg{transform:rotate(180deg)}
