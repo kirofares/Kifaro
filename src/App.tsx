@@ -395,6 +395,8 @@ export default function App() {
         </>
       )}
 
+      <ContactChannels />
+
       <footer className="sitefooter">
         <button onClick={() => nav('/privacy')}>{t.privacy}</button>
         <button onClick={() => nav('/terms')}>{t.terms}</button>
@@ -405,6 +407,86 @@ export default function App() {
       {toast && <div className="toast"><Check size={18} />{toast}</div>}
     </div>
     </LangProvider>
+  )
+}
+
+function ContactChannels() {
+  const tr = useTr()
+  const channels = [
+    {
+      name: 'Facebook',
+      handle: 'AnatoMate',
+      href: 'https://www.facebook.com/profile.php?id=61594048447607&mibextid=ZbWKwL',
+      icon: <Facebook size={21} />,
+      className: 'facebook',
+    },
+    {
+      name: 'Instagram',
+      handle: '@anatomate130',
+      href: 'https://www.instagram.com/anatomate130?stkn=MWt0a2dwbGZkeGdobQ==',
+      icon: <Instagram size={21} />,
+      className: 'instagram',
+    },
+    {
+      name: 'TikTok',
+      handle: '@anatomate130',
+      href: 'https://www.tiktok.com/@anatomate130',
+      icon: <span className="tiktokglyph">♪</span>,
+      className: 'tiktok',
+    },
+    {
+      name: 'WhatsApp',
+      handle: '+20 10 5555 2867',
+      href: 'https://wa.me/201055552867',
+      icon: <MessageCircle size={21} />,
+      className: 'whatsapp',
+    },
+    {
+      name: tr('Phone', 'الهاتف'),
+      handle: '+20 10 5555 2867',
+      href: 'tel:+201055552867',
+      icon: <Phone size={21} />,
+      className: 'phone',
+    },
+  ]
+
+  return (
+    <section className="contactchannels" aria-label={tr('Contact channels', 'قنوات التواصل')}>
+      <div className="contactinner">
+        <div className="contactintro">
+          <span className="contacteyebrow">ANATOMATE BY KIFARO</span>
+          <h2>{tr('Stay connected with AnatoMate', 'خليك على تواصل مع AnatoMate')}</h2>
+          <p>{tr(
+            'Follow new lectures, revision content, announcements and student updates through our official channels.',
+            'تابع المحاضرات الجديدة والمراجعات والإعلانات وتحديثات الطلاب من خلال قنواتنا الرسمية.'
+          )}</p>
+        </div>
+
+        <div className="channelgrid">
+          {channels.map((channel) => (
+            <a
+              key={channel.name}
+              className={'channelcard ' + channel.className}
+              href={channel.href}
+              target={channel.href.startsWith('http') ? '_blank' : undefined}
+              rel={channel.href.startsWith('http') ? 'noreferrer' : undefined}
+            >
+              <span className="channelicon">{channel.icon}</span>
+              <span className="channelcopy">
+                <small>{channel.name}</small>
+                <strong dir="ltr">{channel.handle}</strong>
+              </span>
+              <ChevronRight size={18} />
+            </a>
+          ))}
+        </div>
+
+        <div className="contactsignature">
+          <span>KIFARO</span>
+          <small>{tr('Medical education, connected.', 'تعليم طبي متصل بيك.')}</small>
+        </div>
+      </div>
+    </section>
   )
 }
 
