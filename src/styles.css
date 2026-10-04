@@ -664,3 +664,90 @@ html[dir="rtl"] .studyresourcecard>svg{transform:scaleX(-1)}
 }
 html[dir="rtl"] .contactchannels{margin-left:0;margin-right:236px}
 html[dir="rtl"] .channelcard>svg{transform:rotate(180deg)}
+
+
+/* Quick social access below dashboard hero */
+.dashsocial{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-top:12px;
+  padding:12px 14px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+}
+.dashsociallabel{
+  font-size:12px;
+  font-weight:800;
+  color:#42526b;
+  white-space:nowrap;
+}
+.dashsociallinks{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.dashsocialbtn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:40px;
+  padding:8px 11px;
+  border-radius:11px;
+  border:1px solid var(--line);
+  background:#f9fbfe;
+  color:#24324a;
+  text-decoration:none;
+  font-weight:800;
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+}
+.dashsocialbtn:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb,var(--primary) 38%,var(--line));
+  box-shadow:0 8px 18px rgba(24,52,92,.08);
+}
+.dashsocialbtn>span{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:var(--soft);
+  color:var(--primary);
+}
+.dashsocialbtn small{font-size:11px}
+.dashsocialbtn.whatsapp>span{background:#eaf8ef;color:#208a4d}
+.dashsocialbtn.phone>span{background:#edf4ff;color:#155fdb}
+.dashsocialbtn.instagram>span{background:#fff0f6;color:#b33c7f}
+.dashsocialbtn.facebook>span{background:#edf4ff;color:#1769d2}
+.dashsocialbtn.tiktok>span{background:#f3f4f6;color:#111827}
+.tiktokglyph.compact{font-size:18px;line-height:1}
+@media(max-width:780px){
+  .dashsocial{
+    align-items:stretch;
+    flex-direction:column;
+    gap:10px;
+    padding:12px;
+  }
+  .dashsociallabel{text-align:center}
+  .dashsociallinks{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:7px;
+  }
+  .dashsocialbtn{
+    justify-content:center;
+    padding:8px 6px;
+    min-width:0;
+  }
+  .dashsocialbtn small{display:none}
+  .dashsocialbtn>span{
+    width:30px;
+    height:30px;
+  }
+}
