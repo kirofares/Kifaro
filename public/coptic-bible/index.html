@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#211a16" />
+  <meta name="description" content="The Egyptian Coptic Bible – Arabic Translation: a careful Arabic translation project grounded in the Egyptian Coptic biblical tradition." />
+  <title>The Egyptian Coptic Bible – Arabic Translation</title>
+  <style>
+    :root{
+      --ink:#201915;
+      --paper:#f6f0e5;
+      --paper-2:#eee3d2;
+      --gold:#a57732;
+      --gold-2:#d5b06b;
+      --red:#7f2d2d;
+      --muted:#75695e;
+      --line:rgba(76,57,42,.18);
+      --card:rgba(255,252,246,.76);
+      --shadow:0 18px 50px rgba(46,31,20,.10);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(165,119,50,.08), transparent 22%),
+        radial-gradient(circle at 88% 18%, rgba(127,45,45,.06), transparent 18%),
+        linear-gradient(180deg,#f9f5ed 0%,var(--paper) 45%,#f4ecdf 100%);
+      font-family: "Noto Naskh Arabic","Segoe UI",Tahoma,Arial,sans-serif;
+      line-height:1.8;
+    }
+    a{color:inherit;text-decoration:none}
+    .shell{width:min(1180px,calc(100% - 32px));margin:auto}
+    header{
+      position:sticky;top:0;z-index:20;
+      backdrop-filter:blur(14px);
+      background:rgba(249,245,237,.84);
+      border-bottom:1px solid var(--line);
+    }
+    .nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.2px}
+    .seal{
+      width:42px;height:42px;border:1px solid rgba(165,119,50,.55);
+      border-radius:50%;display:grid;place-items:center;color:var(--red);
+      background:linear-gradient(145deg,#fffaf1,#ead9be);
+      box-shadow:inset 0 0 0 4px rgba(255,255,255,.45);
+      font-size:22px;
+    }
+    .brand small{display:block;color:var(--muted);font-weight:600;font-size:11px;line-height:1.25}
+    .links{display:flex;align-items:center;gap:22px;font-size:14px;color:#4d4239}
+    .lang{
+      border:1px solid var(--line);background:#fffaf2;border-radius:999px;
+      padding:8px 13px;cursor:pointer;font-weight:700;color:#4a3b31;
+    }
+    .hero{padding:88px 0 68px;position:relative;overflow:hidden}
+    .hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center}
+    .eyebrow{
+      display:inline-flex;gap:8px;align-items:center;
+      color:var(--red);font-weight:800;font-size:13px;letter-spacing:.4px;
+      border:1px solid rgba(127,45,45,.17);padding:7px 12px;border-radius:999px;
+      background:rgba(255,255,255,.48)
+    }
+    h1{
+      font-family:Georgia,"Times New Roman","Noto Naskh Arabic",serif;
+      margin:18px 0 18px;font-size:clamp(42px,7vw,78px);line-height:1.04;
+      letter-spacing:-1.5px;
+    }
+    .latin{font-family:Georgia,"Times New Roman",serif;direction:ltr;text-align:right}
+    .hero p{font-size:19px;color:#5c5046;max-width:760px;margin:0 0 26px}
+    .actions{display:flex;flex-wrap:wrap;gap:12px}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:9px;
+      padding:12px 18px;border-radius:14px;font-weight:800;border:1px solid transparent;
+      transition:.2s transform,.2s background;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .primary{background:var(--ink);color:#fffaf0;box-shadow:var(--shadow)}
+    .secondary{border-color:var(--line);background:rgba(255,255,255,.56)}
+    .manuscript{
+      position:relative;min-height:490px;border-radius:32px;
+      background:
+        linear-gradient(rgba(31,24,19,.12),rgba(31,24,19,.12)),
+        radial-gradient(circle at 50% 25%,#f7e8c8 0,#dfc28f 38%,#b8864e 100%);
+      box-shadow:0 25px 70px rgba(60,38,20,.18);
+      border:1px solid rgba(92,58,29,.24);
+      overflow:hidden;
+    }
+    .manuscript:before{
+      content:"";position:absolute;inset:18px;border:1px solid rgba(104,54,27,.28);
+      border-radius:22px;box-shadow:inset 0 0 0 5px rgba(255,246,222,.26)
+    }
+    .cross{position:absolute;top:50px;left:50%;transform:translateX(-50%);font-size:62px;color:var(--red)}
+    .coptic-lines{
+      position:absolute;inset:145px 52px 55px;
+      font-family:Georgia,"Times New Roman",serif;font-size:27px;line-height:1.75;
+      color:#583b25;text-align:center;direction:ltr;
+    }
+    .coptic-lines .orn{color:var(--red);font-size:22px}
+    .note{
+      margin-top:16px;font-size:12px;color:#6a5c50;
+      border-top:1px solid rgba(87,62,39,.18);padding-top:10px
+    }
+    section{padding:68px 0}
+    .section-head{max-width:800px;margin-bottom:28px}
+    .kicker{color:var(--gold);font-weight:900;font-size:12px;letter-spacing:1.8px;text-transform:uppercase}
+    h2{font-family:Georgia,"Times New Roman","Noto Naskh Arabic",serif;font-size:clamp(30px,4vw,48px);line-height:1.18;margin:8px 0 12px}
+    .lead{font-size:18px;color:#685b50}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{
+      background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+      padding:24px;box-shadow:0 8px 30px rgba(65,43,27,.05)
+    }
+    .icon{
+      width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+      background:#efe1ca;border:1px solid rgba(165,119,50,.17);color:var(--red);font-size:20px;margin-bottom:13px
+    }
+    .card h3{margin:0 0 8px;font-size:19px}
+    .card p{margin:0;color:#6e6257;font-size:15px}
+    .workflow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;counter-reset:steps}
+    .step{position:relative;padding:22px 20px 22px 20px}
+    .step:before{
+      counter-increment:steps;content:counter(steps);
+      display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
+      background:var(--ink);color:white;font-weight:900;margin-bottom:14px;font-size:13px
+    }
+    .reader{
+      display:grid;grid-template-columns:1fr 1fr;gap:0;
+      border:1px solid var(--line);border-radius:26px;overflow:hidden;background:#fffaf3;box-shadow:var(--shadow)
+    }
+    .pane{padding:30px;min-height:330px}
+    .pane + .pane{border-right:1px solid var(--line)}
+    .pane h3{font-size:14px;color:var(--muted);margin-top:0}
+    .sample{
+      margin-top:32px;font-size:21px;line-height:2.1;color:#3f342c
+    }
+    .placeholder{color:#9a8b7e;font-style:italic}
+    .status{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .book{padding:20px}
+    .badge{
+      display:inline-block;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;
+      background:#eee1cf;color:#6d5233;margin-bottom:14px
+    }
+    .book strong{display:block;font-size:18px;margin-bottom:5px}
+    .bar{height:7px;background:#e7dccb;border-radius:999px;overflow:hidden;margin-top:16px}
+    .bar span{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--red));border-radius:999px}
+    .principles{
+      border-radius:30px;background:#241d18;color:#f6ede1;padding:42px;
+      display:grid;grid-template-columns:.9fr 1.1fr;gap:40px;align-items:start
+    }
+    .principles p{color:#d7cabd}
+    .principles .card{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.09);box-shadow:none}
+    .principles .card p{color:#d7cabd}
+    .principles .icon{background:rgba(213,176,107,.12);border-color:rgba(213,176,107,.24);color:var(--gold-2)}
+    footer{padding:38px 0 50px;color:#706258;font-size:13px}
+    .footerline{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--line);padding-top:24px}
+    [data-en]{display:none}
+    body.en{direction:ltr}
+    body.en [data-ar]{display:none}
+    body.en [data-en]{display:initial}
+    body.en .latin{text-align:left}
+    body.en .pane + .pane{border-right:0;border-left:1px solid var(--line)}
+    @media(max-width:900px){
+      .links a{display:none}
+      .hero-grid,.principles{grid-template-columns:1fr}
+      .manuscript{min-height:420px}
+      .grid-3,.status{grid-template-columns:1fr 1fr}
+      .workflow{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:620px){
+      .shell{width:min(100% - 22px,1180px)}
+      .hero{padding-top:56px}
+      .grid-3,.status,.workflow,.reader{grid-template-columns:1fr}
+      .pane + .pane{border-right:0;border-left:0;border-top:1px solid var(--line)}
+      .principles{padding:26px}
+      .coptic-lines{inset:140px 26px 35px;font-size:22px}
+      .footerline{flex-direction:column}
+      h1{font-size:44px}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="shell nav">
+    <a class="brand" href="#top" aria-label="Project home">
+      <span class="seal">☦</span>
+      <span>
+        <span data-ar>الكتاب المقدس القبطي المصري</span>
+        <span data-en>The Egyptian Coptic Bible</span>
+        <small>Arabic Translation Project</small>
+      </span>
+    </a>
+    <nav class="links" aria-label="Primary navigation">
+      <a href="#about"><span data-ar>عن المشروع</span><span data-en>About</span></a>
+      <a href="#method"><span data-ar>المنهج</span><span data-en>Method</span></a>
+      <a href="#reader"><span data-ar>قارئ النص</span><span data-en>Reader</span></a>
+      <a href="#progress"><span data-ar>التقدم</span><span data-en>Progress</span></a>
+      <button class="lang" id="langBtn" type="button">EN</button>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="shell hero-grid">
+      <div>
+        <span class="eyebrow">
+          <span>✦</span>
+          <span data-ar>مشروع ترجمة نصية وبحثية</span>
+          <span data-en>Textual & translation project</span>
+        </span>
+        <h1>
+          <span data-ar>الكتاب المقدس القبطي المصري<br>— ترجمة عربية</span>
+          <span data-en class="latin">The Egyptian Coptic Bible<br>— Arabic Translation</span>
+        </h1>
+        <p data-ar>
+          مشروع يهدف إلى تقديم ترجمة عربية دقيقة، واضحة، وموثَّقة للنصوص الكتابية القبطية المصرية،
+          مع الحفاظ على خصوصية التعبير القبطي وإتاحة المقارنة المباشرة بين النص الأصلي والترجمة.
+        </p>
+        <p data-en>
+          A project dedicated to a careful, readable, and documented Arabic translation of the Egyptian Coptic biblical tradition,
+          preserving Coptic textual character while enabling direct comparison with the Arabic rendering.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="#reader"><span data-ar>استكشف نموذج القارئ</span><span data-en>Explore the reader</span> <span>←</span></a>
+          <a class="btn secondary" href="#method"><span data-ar>اعرف منهج الترجمة</span><span data-en>Read the methodology</span></a>
+        </div>
+        <div class="note">
+          <span data-ar>سيتم توثيق طبعة النص القبطي، المصادر، والحقوق النصية بصورة واضحة قبل نشر أي نص كامل.</span>
+          <span data-en>The source edition, textual witnesses, and publication rights will be documented before any full text is released.</span>
+        </div>
+      </div>
+      <div class="manuscript" aria-label="Coptic manuscript-inspired visual">
+        <div class="cross">☦</div>
+        <div class="coptic-lines">
+          <div class="orn">✦ ✧ ✦</div>
+          Ⲁ Ⲃ Ⲅ Ⲇ Ⲉ Ⲋ Ⲍ Ⲏ Ⲑ<br>
+          Ⲓ Ⲕ Ⲗ Ⲙ Ⲛ Ⲝ Ⲟ Ⲡ Ⲣ<br>
+          Ⲥ Ⲧ Ⲩ Ⲫ Ⲭ Ⲯ Ⲱ
+          <div class="orn" style="margin-top:14px">⸙</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about">
+    <div class="shell">
+      <div class="section-head">
+        <div class="kicker">Vision</div>
+        <h2 data-ar>لماذا هذا المشروع؟</h2>
+        <h2 data-en>Why this project?</h2>
+        <p class="lead" data-ar>
+          الهدف ليس إنتاج صياغة عربية أخرى فحسب، بل بناء ترجمة يمكن فحصها ومراجعتها والرجوع إلى أصلها القبطي بوضوح.
+        </p>
+        <p class="lead" data-en>
+          The aim is not simply another Arabic wording, but a translation that can be checked, reviewed, and traced back to its Coptic source.
+        </p>
+      </div>
+      <div class="grid-3">
+        <article class="card">
+          <div class="icon">⌁</div>
+          <h3 data-ar>أمانة للنص</h3><h3 data-en>Textual fidelity</h3>
+          <p data-ar>تمييز واضح بين ما يقوله النص القبطي وما يضيفه السياق التفسيري أو اللغوي.</p>
+          <p data-en>A clear distinction between what the Coptic text says and what interpretation or idiomatic Arabic adds.</p>
+        </article>
+        <article class="card">
+          <div class="icon">ع</div>
+          <h3 data-ar>عربية مفهومة</h3><h3 data-en>Readable Arabic</h3>
+          <p data-ar>لغة عربية سليمة وطبيعية دون التضحية بالبنية والمعنى الأصليين قدر الإمكان.</p>
+          <p data-en>Natural, correct Arabic without unnecessarily flattening the original structure or meaning.</p>
+        </article>
+        <article class="card">
+          <div class="icon">◎</div>
+          <h3 data-ar>شفافية علمية</h3><h3 data-en>Scholarly transparency</h3>
+          <p data-ar>ملاحظات للمصطلحات الصعبة، اختلافات القراءة، والقرارات الترجمية المهمة.</p>
+          <p data-en>Notes for difficult terms, variant readings, and important translation decisions.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="method">
+    <div class="shell">
+      <div class="section-head">
+        <div class="kicker">Methodology</div>
+        <h2 data-ar>منهج العمل</h2>
+        <h2 data-en>Translation workflow</h2>
+        <p class="lead" data-ar>كل مقطع يمر بأربع مراحل أساسية قبل اعتباره جاهزًا للنشر.</p>
+        <p class="lead" data-en>Each passage passes through four core stages before it is considered publication-ready.</p>
+      </div>
+      <div class="workflow">
+        <article class="card step">
+          <h3 data-ar>تثبيت النص القبطي</h3><h3 data-en>Establish the Coptic text</h3>
+          <p data-ar>تحديد الطبعة أو الشاهد النصي المستخدم وتسجيل أي اختلاف مؤثر.</p>
+          <p data-en>Identify the edition or textual witness and record meaningful variants.</p>
+        </article>
+        <article class="card step">
+          <h3 data-ar>تحليل لغوي حرفي</h3><h3 data-en>Literal linguistic analysis</h3>
+          <p data-ar>تفكيك البنية، المفردات، والأزمنة قبل الانتقال إلى الصياغة العربية.</p>
+          <p data-en>Analyse syntax, vocabulary, and verbal forms before shaping the Arabic.</p>
+        </article>
+        <article class="card step">
+          <h3 data-ar>صياغة عربية دقيقة</h3><h3 data-en>Precise Arabic rendering</h3>
+          <p data-ar>إنتاج عربية مفهومة مع إبقاء العناصر النصية المهمة ظاهرة.</p>
+          <p data-en>Produce readable Arabic while retaining significant textual features.</p>
+        </article>
+        <article class="card step">
+          <h3 data-ar>مراجعة مقارنة</h3><h3 data-en>Comparative review</h3>
+          <p data-ar>مراجعة القرار الترجمـي مقابل النص القبطي والترجمات المرجعية عند الحاجة.</p>
+          <p data-en>Review the rendering against the Coptic text and selected reference translations when useful.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shell principles">
+      <div>
+        <div class="kicker">Editorial principles</div>
+        <h2 data-ar>مبادئ تحريرية ثابتة</h2>
+        <h2 data-en>Core editorial principles</h2>
+        <p data-ar>المشروع سيُبنى على قواعد معلنة منذ البداية حتى تبقى الترجمة قابلة للمراجعة والتطوير دون فقد الاتساق.</p>
+        <p data-en>The project will use explicit editorial rules from the start so the translation stays consistent, reviewable, and improvable.</p>
+      </div>
+      <div class="grid-3" style="grid-template-columns:1fr 1fr">
+        <article class="card">
+          <div class="icon">1</div>
+          <h3 data-ar>لا نخفي مواضع الشك</h3><h3 data-en>Uncertainty is visible</h3>
+          <p data-ar>القراءات أو الكلمات غير المحسومة تُعلَّم بدل تقديمها كيقين.</p>
+          <p data-en>Uncertain readings are marked rather than presented as certainty.</p>
+        </article>
+        <article class="card">
+          <div class="icon">2</div>
+          <h3 data-ar>النص والتفسير منفصلان</h3><h3 data-en>Text and commentary stay separate</h3>
+          <p data-ar>ما هو ترجمة يبقى ترجمة، وما هو شرح يظهر كملاحظة مستقلة.</p>
+          <p data-en>Translation remains translation; explanatory material appears separately.</p>
+        </article>
+        <article class="card">
+          <div class="icon">3</div>
+          <h3 data-ar>المصطلحات تُدار باتساق</h3><h3 data-en>Terminology is controlled</h3>
+          <p data-ar>قاموس مصطلحات موحد يمنع اختلاف ترجمة الكلمة نفسها دون سبب.</p>
+          <p data-en>A controlled glossary prevents inconsistent renderings without justification.</p>
+        </article>
+        <article class="card">
+          <div class="icon">4</div>
+          <h3 data-ar>المراجعة جزء من النص</h3><h3 data-en>Review is part of the text</h3>
+          <p data-ar>كل تحديث مهم يُسجل مع سبب التعديل بدل استبدال النص بصمت.</p>
+          <p data-en>Material revisions are logged with reasons rather than silently replacing text.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="reader">
+    <div class="shell">
+      <div class="section-head">
+        <div class="kicker">Parallel reader</div>
+        <h2 data-ar>قارئ مقارن: قبطي ↔ عربي</h2>
+        <h2 data-en>Parallel reader: Coptic ↔ Arabic</h2>
+        <p class="lead" data-ar>هذا هو الشكل المستهدف لقراءة النص: الأصل القبطي والترجمة العربية في واجهة واحدة.</p>
+        <p class="lead" data-en>The target reading experience places the Coptic source and Arabic translation side-by-side.</p>
+      </div>
+      <div class="reader">
+        <div class="pane" dir="ltr">
+          <h3>COPTIC SOURCE TEXT</h3>
+          <div class="sample placeholder">
+            Coptic passage will appear here after the source edition is selected and documented.
+          </div>
+        </div>
+        <div class="pane" dir="rtl">
+          <h3>الترجمة العربية</h3>
+          <div class="sample placeholder">
+            ستظهر هنا الترجمة العربية المعتمدة للمقطع، مع إمكانية فتح الملاحظات اللغوية والنصية.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="progress">
+    <div class="shell">
+      <div class="section-head">
+        <div class="kicker">Project status</div>
+        <h2 data-ar>حالة المشروع</h2>
+        <h2 data-en>Project status</h2>
+        <p class="lead" data-ar>هذه البطاقات نموذج مبدئي لحالة كل قسم، وسيتم ربطها لاحقًا ببيانات الترجمة الفعلية.</p>
+        <p class="lead" data-en>These cards are an initial status model and can later be connected to real translation data.</p>
+      </div>
+      <div class="status">
+        <article class="card book">
+          <span class="badge"><span data-ar>مرحلة الإعداد</span><span data-en>Setup</span></span>
+          <strong data-ar>الأناجيل</strong><strong data-en>Gospels</strong>
+          <span data-ar>تحديد النص المرجعي وقواعد الترجمة</span><span data-en>Source selection & translation rules</span>
+          <div class="bar"><span style="width:12%"></span></div>
+        </article>
+        <article class="card book">
+          <span class="badge"><span data-ar>قادم</span><span data-en>Queued</span></span>
+          <strong data-ar>الرسائل</strong><strong data-en>Epistles</strong>
+          <span data-ar>لم يبدأ التحرير النصي بعد</span><span data-en>Textual editing not yet started</span>
+          <div class="bar"><span style="width:4%"></span></div>
+        </article>
+        <article class="card book">
+          <span class="badge"><span data-ar>قادم</span><span data-en>Queued</span></span>
+          <strong data-ar>المزامير</strong><strong data-en>Psalms</strong>
+          <span data-ar>في انتظار تثبيت المنهج النصي</span><span data-en>Awaiting textual methodology</span>
+          <div class="bar"><span style="width:3%"></span></div>
+        </article>
+        <article class="card book">
+          <span class="badge"><span data-ar>قادم</span><span data-en>Queued</span></span>
+          <strong data-ar>بقية الأسفار</strong><strong data-en>Other books</strong>
+          <span data-ar>سيتم ترتيبها بحسب خطة العمل</span><span data-en>Will follow the editorial roadmap</span>
+          <div class="bar"><span style="width:2%"></span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="shell footerline">
+    <div>
+      <strong>The Egyptian Coptic Bible – Arabic Translation</strong><br>
+      <span data-ar>مشروع ترجمة وبحث نصي مستقل.</span>
+      <span data-en>An independent translation and textual research project.</span>
+    </div>
+    <div>
+      <span data-ar>نسخة أولية للواجهة — المحتوى النصي الفعلي سيضاف بعد اعتماد المصادر.</span>
+      <span data-en>Interface prototype — source text will be added after source approval.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const btn = document.getElementById('langBtn');
+  btn.addEventListener('click', () => {
+    document.body.classList.toggle('en');
+    const en = document.body.classList.contains('en');
+    document.documentElement.lang = en ? 'en' : 'ar';
+    document.documentElement.dir = en ? 'ltr' : 'rtl';
+    btn.textContent = en ? 'AR' : 'EN';
+  });
+</script>
+</body>
+</html>
