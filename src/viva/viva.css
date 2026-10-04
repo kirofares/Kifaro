@@ -1,0 +1,57 @@
+.viva-page { max-width: 1080px; }
+.viva-back { display: inline-flex; align-items: center; gap: 8px; color: var(--primary); text-decoration: none; margin-block-end: 22px; }
+.viva-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; margin-block-end: 24px; }
+.viva-header h1 { font-size: clamp(24px, 3vw, 32px); margin: 8px 0 0; }
+.viva-badge { display: inline-flex; align-items: center; gap: 7px; background: var(--soft); color: var(--primary2); border-radius: 99px; padding: 8px 12px; font-size: 12px; font-weight: 700; }
+.viva-card { border: 1px solid var(--line); border-radius: 20px; padding: clamp(20px, 4vw, 36px); background: var(--card); box-shadow: var(--shadow); }
+.viva-card h2 { font-size: clamp(21px, 3vw, 28px); line-height: 1.4; margin-block: 18px; }
+.viva-card p, .viva-card li { line-height: 1.75; }
+.viva-card button, .viva-card a { min-height: 44px; }
+.viva-card a { text-decoration: none; }
+.viva-symbol { width: 62px; height: 62px; border-radius: 18px; display: grid; place-items: center; background: var(--soft); color: var(--primary); }
+.viva-steps { padding-inline-start: 22px; margin-block: 24px; }
+.viva-steps li { padding-block: 5px; }
+.viva-note { background: var(--soft); color: var(--primary2); border-radius: 12px; padding: 12px 16px; font-size: 14px; }
+.viva-small { color: #526178; font-size: 13px; overflow-wrap: anywhere; }
+.viva-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-block: 22px 12px; }
+.viva-text-button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 0; color: var(--primary2); background: transparent; border: 0; text-align: start; font-weight: 600; }
+.viva-progress-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #526178; }
+.viva-progress { width: 100%; height: 8px; accent-color: var(--primary); margin-block: 12px 8px; border: 0; border-radius: 99px; overflow: hidden; }
+.viva-progress::-webkit-progress-bar { background: var(--soft); }
+.viva-progress::-webkit-progress-value { background: var(--primary); }
+.viva-progress::-moz-progress-bar { background: var(--primary); }
+.viva-answer-label { display: block; font-weight: 700; margin-block: 20px 9px; }
+.viva-answer { resize: vertical; min-height: 150px; width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 14px; font: inherit; line-height: 1.8; color: #172033; background: #fff; }
+.viva-answer[readonly] { background: #f4f7fb; }
+.viva-answer:focus-visible, .viva-feedback:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 35%, transparent); outline-offset: 3px; }
+.viva-card button:disabled { cursor: not-allowed; opacity: .5; }
+.viva-hint { border-inline-start: 3px solid var(--primary); padding: 10px 14px; background: var(--soft); }
+.viva-feedback { margin-block-start: 24px; border-block-start: 1px solid var(--line); padding-block-start: 24px; }
+.viva-feedback fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.viva-feedback legend { font-size: 20px; font-weight: 700; }
+.viva-feedback fieldset > p { color: #526178; font-size: 14px; }
+.viva-criterion { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-block: 10px; cursor: pointer; line-height: 1.6; }
+.viva-criterion:has(input:checked) { border-color: var(--primary); background: var(--soft); }
+.viva-criterion input { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--primary); margin-block-start: 3px; }
+.viva-criterion small { display: block; color: #526178; margin-block-start: 4px; text-align: start; }
+.viva-source { padding: 14px; border: 1px solid var(--line); border-radius: 12px; margin-block-start: 18px; }
+.viva-source summary { cursor: pointer; color: var(--primary2); line-height: 1.7; }
+.viva-source summary svg { vertical-align: middle; margin-inline-end: 6px; }
+.viva-source blockquote { margin: 14px 0 0; padding-inline-start: 12px; border-inline-start: 3px solid var(--line); line-height: 1.7; }
+.viva-results { display: grid; gap: 14px; margin-block: 22px; }
+.viva-result { border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.viva-result h3 { font-size: 16px; line-height: 1.6; margin-block: 0 8px; }
+.viva-result summary { cursor: pointer; line-height: 1.7; }
+.viva-written { white-space: pre-wrap; overflow-wrap: anywhere; background: #f4f7fb; border-radius: 10px; padding: 14px; }
+.viva-session-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-block-start: 1px solid var(--line); margin-block-start: 26px; padding-block-start: 12px; }
+.viva-credit { text-align: center; color: #526178; padding-block: 24px; font-size: 12px; }
+.viva-launch { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; margin-block: 20px; border: 1px solid var(--line); border-radius: 15px; background: var(--soft); }
+.viva-launch h2 { font-size: 20px; margin: 0 0 7px; }
+.viva-launch p { margin: 0; color: #526178; line-height: 1.6; font-size: 13px; }
+.viva-launch button { flex-shrink: 0; min-height: 44px; }
+@media (max-width: 600px) {
+  .viva-launch { align-items: stretch; flex-direction: column; }
+  .viva-actions { align-items: stretch; flex-direction: column; }
+  .viva-actions button, .viva-actions a { justify-content: center; width: 100%; }
+  .viva-header { align-items: flex-start; }
+}
