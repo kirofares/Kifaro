@@ -410,6 +410,38 @@ export default function App() {
   )
 }
 
+function DashboardSocialLinks() {
+  const links = [
+    { name: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61594048447607&mibextid=ZbWKwL', icon: <Facebook size={20} />, className: 'facebook' },
+    { name: 'Instagram', href: 'https://www.instagram.com/anatomate130?stkn=MWt0a2dwbGZkeGdobQ==', icon: <Instagram size={20} />, className: 'instagram' },
+    { name: 'TikTok', href: 'https://www.tiktok.com/@anatomate130', icon: <span className="tiktokglyph compact">♪</span>, className: 'tiktok' },
+    { name: 'WhatsApp', href: 'https://wa.me/201055552867', icon: <MessageCircle size={20} />, className: 'whatsapp' },
+    { name: 'Phone', href: 'tel:+201055552867', icon: <Phone size={20} />, className: 'phone' },
+  ]
+
+  return (
+    <div className="dashsocial" aria-label="AnatoMate contact channels">
+      <span className="dashsociallabel">Connect with AnatoMate</span>
+      <div className="dashsociallinks">
+        {links.map((item) => (
+          <a
+            key={item.name}
+            className={'dashsocialbtn ' + item.className}
+            href={item.href}
+            target={item.href.startsWith('http') ? '_blank' : undefined}
+            rel={item.href.startsWith('http') ? 'noreferrer' : undefined}
+            aria-label={item.name}
+            title={item.name}
+          >
+            <span>{item.icon}</span>
+            <small>{item.name}</small>
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ContactChannels() {
   const tr = useTr()
   const channels = [
@@ -561,6 +593,8 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any
             </div>
             <Microscope className="heroicon" />
           </section>
+
+          <DashboardSocialLinks />
 
           <section className="section">
             <div className="sectiontitle"><h2>{t.yourYears}</h2></div>
