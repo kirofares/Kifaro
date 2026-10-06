@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CreditCard, GraduationCap, KeyRound, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
+import { Check, CircleHelp, CreditCard, GraduationCap, KeyRound, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import * as tus from 'tus-js-client'
 import { anatomateLectures } from '../data/anatomate'
@@ -9,6 +9,7 @@ import { useAdmin } from '../hooks/useAdmin'
 import { useLectureSettings } from '../hooks/useLectureSettings'
 import { usePricingRules, type PricingRule } from '../hooks/usePricingRules'
 import { useAssetReadiness } from '../hooks/useAssetReadiness'
+import MCQManager from './MCQManager'
 
 type Profile = {
   id: string
@@ -72,7 +73,7 @@ type PaymentTransaction = {
   created_at: string
 }
 
-type Tab = 'overview' | 'students' | 'purchases' | 'lectures' | 'errors'
+type Tab = 'overview' | 'students' | 'purchases' | 'lectures' | 'mcq' | 'errors'
 
 function pricingRuleScore(rule: PricingRule) {
   const yearScore = rule.academic_year == null ? 0 : 20
@@ -687,6 +688,7 @@ export default function AdminPage() {
         <button className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}><Users size={17}/>Students</button>
         <button className={tab === 'purchases' ? 'active' : ''} onClick={() => setTab('purchases')}><CreditCard size={17}/>Purchases</button>
         <button className={tab === 'lectures' ? 'active' : ''} onClick={() => setTab('lectures')}><GraduationCap size={17}/>Lectures</button>
+        <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}><CircleHelp size={17}/>MCQ Bank</button>
         <button className={tab === 'errors' ? 'active' : ''} onClick={() => setTab('errors')}><XCircle size={17}/>Errors</button>
       </div>
 
@@ -920,6 +922,8 @@ export default function AdminPage() {
           </div>
         </>
       )}
+
+      {tab === 'mcq' && <MCQManager />}
 
       {tab === 'lectures' && (
         <>
