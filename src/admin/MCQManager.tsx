@@ -66,6 +66,8 @@ function normalizeRows(raw: unknown): ImportRow[] {
     difficulty: Number(item.difficulty || 2),
     source_scope: String(item.source_scope || 'AnatoMate').trim(),
     learning_objective: String(item.learning_objective || '').trim(),
+    image_url: String(item.image_url || '').trim(),
+    image_alt: String(item.image_alt || '').trim(),
     why_a_wrong: String(item.why_a_wrong || item.distractor_explanations?.A || '').trim(),
     why_b_wrong: String(item.why_b_wrong || item.distractor_explanations?.B || '').trim(),
     why_c_wrong: String(item.why_c_wrong || item.distractor_explanations?.C || '').trim(),
