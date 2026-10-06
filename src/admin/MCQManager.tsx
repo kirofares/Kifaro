@@ -18,6 +18,10 @@ type ImportRow = {
   difficulty?: number
   source_scope?: string
   learning_objective?: string
+  why_a_wrong?: string
+  why_b_wrong?: string
+  why_c_wrong?: string
+  why_d_wrong?: string
 }
 
 function parseCsv(text: string): ImportRow[] {
@@ -62,6 +66,10 @@ function normalizeRows(raw: unknown): ImportRow[] {
     difficulty: Number(item.difficulty || 2),
     source_scope: String(item.source_scope || 'AnatoMate').trim(),
     learning_objective: String(item.learning_objective || '').trim(),
+    why_a_wrong: String(item.why_a_wrong || item.distractor_explanations?.A || '').trim(),
+    why_b_wrong: String(item.why_b_wrong || item.distractor_explanations?.B || '').trim(),
+    why_c_wrong: String(item.why_c_wrong || item.distractor_explanations?.C || '').trim(),
+    why_d_wrong: String(item.why_d_wrong || item.distractor_explanations?.D || '').trim(),
   })).filter((q) =>
     q.question_text && q.option_a && q.option_b && q.option_c && q.option_d &&
     ['A','B','C','D'].includes(q.correct_option)
@@ -108,9 +116,12 @@ export default function MCQManager() {
       topic: q.topic || selectedLecture?.title || '',
       subtopic: q.subtopic || null,
       question_type: q.question_type || 'single-best-answer',
-      difficulty: Math.min(3, Math.max(1, Number(q.difficulty || 2))),
+      difficulty: Math.min(4, Math.max(1, Number(q.difficulty || 2))),
       source_scope: q.source_scope || 'AnatoMate',
       learning_objective: q.learning_objective || null,
+      distractor_explanations: {
+        A: q.why_a_wrong || '', B: q.why_b_wrong || '', C: q.why_c_wrong || '', D: q.why_d_wrong || '',
+      },
       published: true,
     }))
     const { error } = await supabase.from('mcq_questions').insert(payload)
@@ -171,7 +182,7 @@ export default function MCQManager() {
       </div>
 
       <p className="adminhint">
-        Required columns: question_text, option_a, option_b, option_c, option_d, correct_option. Optional: explanation, topic, subtopic, difficulty (1–3), learning_objective, question_type, source_scope.
+        Required columns: question_text, option_a, option_b, option_c, option_d, correct_option. Optional: explanation, topic, subtopic, difficulty (1–4), learning_objective, question_type, source_scope, why_a_wrong, why_b_wrong, why_c_wrong, why_d_wrong.
       </p>
     </div>
   )
