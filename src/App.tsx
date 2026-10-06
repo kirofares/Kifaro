@@ -397,7 +397,7 @@ export default function App() {
         <GlobalBackButton lang={lang} />
         <Suspense fallback={<div className="page pageloading" role="status">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</div>}>
         <Routes>
-          <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} />} />
+          <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} latestApkUrl={latestApkUrl} latestReleasePage={latestReleasePage} />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -607,7 +607,7 @@ function PageHead({ eyebrow, title, body }: { eyebrow: string; title: string; bo
   )
 }
 
-function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any; lang: Lang; lectures: any[]; allLectures: any[]; go: (path: string) => void; studentName: string }) {
+function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkUrl, latestReleasePage }: { t: any; lang: Lang; lectures: any[]; allLectures: any[]; go: (path: string) => void; studentName: string; latestApkUrl: string; latestReleasePage: string }) {
   const active = allLectures.filter((lecture) => lecture.progress > 0 && !lecture.completed)
   const favorites = allLectures.filter((lecture) => lecture.favorite)
   const completedCount = allLectures.filter((lecture) => lecture.completed).length
