@@ -134,10 +134,10 @@ export function MCQLecturePage() {
       explanation: q.explanation,
       difficulty: q.difficulty || 1,
       learningObjective: q.learning_objective,
-      distractorExplanations: q.distractor_explanations || {},
+      distractorExplanations: (q.distractor_explanations || {}) as Record<string,string>,
       source: q,
     }))
-    return lecture.mcqs.map((q) => ({ ...q, id: '', topic: lecture.title, subtopic: null, difficulty: 1, learningObjective: null, distractorExplanations: {}, source: null as BankQuestion | null }))
+    return lecture.mcqs.map((q) => ({ ...q, id: '', topic: lecture.title, subtopic: null, difficulty: 1, learningObjective: null, distractorExplanations: {} as Record<string,string>, source: null as BankQuestion | null }))
   }, [lecture, dbQuestions])
 
   const score = useMemo(() => questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0), [questions, answers])
