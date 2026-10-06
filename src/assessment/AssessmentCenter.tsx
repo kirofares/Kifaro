@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useLang, useTr } from '../i18n'
-import { anatomateLectures } from '../data/anatomate'
+import { anatomateLectures, anatomateYears } from '../data/anatomate'
 import { getVivaDeck } from '../viva/content'
 
 type AssessmentType = 'case' | 'osce' | 'ospe' | 'spotter'
@@ -145,7 +145,94 @@ export function AssessmentCenterPage() {
 }
 
 export function CasesPage() {
-  return <AssessmentListPage types={['case']} titleEn="Clinical Cases" titleAr="الحالات السريرية" bodyEn="Short scenarios that test anatomical reasoning, localization and clinical relevance." bodyAr="سيناريوهات قصيرة تقيس التفكير التشريحي وتحديد موضع المشكلة والربط السريري." />
+  const nav = useNavigate()
+  const tr = useTr()
+  const { items, loading } = useAssessmentItems(['case'])
+  const caseItems = items.filter((item) => item.assessment_type === 'case')
+
+  return (
+    <div className="page assessmentpage casespage">
+      <div className="pagehead">
+        <div>
+          <span className="eyebrow">ANATOMATE CLINICAL CASES</span>
+          <h1>{tr('Clinical Cases', 'الحالات السريرية')}</h1>
+          <p>{tr(
+            'Cases follow the curriculum so you can move from anatomy facts to clinical application lecture by lecture.',
+            'الحالات ماشية بنفس ترتيب المنهج عشان تنتقل من المعلومة التشريحية للتطبيق السريري محاضرة بمحاضرة.'
+          )}</p>
+        </div>
+        <div className="casesummary">
+          <strong>{caseItems.length}</strong>
+          <span>{tr('published cases', 'حالة منشورة')}</span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="assessmentempty">{tr('Loading cases…', 'جارٍ تحميل الحالات…')}</div>
+      ) : (
+        <div className="caseyears">
+          {anatomateYears.map((year) => {
+            const yearCases = caseItems.filter((item) => item.year === year.year)
+            return (
+              <section className="caseyear" key={year.year}>
+                <div className="caseyearhead">
+                  <div><span className="yearbadge">YEAR {year.year}</span><h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2></div>
+                  <span className="mcqcount">{yearCases.length} {tr('cases', 'حالات')}</span>
+                </div>
+
+                <div className="casemodules">
+                  {year.modules.map((module) => {
+                    const moduleCases = yearCases.filter((item) => item.module_code === module.code)
+                    return (
+                      <div className="casemodule" key={module.slug}>
+                        <div className="casemodulehead">
+                          <div><small>{module.code}</small><h3>{module.title}</h3></div>
+                          <span>{moduleCases.length}</span>
+                        </div>
+
+                        <div className="caselectures">
+                          {module.lectures.map((lecture) => {
+                            const lectureCases = moduleCases.filter((item) => item.lecture_id === lecture.id)
+                            return (
+                              <div className="caselecture" key={lecture.id}>
+                                <div className="caselecturehead">
+                                  <div className="lectureseq">{lecture.sequence}</div>
+                                  <div><small>{lecture.system}</small><h4>{lecture.title}</h4></div>
+                                  <span>{lectureCases.length} {tr('cases', 'حالات')}</span>
+                                </div>
+
+                                {lectureCases.length ? (
+                                  <div className="casecards">
+                                    {lectureCases.map((item) => (
+                                      <button key={item.id} className="casecard" onClick={() => nav('/assessments/item/' + item.id)}>
+                                        <div className="casecardtop">
+                                          <span className={'difficulty d' + item.difficulty}>{tr('Level', 'مستوى')} {item.difficulty}</span>
+                                          {item.time_limit_seconds && <span><Clock3 size={14}/>{Math.ceil(item.time_limit_seconds/60)} min</span>}
+                                        </div>
+                                        <h5>{item.title}</h5>
+                                        <p>{item.stem}</p>
+                                        <strong>{tr('Open case', 'افتح الحالة')} <ChevronRight size={16}/></strong>
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="caseempty">{tr('Cases coming soon for this lecture.', 'سيتم إضافة حالات لهذه المحاضرة قريبًا.')}</div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function OSCEPage() {
