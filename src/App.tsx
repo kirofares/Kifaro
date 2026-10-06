@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
-import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
-  BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
+  ArrowLeft, ArrowRight, BookOpen, Brain, Check, ChevronRight, CircleHelp, Clock3, GraduationCap,
   Home, Library, Menu, Microscope, Palette,
   CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
@@ -23,6 +23,7 @@ import { usePricingRules } from './hooks/usePricingRules'
 import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
+import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
@@ -103,7 +104,7 @@ function applyLectureSetting<T extends { id: string; title: string; description:
 const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
-    topics: 'Topics', studio: 'KIFARO Studio', library: 'My Library',
+    topics: 'Topics', mcq: 'MCQ Bank', studio: 'KIFARO Studio', library: 'My Library',
     preferences: 'Preferences', search: 'Search lectures, modules, or systems',
     morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', nameSep: ', ',
     subtitle: 'Continue your medical journey with one focused step at a time.',
@@ -127,7 +128,7 @@ const copy = {
   },
   ar: {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
-    topics: 'الموضوعات', studio: 'KIFARO Studio', library: 'مكتبتي',
+    topics: 'الموضوعات', mcq: 'بنك MCQ', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المحاضرات أو الموديولات أو الأجهزة',
     morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير', nameSep: '، ',
     subtitle: 'كمّل رحلتك الطبية بخطوة مركزة كل مرة.',
@@ -271,6 +272,7 @@ export default function App() {
     ['/curriculum', t.curriculum, GraduationCap],
     ['/anatomate', t.anatomate, Microscope],
     ['/topics', t.topics, Brain],
+    ['/mcq', t.mcq, CircleHelp],
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
     ['/profile', t.profile, UserRound],
@@ -353,6 +355,7 @@ export default function App() {
       {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
 
       <main className="main">
+        <GlobalBackButton lang={lang} />
         <Suspense fallback={<div className="page pageloading" role="status">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</div>}>
         <Routes>
           <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} />} />
@@ -375,6 +378,9 @@ export default function App() {
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/refund" element={<LegalPage kind="refund" />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
+          <Route path="/mcq" element={<MCQBankPage />} />
+          <Route path="/mcq/year/:year/module/:module" element={<MCQModulePage />} />
+          <Route path="/mcq/lecture/:slug" element={<MCQLecturePage />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
@@ -408,6 +414,27 @@ export default function App() {
       {toast && <div className="toast"><Check size={18} />{toast}</div>}
     </div>
     </LangProvider>
+  )
+}
+
+function GlobalBackButton({ lang }: { lang: Lang }) {
+  const location = useLocation()
+  const nav = useNavigate()
+  const hiddenPaths = new Set(['/', '/login', '/reset-password'])
+  if (hiddenPaths.has(location.pathname)) return null
+
+  const goBack = () => {
+    if (window.history.length > 1) nav(-1)
+    else nav('/')
+  }
+
+  return (
+    <div className="globalbackwrap">
+      <button className="globalback" onClick={goBack} aria-label={lang === 'ar' ? 'الرجوع للصفحة السابقة' : 'Back to previous page'}>
+        {lang === 'ar' ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}
+        <span>{lang === 'ar' ? 'رجوع' : 'Back'}</span>
+      </button>
+    </div>
   )
 }
 
