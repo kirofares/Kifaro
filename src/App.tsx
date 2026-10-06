@@ -24,7 +24,7 @@ import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
-import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage } from './assessment/AssessmentCenter'
+import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
@@ -407,6 +407,7 @@ export default function App() {
           <Route path="/cases" element={<CasesPage />} />
           <Route path="/osce" element={<OSCEPage />} />
           <Route path="/spotters" element={<SpottersPage />} />
+          <Route path="/viva-bank" element={<VivaBankPage />} />
           <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
