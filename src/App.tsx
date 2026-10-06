@@ -57,7 +57,8 @@ const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
 // Set VITE_PAYMOB_TEST_MODE=true in the build env while Paymob runs against its sandbox.
 const PAYMOB_TEST_MODE = import.meta.env.VITE_PAYMOB_TEST_MODE === 'true'
 const LATEST_RELEASE_API = 'https://api.github.com/repos/kirofares/Kifaro/releases/latest'
-const LATEST_APK_URL = 'https://github.com/kirofares/Kifaro/releases/latest/download/AnatoMate.apk'
+const FALLBACK_APK_URL = 'https://github.com/kirofares/Kifaro/releases/download/v1.0.2/AnatoMate.apk'
+const FALLBACK_RELEASE_PAGE = 'https://github.com/kirofares/Kifaro/releases/latest'
 
 function compareVersions(a: string, b: string) {
   const pa = a.replace(/^v/i, '').split('.').map((part) => Number(part) || 0)
@@ -189,6 +190,8 @@ export default function App() {
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [latestApkUrl, setLatestApkUrl] = useState(FALLBACK_APK_URL)
+  const [latestReleasePage, setLatestReleasePage] = useState(FALLBACK_RELEASE_PAGE)
   const t = copy[lang]
   const nav = useNavigate()
   const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
@@ -256,8 +259,21 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!isAndroidApp) return
-    void checkForUpdate(false)
+    void (async () => {
+      try {
+        const response = await fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
+        if (!response.ok) return
+        const release = await response.json()
+        const apkAsset = Array.isArray(release?.assets)
+          ? release.assets.find((asset: any) => asset?.name === 'AnatoMate.apk')
+          : null
+        if (apkAsset?.browser_download_url) setLatestApkUrl(String(apkAsset.browser_download_url))
+        if (release?.html_url) setLatestReleasePage(String(release.html_url))
+      } catch {
+        // Keep the pinned fallback URL if GitHub's release API is temporarily unavailable.
+      }
+    })()
+    if (isAndroidApp) void checkForUpdate(false)
   }, [])
 
   const lectures = useMemo(
@@ -316,7 +332,7 @@ export default function App() {
             <strong>{lang === 'ar' ? `إصدار AnatoMate ${latestVersion} متاح` : `AnatoMate ${latestVersion} is available`}</strong>
             <span>{lang === 'ar' ? `أنت تستخدم الإصدار ${CURRENT_APP_VERSION}.` : `You are using version ${CURRENT_APP_VERSION}.`}</span>
           </div>
-          <a href={LATEST_APK_URL} target="_blank" rel="noreferrer">
+          <a href={latestApkUrl} target="_self" rel="noreferrer">
             <Download size={17} /> {lang === 'ar' ? 'حدّث AnatoMate' : 'Update AnatoMate'}
           </a>
         </div>
@@ -641,9 +657,14 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any
               <div className="heroactions">
                 <button className="lightbtn" onClick={() => go('/anatomate')}>{t.open}<ChevronRight size={17} className="dirarrow" /></button>
                 {showAndroidDownload && (
-                  <a className="lightbtn downloadappbtn" href={LATEST_APK_URL} target="_blank" rel="noreferrer">
-                    <Download size={17} /> {t.downloadAndroid}
-                  </a>
+                  <div className="downloadappgroup">
+                    <a className="lightbtn downloadappbtn" href={latestApkUrl} target="_self" rel="noreferrer">
+                      <Download size={17} /> {t.downloadAndroid}
+                    </a>
+                    <a className="downloadfallback" href={latestReleasePage} target="_blank" rel="noreferrer">
+                      {lang === 'ar' ? 'لو التحميل علّق، افتح صفحة الإصدار' : 'If download stalls, open the release page'}
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
