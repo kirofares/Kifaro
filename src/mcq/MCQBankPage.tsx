@@ -134,10 +134,12 @@ export function MCQLecturePage() {
       explanation: q.explanation,
       difficulty: q.difficulty || 1,
       learningObjective: q.learning_objective,
+      imageUrl: q.image_url,
+      imageAlt: q.image_alt,
       distractorExplanations: (q.distractor_explanations || {}) as Record<string,string>,
       source: q,
     }))
-    return lecture.mcqs.map((q) => ({ ...q, id: '', topic: lecture.title, subtopic: null, difficulty: 1, learningObjective: null, distractorExplanations: {} as Record<string,string>, source: null as BankQuestion | null }))
+    return lecture.mcqs.map((q) => ({ ...q, id: '', topic: lecture.title, subtopic: null, difficulty: 1, learningObjective: null, imageUrl: null, imageAlt: null, distractorExplanations: {} as Record<string,string>, source: null as BankQuestion | null }))
   }, [lecture, dbQuestions])
 
   const score = useMemo(() => questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0), [questions, answers])
@@ -246,6 +248,12 @@ export function MCQLecturePage() {
           return (
             <section className="mcqquestion" key={question.id || qIndex}>
               <div className="mcqqhead"><span>Q{qIndex + 1}</span><div><h2>{question.question}</h2>{question.topic && <small className="mcqtopic">{question.subtopic || question.topic}</small>}</div></div>
+              {question.imageUrl && (
+                <figure className="mcqimage">
+                  <img src={question.imageUrl} alt={question.imageAlt || question.question} loading="lazy" />
+                  {question.imageAlt && <figcaption>{question.imageAlt}</figcaption>}
+                </figure>
+              )}
               <div className="mcqoptions">
                 {question.options.map((option, optionIndex) => {
                   const selectedOption = selected === optionIndex
