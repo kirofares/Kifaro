@@ -146,10 +146,6 @@ Deno.serve(async (req: Request) => {
     if (amountCents !== Number(state.a || 0)) return json({ error: 'Amount mismatch' }, 400)
     if (!['video', 'datashow', 'bundle'].includes(String(state.p || ''))) return json({ error: 'Invalid product' }, 400)
 
-    if (!success) {
-      return json({ received: true, paid: false })
-    }
-
     const adminClient = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
@@ -157,13 +153,57 @@ Deno.serve(async (req: Request) => {
     const userId = String(state.u || '')
     const lectureId = String(state.l || '')
     const productType = String(state.p)
+    const specialReference = String(obj?.order?.merchant_order_id || obj?.order?.id || '') || null
+    const paymobOrderId = obj?.order?.id == null ? null : String(obj.order.id)
+    const terminalStatus =
+      obj?.is_refunded === true ? 'refunded' :
+      obj?.is_voided === true ? 'voided' :
+      success ? 'paid_pending_fulfillment' : 'failed'
+
+    const { data: existingTransaction, error: existingTransactionError } = await adminClient
+      .from('payment_transactions')
+      .select('paymob_transaction_id, status')
+      .eq('paymob_transaction_id', transactionId)
+      .maybeSingle()
+
+    if (existingTransactionError) return json({ error: existingTransactionError.message }, 500)
+
+    if (existingTransaction?.status === 'paid') {
+      return json({ received: true, paid: true, transactionId, lectureId, productType, idempotent: true })
+    }
+
+    const { error: transactionUpsertError } = await adminClient
+      .from('payment_transactions')
+      .upsert({
+        paymob_transaction_id: transactionId,
+        paymob_order_id: paymobOrderId,
+        special_reference: specialReference,
+        user_id: userId,
+        lecture_id: lectureId,
+        product_type: productType,
+        amount_cents: amountCents,
+        amount_egp: amountCents / 100,
+        currency: String(obj.currency || 'EGP'),
+        status: terminalStatus,
+        integration_id: callbackIntegration,
+        paid_at: success ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'paymob_transaction_id' })
+
+    if (transactionUpsertError) return json({ error: transactionUpsertError.message }, 500)
+
+    if (!success) {
+      return json({ received: true, paid: false, transactionId, status: terminalStatus })
+    }
+
+    const userIdChecked = userId
     const videoGrant = productType === 'video' || productType === 'bundle'
     const datashowGrant = productType === 'datashow' || productType === 'bundle'
 
     const { data: existing, error: existingError } = await adminClient
       .from('lecture_entitlements')
       .select('user_id, lecture_id, price_paid_egp, video_access, datashow_access, product_type, view_limit, views_used')
-      .eq('user_id', userId)
+      .eq('user_id', userIdChecked)
       .eq('lecture_id', lectureId)
       .maybeSingle()
 
@@ -180,7 +220,7 @@ Deno.serve(async (req: Request) => {
     const nextPaid = Number(existing?.price_paid_egp || 0) + (addsNewAccess ? amountEgp : 0)
 
     const entitlement = {
-      user_id: userId,
+      user_id: userIdChecked,
       lecture_id: lectureId,
       price_paid_egp: nextPaid,
       source: 'paymob:' + transactionId,
@@ -200,6 +240,24 @@ Deno.serve(async (req: Request) => {
       .upsert(entitlement, { onConflict: 'user_id,lecture_id' })
 
     if (upsertError) return json({ error: upsertError.message }, 500)
+
+    const { error: finalizeTransactionError } = await adminClient
+      .from('payment_transactions')
+      .update({
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('paymob_transaction_id', transactionId)
+
+    if (finalizeTransactionError) {
+      return json({
+        error: finalizeTransactionError.message,
+        paid: true,
+        fulfillment: 'completed',
+        transactionLedger: 'pending',
+      }, 500)
+    }
 
     return json({
       received: true,
