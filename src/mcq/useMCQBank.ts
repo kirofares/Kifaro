@@ -18,6 +18,8 @@ export type BankQuestion = {
   difficulty: number
   source_scope: string | null
   learning_objective: string | null
+  image_url: string | null
+  image_alt: string | null
   distractor_explanations: Record<string,string>
 }
 
@@ -79,7 +81,7 @@ export function useMCQBank() {
     setLoading(true)
     const { data } = await supabase
       .from('mcq_questions')
-      .select('id, lecture_id, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, question_type, difficulty, source_scope, learning_objective, distractor_explanations')
+      .select('id, lecture_id, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, question_type, difficulty, source_scope, learning_objective, image_url, image_alt, distractor_explanations')
       .eq('published', true)
       .order('created_at', { ascending: true })
     setQuestions((data || []) as BankQuestion[])
