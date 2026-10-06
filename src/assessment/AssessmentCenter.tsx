@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useLang, useTr } from '../i18n'
+import { anatomateLectures } from '../data/anatomate'
+import { getVivaDeck } from '../viva/content'
 
 type AssessmentType = 'case' | 'osce' | 'ospe' | 'spotter'
 type ChoiceQuestion = {
