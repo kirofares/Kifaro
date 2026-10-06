@@ -106,7 +106,7 @@ function applyLectureSetting<T extends { id: string; title: string; description:
 const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
-    topics: 'Topics', mcq: 'MCQ Bank', assessments: 'Assessments', studio: 'KIFARO Studio', library: 'My Library',
+    topics: 'Topics', mcq: 'MCQ Bank', cases: 'Cases', assessments: 'Assessments', studio: 'KIFARO Studio', library: 'My Library',
     preferences: 'Preferences', search: 'Search lectures, modules, or systems',
     morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', nameSep: ', ',
     subtitle: 'Continue your medical journey with one focused step at a time.',
@@ -130,7 +130,7 @@ const copy = {
   },
   ar: {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
-    topics: 'الموضوعات', mcq: 'بنك MCQ', assessments: 'التقييمات', studio: 'KIFARO Studio', library: 'مكتبتي',
+    topics: 'الموضوعات', mcq: 'بنك MCQ', cases: 'Cases', assessments: 'التقييمات', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المحاضرات أو الموديولات أو الأجهزة',
     morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير', nameSep: '، ',
     subtitle: 'كمّل رحلتك الطبية بخطوة مركزة كل مرة.',
@@ -304,6 +304,7 @@ export default function App() {
     ['/anatomate', t.anatomate, Microscope],
     ['/topics', t.topics, Brain],
     ['/mcq', t.mcq, CircleHelp],
+    ['/cases', t.cases, Stethoscope],
     ['/assessments', t.assessments, ClipboardCheck],
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
