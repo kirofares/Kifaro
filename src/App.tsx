@@ -2,9 +2,9 @@ import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type 
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
-  ArrowLeft, ArrowRight, BookOpen, Brain, Check, ChevronRight, CircleHelp, Clock3, GraduationCap,
+  ArrowLeft, ArrowRight, BookOpen, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
   Home, Library, Menu, Microscope, Palette,
-  CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
+  CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import { getStudyResources, type StudyResource } from './data/anatomate/studyResources'
@@ -24,6 +24,7 @@ import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
+import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage } from './assessment/AssessmentCenter'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
@@ -104,7 +105,7 @@ function applyLectureSetting<T extends { id: string; title: string; description:
 const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
-    topics: 'Topics', mcq: 'MCQ Bank', studio: 'KIFARO Studio', library: 'My Library',
+    topics: 'Topics', mcq: 'MCQ Bank', assessments: 'Assessments', studio: 'KIFARO Studio', library: 'My Library',
     preferences: 'Preferences', search: 'Search lectures, modules, or systems',
     morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', nameSep: ', ',
     subtitle: 'Continue your medical journey with one focused step at a time.',
@@ -128,7 +129,7 @@ const copy = {
   },
   ar: {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
-    topics: 'الموضوعات', mcq: 'بنك MCQ', studio: 'KIFARO Studio', library: 'مكتبتي',
+    topics: 'الموضوعات', mcq: 'بنك MCQ', assessments: 'التقييمات', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المحاضرات أو الموديولات أو الأجهزة',
     morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير', nameSep: '، ',
     subtitle: 'كمّل رحلتك الطبية بخطوة مركزة كل مرة.',
@@ -187,6 +188,7 @@ export default function App() {
   const [showOpeningSplash, setShowOpeningSplash] = useState(isNativeApp)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
   const t = copy[lang]
   const nav = useNavigate()
   const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
@@ -225,24 +227,37 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [showOpeningSplash])
 
-  useEffect(() => {
-    // Only the installed Android app can be out of date; web visitors always get the latest build.
-    if (!isAndroidApp) return
-    let active = true
-    fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Release check failed')))
-      .then((release) => {
-        if (!active) return
-        const latest = String(release?.tag_name || '').replace(/^v/i, '')
-        if (!latest) return
-        setLatestVersion(latest)
-        setUpdateAvailable(compareVersions(latest, CURRENT_APP_VERSION) > 0)
-      })
-      .catch(() => {
-        if (active) setUpdateAvailable(false)
-      })
+  async function checkForUpdate(manual = false) {
+    if (!isAndroidApp) {
+      if (manual) flash(lang === 'ar' ? 'نسخة الويب محدثة تلقائيًا.' : 'The web version updates automatically.')
+      return
+    }
 
-    return () => { active = false }
+    setCheckingUpdate(true)
+    try {
+      const response = await fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
+      if (!response.ok) throw new Error('Release check failed')
+      const release = await response.json()
+      const latest = String(release?.tag_name || '').replace(/^v/i, '')
+      if (!latest) throw new Error('No release version')
+      setLatestVersion(latest)
+      const available = compareVersions(latest, CURRENT_APP_VERSION) > 0
+      setUpdateAvailable(available)
+      if (manual) {
+        flash(available
+          ? (lang === 'ar' ? `يتوفر تحديث AnatoMate ${latest}.` : `AnatoMate ${latest} is available.`)
+          : (lang === 'ar' ? 'أنت تستخدم أحدث إصدار.' : 'You are using the latest version.'))
+      }
+    } catch {
+      if (manual) flash(lang === 'ar' ? 'تعذر فحص التحديث الآن.' : 'Could not check for updates right now.')
+    } finally {
+      setCheckingUpdate(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!isAndroidApp) return
+    void checkForUpdate(false)
   }, [])
 
   const lectures = useMemo(
@@ -273,6 +288,7 @@ export default function App() {
     ['/anatomate', t.anatomate, Microscope],
     ['/topics', t.topics, Brain],
     ['/mcq', t.mcq, CircleHelp],
+    ['/assessments', t.assessments, ClipboardCheck],
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
     ['/profile', t.profile, UserRound],
@@ -343,6 +359,12 @@ export default function App() {
         </nav>
         <div className="sidefoot">
           <NavLink to="/preferences" onClick={() => setDrawer(false)}><Settings size={19} /><span>{t.preferences}</span></NavLink>
+          {isAndroidApp && (
+            <button className="sideaccount appupdatecheck" onClick={() => void checkForUpdate(true)} disabled={checkingUpdate}>
+              <RefreshCw size={19} className={checkingUpdate ? 'spin' : ''} />
+              <span>{checkingUpdate ? (lang === 'ar' ? 'جارٍ فحص التحديث…' : 'Checking update…') : (lang === 'ar' ? 'فحص تحديث التطبيق' : 'Check for update')}</span>
+            </button>
+          )}
           {/* The top bar hides account actions on phones, so offer them in the drawer. */}
           {user ? (
             <button className="mobile sideaccount" onClick={() => { setDrawer(false); void signOut() }}><LogOut size={19} /><span>{t.signOut}</span></button>
@@ -381,6 +403,11 @@ export default function App() {
           <Route path="/mcq" element={<MCQBankPage />} />
           <Route path="/mcq/year/:year/module/:module" element={<MCQModulePage />} />
           <Route path="/mcq/lecture/:slug" element={<MCQLecturePage />} />
+          <Route path="/assessments" element={<AssessmentCenterPage />} />
+          <Route path="/cases" element={<CasesPage />} />
+          <Route path="/osce" element={<OSCEPage />} />
+          <Route path="/spotters" element={<SpottersPage />} />
+          <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
