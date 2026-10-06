@@ -74,10 +74,11 @@ Deno.serve(async (req: Request) => {
     const paymobSecret = Deno.env.get('PAYMOB_SECRET_KEY')
     const paymobPublic = Deno.env.get('PAYMOB_PUBLIC_KEY')
     const paymobHmac = Deno.env.get('PAYMOB_HMAC_SECRET')
-    const integrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_CARD') || 0)
+    const cardIntegrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_CARD') || 0)
+    const walletIntegrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_WALLET') || 0)
 
     if (!supabaseUrl || !anonKey || !serviceKey) throw new Error('Supabase environment is incomplete')
-    if (!paymobSecret || !paymobPublic || !paymobHmac || !integrationId) {
+    if (!paymobSecret || !paymobPublic || !paymobHmac || !cardIntegrationId) {
       return json({ error: 'Paymob test credentials are not configured yet.' }, 503)
     }
 
@@ -96,8 +97,9 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}))
     const lectureId = String(body?.lectureId || '').trim()
     const productType = String(body?.productType || '').trim()
+    const paymentMethod = String(body?.paymentMethod || 'card').trim().toLowerCase()
 
-    if (!lectureId || !['video', 'datashow', 'bundle'].includes(productType)) {
+    if (!lectureId || !['video', 'datashow', 'bundle'].includes(productType) || !['card','wallet'].includes(paymentMethod)) {
       return json({ error: 'Invalid checkout request' }, 400)
     }
 
@@ -168,6 +170,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const amountCents = Math.round(priceEgp * 100)
+    const integrationId = paymentMethod === 'wallet' ? walletIntegrationId : cardIntegrationId
+    if (!integrationId) {
+      return json({
+        error: paymentMethod === 'wallet'
+          ? 'Mobile Wallet is not enabled in Paymob yet.'
+          : 'Card payments are not configured yet.',
+      }, 503)
+    }
     const nameParts = String(profile.full_name || userData.user.email || 'KIFARO Student').trim().split(/\s+/)
     const firstName = nameParts.shift() || 'KIFARO'
     const lastName = nameParts.join(' ') || 'Student'
@@ -178,6 +188,7 @@ Deno.serve(async (req: Request) => {
       u: userData.user.id,
       l: lectureId,
       p: productType,
+      pm: paymentMethod,
       a: amountCents,
       vl: viewLimit,
       y: profile.medical_year ?? null,
@@ -226,6 +237,7 @@ Deno.serve(async (req: Request) => {
         kifaro_state: kifaroState,
         lecture_id: lectureId,
         product_type: productType,
+        payment_method: paymentMethod,
       },
       special_reference: specialReference,
       expiration: 3600,
@@ -265,6 +277,7 @@ Deno.serve(async (req: Request) => {
       orderId: intention.intention_order_id || null,
       amountEgp: priceEgp,
       productType,
+      paymentMethod,
       testMode: /test/i.test(paymobSecret) || /test/i.test(paymobPublic),
     })
   } catch (error) {
