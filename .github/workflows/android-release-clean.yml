@@ -2,6 +2,10 @@ name: Build AnatoMate Release Clean
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.release/android-1.0.2'
 
 permissions:
   contents: write
