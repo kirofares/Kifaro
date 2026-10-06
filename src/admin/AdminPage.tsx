@@ -59,6 +59,19 @@ type ClientErrorRow = {
   platform: string | null
 }
 
+type PaymentTransaction = {
+  paymob_transaction_id: number
+  paymob_order_id: string | null
+  user_id: string
+  lecture_id: string
+  product_type: 'video' | 'datashow' | 'bundle'
+  amount_egp: number
+  currency: string
+  status: 'pending' | 'paid_pending_fulfillment' | 'paid' | 'failed' | 'refunded' | 'voided'
+  paid_at: string | null
+  created_at: string
+}
+
 type Tab = 'overview' | 'students' | 'purchases' | 'lectures' | 'errors'
 
 function pricingRuleScore(rule: PricingRule) {
@@ -97,6 +110,7 @@ export default function AdminPage() {
   const [entitlements, setEntitlements] = useState<Entitlement[]>([])
   const [progressRows, setProgressRows] = useState<ProgressRow[]>([])
   const [clientErrors, setClientErrors] = useState<ClientErrorRow[]>([])
+  const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [studentLecture, setStudentLecture] = useState('')
   const [loading, setLoading] = useState(true)
@@ -132,22 +146,25 @@ export default function AdminPage() {
     setLoading(true)
     setMessage('')
 
-    const [profilesResult, entitlementsResult, progressResult, errorsResult] = await Promise.all([
+    const [profilesResult, entitlementsResult, progressResult, errorsResult, paymentsResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, medical_year, faculty, university, nationality, phone_no, email, role, created_at').order('created_at', { ascending: false }),
       supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at, view_limit, views_used, offer_academic_year, offer_nationality, video_access, datashow_access, product_type').order('granted_at', { ascending: false }),
       supabase.from('lecture_progress').select('user_id, lecture_id, progress, completed, favorite, updated_at').order('updated_at', { ascending: false }),
       supabase.from('client_errors').select('id, created_at, user_id, source, message, route, app_version, platform').order('created_at', { ascending: false }).limit(50),
+      supabase.from('payment_transactions').select('paymob_transaction_id, paymob_order_id, user_id, lecture_id, product_type, amount_egp, currency, status, paid_at, created_at').order('created_at', { ascending: false }).limit(200),
     ])
 
     if (profilesResult.error) setMessage(profilesResult.error.message)
     if (entitlementsResult.error) setMessage(entitlementsResult.error.message)
     if (progressResult.error) setMessage(progressResult.error.message)
     if (errorsResult.error) setMessage(errorsResult.error.message)
+    if (paymentsResult.error) setMessage(paymentsResult.error.message)
 
     setProfiles((profilesResult.data || []) as Profile[])
     setEntitlements((entitlementsResult.data || []) as Entitlement[])
     setProgressRows((progressResult.data || []) as ProgressRow[])
     setClientErrors((errorsResult.data || []) as ClientErrorRow[])
+    setPaymentTransactions((paymentsResult.data || []) as PaymentTransaction[])
     setLoading(false)
   }
 
@@ -847,6 +864,36 @@ export default function AdminPage() {
                 })}
               </select>
               <button className="primary" disabled={!selectedUser || !selectedLecture} onClick={() => void grant()}><LockOpen size={17}/>Grant access</button>
+            </div>
+          </div>
+
+          <div className="adminpanel">
+            <div className="adminpanelhead">
+              <div>
+                <h2>Paymob transaction ledger</h2>
+                <p>Verified gateway callbacks. Use this when reconciling payments with lecture access.</p>
+              </div>
+              <button className="secondary" onClick={() => void load()}>Refresh</button>
+            </div>
+            <div className="admintablewrap">
+              <table className="admintable">
+                <thead><tr><th>Time</th><th>Student</th><th>Lecture</th><th>Product</th><th>Amount</th><th>Transaction</th><th>Status</th></tr></thead>
+                <tbody>
+                  {paymentTransactions.length ? paymentTransactions.map((item) => (
+                    <tr key={item.paymob_transaction_id}>
+                      <td>{new Date(item.created_at).toLocaleString()}</td>
+                      <td>{nameForUser(item.user_id)}</td>
+                      <td>{lectureFor(item.lecture_id)?.title || item.lecture_id}</td>
+                      <td>{item.product_type}</td>
+                      <td>{Number(item.amount_egp).toFixed(2)} {item.currency}</td>
+                      <td><strong>{item.paymob_transaction_id}</strong><small>{item.paymob_order_id ? 'Order ' + item.paymob_order_id : '—'}</small></td>
+                      <td><span className={item.status === 'paid' ? 'readinessbadge ready' : 'readinessbadge missing'}>{item.status}</span></td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={7}>No Paymob transactions recorded yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
