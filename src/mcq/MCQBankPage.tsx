@@ -117,7 +117,7 @@ export function MCQLecturePage() {
   const tr = useTr()
   const lang = useLang()
   const lecture = getLectureBySlug(slug)
-  const { questions: bankQuestions, stages, mastery, recordAttempt, refreshMastery } = useMCQBank()
+  const { questions: bankQuestions, levels, levelPerformance, reviewTargets, mastery, recordAttempt, refreshMastery } = useMCQBank()
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [submitted, setSubmitted] = useState(false)
 
@@ -132,14 +132,41 @@ export function MCQLecturePage() {
       options: [q.option_a, q.option_b, q.option_c, q.option_d],
       answer: ['A','B','C','D'].indexOf(q.correct_option),
       explanation: q.explanation,
+      difficulty: q.difficulty || 1,
+      learningObjective: q.learning_objective,
+      distractorExplanations: q.distractor_explanations || {},
       source: q,
     }))
-    return lecture.mcqs.map((q) => ({ ...q, id: '', topic: lecture.title, subtopic: null, source: null as BankQuestion | null }))
+    return lecture.mcqs.map((q) => ({ ...q, id: '', topic: lecture.title, subtopic: null, difficulty: 1, learningObjective: null, distractorExplanations: {}, source: null as BankQuestion | null }))
   }, [lecture, dbQuestions])
 
   const score = useMemo(() => questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0), [questions, answers])
   const percent = questions.length ? Math.round((score / questions.length) * 100) : 0
-  const stage = stages.find((item) => percent >= Number(item.min_score) && percent <= Number(item.max_score)) || stages[0]
+
+  const currentLevelStats = useMemo(() => [1,2,3,4].map((level) => {
+    const indexed = questions.map((question, index) => ({ question, index })).filter(({ question }) => Number(question.difficulty || 1) === level)
+    const attempts = indexed.length
+    const correct = indexed.filter(({ question, index }) => answers[index] === question.answer).length
+    return { level, attempts, correct, score: attempts ? Math.round((correct / attempts) * 100) : null }
+  }), [questions, answers])
+
+  const combinedLevelStats = levels.map((level) => {
+    const current = currentLevelStats.find((item) => item.level === level.level_no)
+    const historic = levelPerformance.find((item) => Number(item.difficulty) === level.level_no)
+    const currentAttempts = submitted ? Number(current?.attempts || 0) : 0
+    const currentCorrect = submitted ? Number(current?.correct || 0) : 0
+    const historicAttempts = Number(historic?.attempts || 0)
+    const historicCorrect = Number(historic?.correct || 0)
+    const attempts = currentAttempts || historicAttempts
+    const correct = currentAttempts ? currentCorrect : historicCorrect
+    const levelScore = attempts ? Math.round((correct / attempts) * 100) : null
+    return { ...level, attempts, correct, score: levelScore }
+  })
+
+  const demonstratedLevel = [...combinedLevelStats]
+    .reverse()
+    .find((item) => item.score !== null && item.attempts >= 3 && Number(item.score) >= Number(item.pass_threshold))
+    || combinedLevelStats.find((item) => item.score !== null)
 
   const weakTopics = useMemo(() => {
     const map = new Map<string, { wrong: number; total: number }>()
@@ -150,17 +177,18 @@ export function MCQLecturePage() {
       if (answers[index] !== question.answer) item.wrong += 1
       map.set(key, item)
     })
-    mastery.filter((row) => row.lecture_id === lecture?.id && Number(row.score) < 70).forEach((row) => {
-      const item = map.get(row.topic) || { wrong: 0, total: 0 }
+    reviewTargets.filter((row) => row.lecture_id === lecture?.id && Number(row.score) < 70).forEach((row) => {
+      const key = row.learning_objective || row.subtopic || row.topic
+      const item = map.get(key) || { wrong: 0, total: 0 }
       item.wrong += Math.max(1, Number(row.attempts) - Number(row.correct))
       item.total += Math.max(1, Number(row.attempts))
-      map.set(row.topic, item)
+      map.set(key, item)
     })
     return Array.from(map.entries())
       .filter(([, value]) => value.wrong > 0)
       .sort((a, b) => (b[1].wrong / b[1].total) - (a[1].wrong / a[1].total))
       .slice(0, 6)
-  }, [questions, answers, mastery, lecture])
+  }, [questions, answers, reviewTargets, lecture])
 
   if (!lecture) {
     return <div className="page"><div className="pagehead"><div><span className="eyebrow">MCQ BANK</span><h1>{tr('Lecture not found', 'المحاضرة غير موجودة')}</h1></div></div></div>
@@ -188,13 +216,19 @@ export function MCQLecturePage() {
         {submitted && <div className="mcqscore"><strong>{score}/{questions.length}</strong><span>{tr('Score', 'النتيجة')}</span></div>}
       </div>
 
-      {submitted && stage && (
+      {submitted && demonstratedLevel && (
         <section className="mcqprogressreport">
-          <div className="mcqstagebadge"><Target/><div><small>{tr('Your MCQ stage', 'مرحلتك في MCQ')}</small><strong>{lang === 'ar' ? stage.label_ar : stage.label_en}</strong></div><span>{percent}%</span></div>
-          <div className="mcqstagetrack">
-            {stages.map((item) => <div key={item.stage_no} className={item.stage_no <= stage.stage_no ? 'active' : ''}><span>{item.stage_no}</span><small>{lang === 'ar' ? item.label_ar : item.label_en}</small></div>)}
+          <div className="mcqstagebadge"><Target/><div><small>{tr('Your demonstrated MCQ level', 'مستواك الحالي في MCQ')}</small><strong>{lang === 'ar' ? demonstratedLevel.label_ar : demonstratedLevel.label_en}</strong></div><span>{percent}%</span></div>
+          <div className="mcqstagetrack fourlevels">
+            {combinedLevelStats.map((item) => (
+              <div key={item.level_no} className={demonstratedLevel.level_no >= item.level_no ? 'active' : ''}>
+                <span>{item.level_no}</span>
+                <small>{lang === 'ar' ? item.short_ar : item.short_en}</small>
+                <b>{item.score == null ? '—' : item.score + '%'}</b>
+              </div>
+            ))}
           </div>
-          <p>{lang === 'ar' ? stage.description_ar : stage.description_en}</p>
+          <p>{lang === 'ar' ? demonstratedLevel.description_ar : demonstratedLevel.description_en}</p>
 
           <div className="mcqweakbox">
             <h3>{tr('Topics to review', 'المعلومات التي تحتاج مراجعة')}</h3>
@@ -224,7 +258,7 @@ export function MCQLecturePage() {
                   )
                 })}
               </div>
-              {submitted && <div className={isCorrect ? 'mcqexplanation correct' : 'mcqexplanation'}><BookOpenCheck size={18}/><div><strong>{isCorrect ? tr('Correct', 'إجابة صحيحة') : tr('Review this point', 'راجع هذه النقطة')}</strong><p>{question.explanation}</p></div></div>}
+              {submitted && <div className={isCorrect ? 'mcqexplanation correct' : 'mcqexplanation'}><BookOpenCheck size={18}/><div><strong>{isCorrect ? tr('Correct', 'إجابة صحيحة') : tr('Review this point', 'راجع هذه النقطة')}</strong><p>{question.explanation}</p>{!isCorrect && question.distractorExplanations?.[String.fromCharCode(65 + selected)] && <p><b>{tr('Why your choice is wrong:', 'لماذا اختيارك خطأ:')}</b> {question.distractorExplanations[String.fromCharCode(65 + selected)]}</p>}{question.learningObjective && <small className="mcqobjective">{tr('Learning objective:', 'هدف التعلم:')} {question.learningObjective}</small>}</div></div>}
             </section>
           )
         })}
