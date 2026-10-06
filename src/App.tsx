@@ -1131,6 +1131,7 @@ function CheckoutPage() {
   const product = requested === 'video' || requested === 'datashow' || requested === 'bundle' ? requested : 'bundle'
   const [paymentBusy, setPaymentBusy] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState<'card'|'wallet'>('card')
   const tr = useTr()
 
   if (!lecture) {
@@ -1162,7 +1163,7 @@ function CheckoutPage() {
 
     const popup = window.open('', '_self')
     const { data, error } = await supabase.functions.invoke('paymob-create-checkout', {
-      body: { lectureId: lecture.id, productType: product },
+      body: { lectureId: lecture.id, productType: product, paymentMethod },
     })
 
     if (error || data?.error || !data?.checkoutUrl) {
@@ -1229,8 +1230,27 @@ function CheckoutPage() {
         ) : (
           <>
             <small className="assetnote">{tr('Your price is matched to your academic year and nationality. Paymob confirms payment server-to-server before KIFARO unlocks access.', 'السعر محسوب حسب سنتك الدراسية وجنسيتك. Paymob بيأكد الدفع مع السيرفر قبل ما KIFARO يفتح المحتوى.')}</small>
+
+            <div className="paymentmethodchooser" role="group" aria-label={tr('Payment method', 'طريقة الدفع')}>
+              <button className={paymentMethod === 'card' ? 'selected' : ''} onClick={() => setPaymentMethod('card')}>
+                <CreditCard size={20} />
+                <div><strong>{tr('Bank card', 'بطاقة بنكية')}</strong><span>{tr('Visa / Mastercard', 'فيزا / ماستركارد')}</span></div>
+              </button>
+              <button className={paymentMethod === 'wallet' ? 'selected' : ''} onClick={() => setPaymentMethod('wallet')}>
+                <Phone size={20} />
+                <div><strong>{tr('Mobile Wallet', 'محفظة موبايل')}</strong><span>{tr('Vodafone Cash and supported wallets', 'فودافون كاش والمحافظ المدعومة')}</span></div>
+              </button>
+            </div>
+
             <button className="primary full" disabled={paymentBusy || entitlementsLoading || offerLoading} onClick={() => void startPayment()}>
-              <CreditCard size={17} /> {paymentBusy ? tr('Opening Paymob…', 'جارٍ فتح Paymob…') : entitlementsLoading || offerLoading ? tr('Checking account…', 'جارٍ التحقق من الحساب…') : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
+              {paymentMethod === 'wallet' ? <Phone size={17} /> : <CreditCard size={17} />}
+              {paymentBusy
+                ? tr('Opening Paymob…', 'جارٍ فتح Paymob…')
+                : entitlementsLoading || offerLoading
+                  ? tr('Checking account…', 'جارٍ التحقق من الحساب…')
+                  : paymentMethod === 'wallet'
+                    ? tr('Pay with Mobile Wallet', 'ادفع بمحفظة الموبايل')
+                    : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
             </button>
             {PAYMOB_TEST_MODE && <small className="paymenttestnote">{tr('Paymob is currently in TEST MODE — no real money is charged during testing.', 'بوابة Paymob حاليًا في وضع التجربة — مفيش فلوس حقيقية بتتخصم.')}</small>}
             {paymentMessage && <div className="authmessage">{paymentMessage}</div>}
