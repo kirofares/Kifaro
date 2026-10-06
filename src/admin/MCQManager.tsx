@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, FileUp, Trash2 } from 'lucide-react'
 import { anatomateLectures } from '../data/anatomate'
 import { supabase } from '../lib/supabase'
@@ -78,14 +78,36 @@ function normalizeRows(raw: unknown): ImportRow[] {
   )
 }
 
+type CoverageRow = {
+  lecture_id: string
+  learning_points: number
+  fully_covered: number
+  missing_l1: number
+  missing_l2: number
+  missing_l3: number
+  missing_l4: number
+  coverage_percent: number
+}
+
 export default function MCQManager() {
   const [lectureId,setLectureId]=useState('')
   const [rows,setRows]=useState<ImportRow[]>([])
   const [message,setMessage]=useState('')
   const [busy,setBusy]=useState(false)
+  const [coverage,setCoverage]=useState<CoverageRow[]>([])
   const { countsByLecture, refreshQuestions } = useMCQBank()
 
   const selectedLecture = useMemo(() => anatomateLectures.find((l) => l.id === lectureId), [lectureId])
+
+  const refreshCoverage = async () => {
+    if (!supabase) return
+    const { data } = await supabase.rpc('get_mcq_coverage_summary')
+    setCoverage((data || []) as CoverageRow[])
+  }
+
+  useEffect(() => {
+    void refreshCoverage()
+  }, [])
 
   const readFile = async (file?: File) => {
     if (!file) return
@@ -132,6 +154,7 @@ export default function MCQManager() {
       setMessage(payload.length + ' MCQs uploaded and published.')
       setRows([])
       await refreshQuestions()
+      await refreshCoverage()
     }
     setBusy(false)
   }
@@ -186,6 +209,37 @@ export default function MCQManager() {
       <p className="adminhint">
         Required columns: question_text, option_a, option_b, option_c, option_d, correct_option. Optional: explanation, topic, subtopic, difficulty (1–4), learning_objective, question_type, source_scope, why_a_wrong, why_b_wrong, why_c_wrong, why_d_wrong.
       </p>
+
+      <div className="mcqcoverage">
+        <div className="adminpanelhead">
+          <div>
+            <h3>Coverage Audit</h3>
+            <p>A lecture is complete only when every learning point has Know, Understand, Apply, and Integrate/Clinical coverage.</p>
+          </div>
+          <button className="secondary" onClick={() => void refreshCoverage()}>Refresh audit</button>
+        </div>
+        <div className="admintablewrap">
+          <table className="admintable">
+            <thead><tr><th>Lecture</th><th>Points</th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>Coverage</th></tr></thead>
+            <tbody>
+              {coverage.length ? coverage.map((row) => {
+                const lecture = anatomateLectures.find((l) => l.id === row.lecture_id)
+                return (
+                  <tr key={row.lecture_id}>
+                    <td><strong>{lecture?.title || row.lecture_id}</strong><small>{lecture ? 'Year ' + lecture.year : row.lecture_id}</small></td>
+                    <td>{row.learning_points}</td>
+                    <td className={Number(row.missing_l1) === 0 ? 'coverageok' : 'coveragebad'}>{Number(row.missing_l1) === 0 ? 'Complete' : row.missing_l1 + ' missing'}</td>
+                    <td className={Number(row.missing_l2) === 0 ? 'coverageok' : 'coveragebad'}>{Number(row.missing_l2) === 0 ? 'Complete' : row.missing_l2 + ' missing'}</td>
+                    <td className={Number(row.missing_l3) === 0 ? 'coverageok' : 'coveragebad'}>{Number(row.missing_l3) === 0 ? 'Complete' : row.missing_l3 + ' missing'}</td>
+                    <td className={Number(row.missing_l4) === 0 ? 'coverageok' : 'coveragebad'}>{Number(row.missing_l4) === 0 ? 'Complete' : row.missing_l4 + ' missing'}</td>
+                    <td><span className={Number(row.coverage_percent) === 100 ? 'readinessbadge ready' : 'readinessbadge missing'}>{Number(row.coverage_percent).toFixed(0)}%</span></td>
+                  </tr>
+                )
+              }) : <tr><td colSpan={7}>No coverage data yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
