@@ -788,3 +788,7 @@ html[dir="rtl"] .assessmenthubcard,html[dir="rtl"] .assessmentcard,html[dir="rtl
 
 .downloadappgroup{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.downloadfallback{font-size:11px;color:#fff;text-decoration:underline;text-underline-offset:3px;opacity:.9}.downloadfallback:hover{opacity:1}
 @media(max-width:780px){.downloadappgroup{width:100%;align-items:stretch}.downloadfallback{text-align:center}.downloadappgroup .lightbtn{justify-content:center}}
+
+
+.paymentmethodchooser{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.paymentmethodchooser>button{border:1px solid var(--line);background:#fff;border-radius:13px;padding:13px;display:flex;align-items:center;gap:10px;text-align:left;color:#24324a}.paymentmethodchooser>button.selected{border-color:var(--primary);background:var(--soft);color:var(--primary)}.paymentmethodchooser>button>div{display:grid;gap:2px}.paymentmethodchooser strong{font-size:13px}.paymentmethodchooser span{font-size:11px;color:var(--muted)}html[dir="rtl"] .paymentmethodchooser>button{text-align:right}
+@media(max-width:620px){.paymentmethodchooser{grid-template-columns:1fr}}
