@@ -129,6 +129,7 @@ export function AssessmentCenterPage() {
     { path: '/cases', icon: <Activity />, title: tr('Clinical Cases', 'الحالات السريرية'), body: tr('Apply anatomy to short clinical scenarios and localization.', 'طبّق التشريح على سيناريوهات سريرية قصيرة وتحديد موضع المشكلة.') },
     { path: '/osce', icon: <Stethoscope />, title: 'OSCE / OSPE', body: tr('Timed stations, practical checklists and structured self-assessment.', 'محطات بوقت وقوائم تقييم عملية وتقييم ذاتي منظم.') },
     { path: '/spotters', icon: <Eye />, title: tr('Image Spotters', 'السبوتر والصور'), body: tr('Identify structures on images, specimens and radiology-style prompts.', 'تعرّف على التراكيب من الصور والعينات والأسئلة الشبيهة بالأشعة.') },
+    { path: '/viva-bank', icon: <FileQuestion />, title: tr('Viva', 'الفايفا'), body: tr('Oral-style recall with structured criteria and hints.', 'أسئلة شفهية منظمة مع معايير تقييم وتلميحات.') },
   ]
 
   return (
@@ -151,6 +152,27 @@ export function OSCEPage() {
 
 export function SpottersPage() {
   return <AssessmentListPage types={['spotter']} titleEn="Image Spotters" titleAr="السبوتر والصور" bodyEn="Practice recognition of structures from images, specimens and labeled views." bodyAr="تدرب على التعرف على التراكيب من الصور والعينات والمناظر التشريحية." />
+}
+
+export function VivaBankPage() {
+  const nav = useNavigate()
+  const tr = useTr()
+  const lectures = anatomateLectures.filter((lecture) => Boolean(getVivaDeck(lecture.id)))
+
+  return (
+    <div className="page assessmentpage">
+      <div className="pagehead"><div><span className="eyebrow">KIFARO VIVA</span><h1>{tr('Viva Practice', 'تدريب الفايفا')}</h1><p>{tr('Oral-style recall linked to lecture content.', 'تدريب شفهي مرتبط بمحتوى المحاضرات.')}</p></div></div>
+      <div className="assessmentcards">
+        {lectures.map((lecture) => (
+          <button key={lecture.id} className="assessmentcard" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/viva')}>
+            <div className="assessmenticon"><FileQuestion /></div>
+            <div className="grow"><small>YEAR {lecture.year} · {lecture.module}</small><h3>{lecture.title}</h3><p>{tr('Open viva practice', 'افتح تدريب الفايفا')}</p></div>
+            <ChevronRight />
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function AssessmentItemPage() {
