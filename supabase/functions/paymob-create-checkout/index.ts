@@ -101,8 +101,12 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'Invalid checkout request' }, 400)
     }
 
-    const [{ data: profile, error: profileError }, { data: setting, error: settingError }, { data: rules, error: rulesError }] =
-      await Promise.all([
+    const [
+      { data: profile, error: profileError },
+      { data: setting, error: settingError },
+      { data: rules, error: rulesError },
+      { data: existingEntitlement, error: entitlementError },
+    ] = await Promise.all([
         adminClient.from('profiles')
           .select('id, full_name, email, phone_no, medical_year, nationality')
           .eq('id', userData.user.id)
@@ -116,13 +120,31 @@ Deno.serve(async (req: Request) => {
           .eq('lecture_id', lectureId)
           .eq('product_type', productType)
           .eq('enabled', true),
+        adminClient.from('lecture_entitlements')
+          .select('video_access, datashow_access, revoked_at')
+          .eq('user_id', userData.user.id)
+          .eq('lecture_id', lectureId)
+          .maybeSingle(),
       ])
 
     if (profileError) return json({ error: profileError.message }, 400)
     if (settingError) return json({ error: settingError.message }, 400)
     if (rulesError) return json({ error: rulesError.message }, 400)
+    if (entitlementError) return json({ error: entitlementError.message }, 400)
     if (!profile) return json({ error: 'Complete your student profile before checkout.' }, 400)
     if (!setting || setting.published === false) return json({ error: 'This lecture is not available for purchase.' }, 404)
+
+    const activeEntitlement = existingEntitlement && !existingEntitlement.revoked_at ? existingEntitlement : null
+    const ownsVideo = Boolean(activeEntitlement?.video_access)
+    const ownsDatashow = Boolean(activeEntitlement?.datashow_access)
+
+    if (
+      (productType === 'video' && ownsVideo) ||
+      (productType === 'datashow' && ownsDatashow) ||
+      (productType === 'bundle' && ownsVideo && ownsDatashow)
+    ) {
+      return json({ error: 'You already own this product.' }, 409)
+    }
 
     const phone = String(profile.phone_no || '').trim()
     if (!phone) return json({ error: 'Add your phone number in My Profile before payment.' }, 400)
