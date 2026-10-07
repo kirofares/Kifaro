@@ -174,6 +174,13 @@ export function CasesPage() {
         </div>
       </div>
 
+      <div className="caselevellegend">
+        <div><strong>Level 1 · {caseLevelName(1, lang === 'ar')}</strong><span>{tr('Identify the key structure or lesion.', 'حدد التركيب أو الإصابة الأساسية.')}</span></div>
+        <div><strong>Level 2 · {caseLevelName(2, lang === 'ar')}</strong><span>{tr('Explain the anatomical relationship.', 'فسّر العلاقة التشريحية.')}</span></div>
+        <div><strong>Level 3 · {caseLevelName(3, lang === 'ar')}</strong><span>{tr('Apply anatomy to findings or imaging.', 'طبّق التشريح على الفحص أو الصور.')}</span></div>
+        <div><strong>Level 4 · {caseLevelName(4, lang === 'ar')}</strong><span>{tr('Integrate localization and clinical reasoning.', 'ادمج التحديد والتفكير السريري.')}</span></div>
+      </div>
+
       {loading ? (
         <div className="assessmentempty">{tr('Loading cases…', 'جارٍ تحميل الحالات…')}</div>
       ) : (
