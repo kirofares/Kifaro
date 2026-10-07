@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type 
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
-  ArrowLeft, ArrowRight, BookOpen, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
+  ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
   Home, Library, Menu, Microscope, Palette,
   CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
 } from 'lucide-react'
