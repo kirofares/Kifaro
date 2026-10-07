@@ -10,7 +10,8 @@ import { useLectureSettings } from '../hooks/useLectureSettings'
 import { usePricingRules, type PricingRule } from '../hooks/usePricingRules'
 import { useAssetReadiness } from '../hooks/useAssetReadiness'
 import MCQManager from './MCQManager'
-import ContentProduction from './ContentProduction'\nimport ManualPaymentsAdmin from './ManualPaymentsAdmin'
+import ContentProduction from './ContentProduction'
+import ManualPaymentsAdmin from './ManualPaymentsAdmin'
 
 type Profile = {
   id: string
