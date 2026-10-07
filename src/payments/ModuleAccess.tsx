@@ -102,6 +102,7 @@ export function ModuleAccessGate({
   children: ReactNode
 }) {
   const tr = useTr()
+  const nav = useNavigate()
   const { user } = useAuth()
   const { loading, hasAccess, priceFor, buy } = useModuleAccess()
   const [busy, setBusy] = useState(false)
