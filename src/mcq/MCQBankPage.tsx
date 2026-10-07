@@ -4,6 +4,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { anatomateYears, getLectureBySlug } from '../data/anatomate'
 import { useLang, useTr } from '../i18n'
 import { useMCQBank, type BankQuestion } from './useMCQBank'
+import { ModuleAccessGate } from '../payments/ModuleAccess'
+import { useStudentYear } from '../hooks/useStudentYear'
 
 function questionCount(lectureId: string, fallback: number, counts: Map<string, number>) {
   return counts.get(lectureId) || fallback
@@ -13,6 +15,8 @@ export function MCQBankPage() {
   const nav = useNavigate()
   const tr = useTr()
   const { countsByLecture, mastery } = useMCQBank()
+  const { year: studentYear } = useStudentYear()
+  const visibleYears = studentYear ? anatomateYears.filter((item) => item.year === studentYear) : anatomateYears
 
   const overall = useMemo(() => {
     const attempts = mastery.reduce((sum, row) => sum + Number(row.attempts || 0), 0)
@@ -35,7 +39,7 @@ export function MCQBankPage() {
       </div>
 
       <div className="mcqyeargrid">
-        {anatomateYears.map((year) => {
+        {visibleYears.map((year) => {
           const total = year.modules.reduce((sum, module) => sum + module.lectures.reduce((n, lecture) => n + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0), 0)
           return (
             <section className="mcqyearcard" key={year.year}>
@@ -91,23 +95,25 @@ export function MCQModulePage() {
         <span className="mcqcount large">{total} MCQ</span>
       </div>
 
-      <div className="mcqlecturelist">
-        {moduleData.lectures.map((lecture) => {
-          const rows = mastery.filter((row) => row.lecture_id === lecture.id)
-          const attempts = rows.reduce((sum, row) => sum + Number(row.attempts || 0), 0)
-          const correct = rows.reduce((sum, row) => sum + Number(row.correct || 0), 0)
-          const score = attempts ? Math.round((correct / attempts) * 100) : null
-          const count = questionCount(lecture.id, lecture.mcqs.length, countsByLecture)
-          return (
-            <button key={lecture.id} className="mcqlecturecard" onClick={() => nav('/mcq/lecture/' + lecture.slug)}>
-              <div className="lectureseq">{lecture.sequence}</div>
-              <div className="grow"><small>{lecture.system}</small><h3>{lecture.title}</h3><p>{count} {count === 1 ? 'MCQ' : 'MCQs'}</p></div>
-              {score !== null && <span className="mcqlecturemastery">{score}%</span>}
-              <ChevronRight />
-            </button>
-          )
-        })}
-      </div>
+      <ModuleAccessGate moduleCode={moduleData.code} productType="mcq">
+        <div className="mcqlecturelist">
+          {moduleData.lectures.map((lecture) => {
+            const rows = mastery.filter((row) => row.lecture_id === lecture.id)
+            const attempts = rows.reduce((sum, row) => sum + Number(row.attempts || 0), 0)
+            const correct = rows.reduce((sum, row) => sum + Number(row.correct || 0), 0)
+            const score = attempts ? Math.round((correct / attempts) * 100) : null
+            const count = questionCount(lecture.id, lecture.mcqs.length, countsByLecture)
+            return (
+              <button key={lecture.id} className="mcqlecturecard" onClick={() => nav('/mcq/lecture/' + lecture.slug)}>
+                <div className="lectureseq">{lecture.sequence}</div>
+                <div className="grow"><small>{lecture.system}</small><h3>{lecture.title}</h3><p>{count} {count === 1 ? 'MCQ' : 'MCQs'}</p></div>
+                {score !== null && <span className="mcqlecturemastery">{score}%</span>}
+                <ChevronRight />
+              </button>
+            )
+          })}
+        </div>
+      </ModuleAccessGate>
     </div>
   )
 }
@@ -255,7 +261,16 @@ export function MCQLecturePage() {
       ? [{ question: questions[currentIndex], index: currentIndex }]
       : []
 
+  const lectureModule = anatomateYears
+    .flatMap((year) => year.modules)
+    .find((module) => module.lectures.some((item) => item.id === lecture.id))
+
+  if (!lectureModule) {
+    return <div className="page"><div className="assessmentempty">{tr('Module not found', 'الموديول غير موجود')}</div></div>
+  }
+
   return (
+    <ModuleAccessGate moduleCode={lectureModule.code} productType="mcq">
     <div className="page mcqpage">
       <div className="pagehead mcqlecturehead">
         <div>
@@ -359,5 +374,6 @@ export function MCQLecturePage() {
         )}
       </div>
     </div>
+    </ModuleAccessGate>
   )
 }
