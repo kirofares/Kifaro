@@ -254,6 +254,30 @@ export default function LectureDraftReview({
     }
   }
 
+  const openArtifact = async (path: string, fileName: string, openInNewTab = false) => {
+    if (!supabase || !path) return
+    setMessage('Opening generated file…')
+    const { data: blob, error } = await supabase.storage.from('kifaro-content').download(path)
+    if (error || !blob) {
+      setMessage(error?.message || 'Could not open generated file.')
+      return
+    }
+
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = openInNewTab ? '' : fileName
+    if (openInNewTab) {
+      anchor.target = '_blank'
+      anchor.rel = 'noopener noreferrer'
+    }
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    setMessage('')
+  }
+
   const approveDraft = async () => {
     if (!supabase) return
     if (!allVisualsApproved) {
@@ -386,8 +410,12 @@ export default function LectureDraftReview({
             </span>
           </div>
           <div className="artifactstatus">
-            <span className={pptxPath ? 'ready' : ''}><Presentation size={14}/>{pptxPath ? 'PPTX ready' : 'PPTX pending'}</span>
-            <span className={pdfPath ? 'ready' : ''}><FileText size={14}/>{pdfPath ? 'PDF ready' : 'PDF pending'}</span>
+            {pptxPath
+              ? <button className="ready" onClick={() => void openArtifact(pptxPath, safeLectureFileName(draft.content?.lecture_title || lecture?.title || draft.lecture_id, draft.revision, 'pptx'))}><Presentation size={14}/>Download PPTX</button>
+              : <span><Presentation size={14}/>PPTX pending</span>}
+            {pdfPath
+              ? <button className="ready" onClick={() => void openArtifact(pdfPath, safeLectureFileName(draft.content?.lecture_title || lecture?.title || draft.lecture_id, draft.revision, 'pdf'), true)}><FileText size={14}/>Open PDF</button>
+              : <span><FileText size={14}/>PDF pending</span>}
           </div>
           <button className="secondary" disabled={!allVisualsApproved || artifactBusy || saving} onClick={() => void buildArtifacts()}>
             {artifactBusy ? <LoaderCircle className="spin" size={16}/> : <Presentation size={16}/>}
