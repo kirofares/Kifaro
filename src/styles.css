@@ -1067,3 +1067,17 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
   .manualchannelrow{grid-template-columns:1fr}
   .manualpaymenthero{align-items:flex-start}
 }
+
+
+/* Per-module assessment purchase status */
+.moduleproductsummary{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;border:1px solid #cfe0ff;background:#eef5ff;color:#1d5fbf;font-size:10px;font-weight:800;white-space:nowrap}
+.moduleproductsummary.owned{border-color:#c8e7d2;background:#edf9f1;color:#13733b}
+.moduleproductsummary.loading{color:var(--muted);background:#f7f9fb;border-color:var(--line)}
+.casemodulemeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.casemodulemeta>span:last-child{background:var(--soft);color:var(--primary);padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800}
+.mcqmodulemeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:780px){
+  .mcqmodulemeta .moduleproductsummary{display:inline-flex!important}
+  .casemodulehead{align-items:flex-start}
+  .casemodulemeta{justify-content:flex-start}
+}
