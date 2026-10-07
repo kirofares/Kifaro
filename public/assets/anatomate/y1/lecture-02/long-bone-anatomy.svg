@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900">
+<rect width="1000" height="900" fill="#f8fbfd"/><text x="55" y="65" font-family="Arial" font-size="36" font-weight="700" fill="#0b2a3d">Long Bone — Numbered Anatomy</text>
+<g transform="translate(250,110)">
+<ellipse cx="250" cy="100" rx="150" ry="85" fill="#f2d7a5" stroke="#b58a52" stroke-width="8"/>
+<rect x="175" y="100" width="150" height="500" rx="60" fill="#efd19a" stroke="#b58a52" stroke-width="8"/>
+<ellipse cx="250" cy="600" rx="150" ry="85" fill="#f2d7a5" stroke="#b58a52" stroke-width="8"/>
+<rect x="215" y="160" width="70" height="380" rx="30" fill="#fff3d6" stroke="#d9b978" stroke-width="5"/>
+</g>
+<g font-family="Arial" font-size="24" font-weight="700">
+<circle cx="780" cy="180" r="30" fill="#0ea5e9"/><text x="770" y="188" fill="white">1</text><line x1="750" y1="180" x2="610" y2="200" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="780" cy="300" r="30" fill="#0ea5e9"/><text x="770" y="308" fill="white">2</text><line x1="750" y1="300" x2="585" y2="330" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="780" cy="445" r="30" fill="#0ea5e9"/><text x="770" y="453" fill="white">3</text><line x1="750" y1="445" x2="580" y2="445" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="780" cy="600" r="30" fill="#0ea5e9"/><text x="770" y="608" fill="white">4</text><line x1="750" y1="600" x2="610" y2="650" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="160" cy="445" r="30" fill="#14b8a6"/><text x="150" y="453" fill="white">5</text><line x1="190" y1="445" x2="465" y2="445" stroke="#14b8a6" stroke-width="4"/>
+</g>
+<text x="55" y="835" font-family="Arial" font-size="18" fill="#6b7f8c">Use the numbered regions for image-based MCQs • AnatoMate by KIFARO</text>
+</svg>
