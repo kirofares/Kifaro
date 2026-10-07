@@ -141,13 +141,17 @@ Deno.serve(async (req: Request) => {
       ''
 
     const state = await decodeAndVerifyState(hmacSecret, String(stateToken))
-    if (!state || state.v !== 1) return json({ error: 'Invalid KIFARO payment state' }, 400)
+    if (!state || ![1,2].includes(Number(state.v))) return json({ error: 'Invalid KIFARO payment state' }, 400)
     if (callbackIntegration !== integrationId) return json({ error: 'Integration mismatch' }, 400)
     if (amountCents !== Number(state.a || 0)) return json({ error: 'Amount mismatch' }, 400)
-    if (!['video', 'datashow', 'bundle'].includes(String(state.p || ''))) return json({ error: 'Invalid product' }, 400)
 
-    if (!success) {
-      return json({ received: true, paid: false })
+    const isModulePurchase = Number(state.v) === 2 && String(state.s || '') === 'module'
+    if (isModulePurchase) {
+      if (!['mcq','cases','osce'].includes(String(state.p || '')) || !String(state.m || '').trim()) {
+        return json({ error: 'Invalid module product' }, 400)
+      }
+    } else if (!['video', 'datashow', 'bundle'].includes(String(state.p || ''))) {
+      return json({ error: 'Invalid product' }, 400)
     }
 
     const adminClient = createClient(supabaseUrl, serviceKey, {
@@ -155,15 +159,110 @@ Deno.serve(async (req: Request) => {
     })
 
     const userId = String(state.u || '')
-    const lectureId = String(state.l || '')
-    const productType = String(state.p)
-    const videoGrant = productType === 'video' || productType === 'bundle'
-    const datashowGrant = productType === 'datashow' || productType === 'bundle'
+    const moduleCode = isModulePurchase ? String(state.m || '').trim().toUpperCase() : null
+    const lectureId = isModulePurchase ? 'module:' + moduleCode : String(state.l || '')
+    const rawProductType = String(state.p)
+    const productType = isModulePurchase ? rawProductType + '_module' : rawProductType
+    const specialReference = String(obj?.order?.merchant_order_id || obj?.order?.id || '') || null
+    const paymobOrderId = obj?.order?.id == null ? null : String(obj.order.id)
+    const terminalStatus =
+      obj?.is_refunded === true ? 'refunded' :
+      obj?.is_voided === true ? 'voided' :
+      success ? 'paid_pending_fulfillment' : 'failed'
+
+    const { data: existingTransaction, error: existingTransactionError } = await adminClient
+      .from('payment_transactions')
+      .select('paymob_transaction_id, status')
+      .eq('paymob_transaction_id', transactionId)
+      .maybeSingle()
+
+    if (existingTransactionError) return json({ error: existingTransactionError.message }, 500)
+
+    if (existingTransaction?.status === 'paid') {
+      return json({ received: true, paid: true, transactionId, lectureId, productType, idempotent: true })
+    }
+
+    const { error: transactionUpsertError } = await adminClient
+      .from('payment_transactions')
+      .upsert({
+        paymob_transaction_id: transactionId,
+        paymob_order_id: paymobOrderId,
+        special_reference: specialReference,
+        user_id: userId,
+        lecture_id: lectureId,
+        product_type: productType,
+        module_code: moduleCode,
+        amount_cents: amountCents,
+        amount_egp: amountCents / 100,
+        currency: String(obj.currency || 'EGP'),
+        status: terminalStatus,
+        integration_id: callbackIntegration,
+        paid_at: success ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'paymob_transaction_id' })
+
+    if (transactionUpsertError) return json({ error: transactionUpsertError.message }, 500)
+
+    if (!success) {
+      return json({ received: true, paid: false, transactionId, status: terminalStatus })
+    }
+
+    const userIdChecked = userId
+
+    if (isModulePurchase) {
+      const { data: product, error: productError } = await adminClient
+        .from('module_products')
+        .select('module_code, academic_year, product_type, price_egp, enabled')
+        .eq('module_code', moduleCode)
+        .eq('product_type', rawProductType)
+        .maybeSingle()
+
+      if (productError) return json({ error: productError.message }, 500)
+      if (!product || product.enabled === false) return json({ error: 'Module product unavailable' }, 404)
+      if (Math.round(Number(product.price_egp) * 100) !== amountCents) return json({ error: 'Module price mismatch' }, 400)
+
+      const { error: entitlementError } = await adminClient
+        .from('module_entitlements')
+        .upsert({
+          user_id: userIdChecked,
+          module_code: moduleCode,
+          product_type: rawProductType,
+          academic_year: Number(product.academic_year),
+          price_paid_egp: amountCents / 100,
+          source: 'paymob:' + transactionId,
+          granted_at: new Date().toISOString(),
+          revoked_at: null,
+        }, { onConflict: 'user_id,module_code,product_type' })
+
+      if (entitlementError) return json({ error: entitlementError.message }, 500)
+
+      const { error: finalizeModuleTransactionError } = await adminClient
+        .from('payment_transactions')
+        .update({
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('paymob_transaction_id', transactionId)
+
+      if (finalizeModuleTransactionError) return json({ error: finalizeModuleTransactionError.message }, 500)
+
+      return json({
+        received: true,
+        paid: true,
+        transactionId,
+        moduleCode,
+        productType: rawProductType,
+      })
+    }
+
+    const videoGrant = rawProductType === 'video' || rawProductType === 'bundle'
+    const datashowGrant = rawProductType === 'datashow' || rawProductType === 'bundle'
 
     const { data: existing, error: existingError } = await adminClient
       .from('lecture_entitlements')
       .select('user_id, lecture_id, price_paid_egp, video_access, datashow_access, product_type, view_limit, views_used')
-      .eq('user_id', userId)
+      .eq('user_id', userIdChecked)
       .eq('lecture_id', lectureId)
       .maybeSingle()
 
@@ -180,7 +279,7 @@ Deno.serve(async (req: Request) => {
     const nextPaid = Number(existing?.price_paid_egp || 0) + (addsNewAccess ? amountEgp : 0)
 
     const entitlement = {
-      user_id: userId,
+      user_id: userIdChecked,
       lecture_id: lectureId,
       price_paid_egp: nextPaid,
       source: 'paymob:' + transactionId,
@@ -200,6 +299,24 @@ Deno.serve(async (req: Request) => {
       .upsert(entitlement, { onConflict: 'user_id,lecture_id' })
 
     if (upsertError) return json({ error: upsertError.message }, 500)
+
+    const { error: finalizeTransactionError } = await adminClient
+      .from('payment_transactions')
+      .update({
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('paymob_transaction_id', transactionId)
+
+    if (finalizeTransactionError) {
+      return json({
+        error: finalizeTransactionError.message,
+        paid: true,
+        fulfillment: 'completed',
+        transactionLedger: 'pending',
+      }, 500)
+    }
 
     return json({
       received: true,

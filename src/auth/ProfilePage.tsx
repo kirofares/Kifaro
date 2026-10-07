@@ -157,9 +157,10 @@ export default function ProfilePage() {
 
             <label>
               {tr('Academic year', 'السنة الدراسية')}
-              <div className="authinput"><GraduationCap /><select value={form.medical_year} onChange={(e) => updateField('medical_year', Number(e.target.value))}>
+              <div className="authinput readonly"><GraduationCap /><select value={form.medical_year} disabled>
                 {ACADEMIC_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
               </select></div>
+              <small>{tr('Academic year is locked after registration. Contact KIFARO support/admin to change it.', 'السنة الدراسية تُثبّت بعد التسجيل. لتغييرها تواصل مع إدارة KIFARO.')}</small>
             </label>
 
             <label>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+<rect width="1200" height="760" fill="#f8fbfd"/><text x="55" y="65" font-family="Arial" font-size="36" font-weight="700" fill="#0b2a3d">Bone Markings — Read the Shape</text>
+<g transform="translate(90,160)" fill="#efd19a" stroke="#b58a52" stroke-width="7">
+<path d="M80 330 L80 130 Q80 80 135 80 L200 80 Q245 80 245 130 L245 330 Q245 380 200 380 L135 380 Q80 380 80 330Z"/>
+<path d="M245 145 Q340 125 360 185 Q335 230 245 225Z"/>
+<path d="M245 270 Q330 245 360 305 Q330 350 245 338Z"/>
+<circle cx="125" cy="205" r="28" fill="#f8fbfd"/>
+<path d="M95 305 Q150 270 205 310" fill="none"/>
+</g>
+<g font-family="Arial" font-size="24" font-weight="700">
+<circle cx="495" cy="285" r="28" fill="#0ea5e9"/><text x="486" y="293" fill="white">1</text><line x1="467" y1="285" x2="425" y2="305" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="495" cy="430" r="28" fill="#0ea5e9"/><text x="486" y="438" fill="white">2</text><line x1="467" y1="430" x2="423" y2="470" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="225" cy="335" r="28" fill="#14b8a6"/><text x="216" y="343" fill="white">3</text><line x1="250" y1="335" x2="285" y2="365" stroke="#14b8a6" stroke-width="4"/>
+<circle cx="225" cy="510" r="28" fill="#14b8a6"/><text x="216" y="518" fill="white">4</text><line x1="250" y1="500" x2="300" y2="470" stroke="#14b8a6" stroke-width="4"/>
+</g>
+<g font-family="Arial" font-size="24" fill="#284554"><text x="650" y="220">Projection → attachment</text><text x="650" y="300">Opening → passage</text><text x="650" y="380">Groove → structure travels</text><text x="650" y="460">Smooth surface → articulation</text><text x="650" y="540">Depression → receives / attaches</text></g>
+<text x="55" y="705" font-family="Arial" font-size="18" fill="#6b7f8c">AnatoMate by KIFARO • Structure → Function → Clinical meaning</text>
+</svg>

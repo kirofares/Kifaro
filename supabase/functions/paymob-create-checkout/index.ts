@@ -74,10 +74,11 @@ Deno.serve(async (req: Request) => {
     const paymobSecret = Deno.env.get('PAYMOB_SECRET_KEY')
     const paymobPublic = Deno.env.get('PAYMOB_PUBLIC_KEY')
     const paymobHmac = Deno.env.get('PAYMOB_HMAC_SECRET')
-    const integrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_CARD') || 0)
+    const cardIntegrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_CARD') || 0)
+    const walletIntegrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_WALLET') || 0)
 
     if (!supabaseUrl || !anonKey || !serviceKey) throw new Error('Supabase environment is incomplete')
-    if (!paymobSecret || !paymobPublic || !paymobHmac || !integrationId) {
+    if (!paymobSecret || !paymobPublic || !paymobHmac || !cardIntegrationId) {
       return json({ error: 'Paymob test credentials are not configured yet.' }, 503)
     }
 
@@ -96,13 +97,18 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}))
     const lectureId = String(body?.lectureId || '').trim()
     const productType = String(body?.productType || '').trim()
+    const paymentMethod = String(body?.paymentMethod || 'card').trim().toLowerCase()
 
-    if (!lectureId || !['video', 'datashow', 'bundle'].includes(productType)) {
+    if (!lectureId || !['video', 'datashow', 'bundle'].includes(productType) || !['card','wallet'].includes(paymentMethod)) {
       return json({ error: 'Invalid checkout request' }, 400)
     }
 
-    const [{ data: profile, error: profileError }, { data: setting, error: settingError }, { data: rules, error: rulesError }] =
-      await Promise.all([
+    const [
+      { data: profile, error: profileError },
+      { data: setting, error: settingError },
+      { data: rules, error: rulesError },
+      { data: existingEntitlement, error: entitlementError },
+    ] = await Promise.all([
         adminClient.from('profiles')
           .select('id, full_name, email, phone_no, medical_year, nationality')
           .eq('id', userData.user.id)
@@ -116,13 +122,31 @@ Deno.serve(async (req: Request) => {
           .eq('lecture_id', lectureId)
           .eq('product_type', productType)
           .eq('enabled', true),
+        adminClient.from('lecture_entitlements')
+          .select('video_access, datashow_access, revoked_at')
+          .eq('user_id', userData.user.id)
+          .eq('lecture_id', lectureId)
+          .maybeSingle(),
       ])
 
     if (profileError) return json({ error: profileError.message }, 400)
     if (settingError) return json({ error: settingError.message }, 400)
     if (rulesError) return json({ error: rulesError.message }, 400)
+    if (entitlementError) return json({ error: entitlementError.message }, 400)
     if (!profile) return json({ error: 'Complete your student profile before checkout.' }, 400)
     if (!setting || setting.published === false) return json({ error: 'This lecture is not available for purchase.' }, 404)
+
+    const activeEntitlement = existingEntitlement && !existingEntitlement.revoked_at ? existingEntitlement : null
+    const ownsVideo = Boolean(activeEntitlement?.video_access)
+    const ownsDatashow = Boolean(activeEntitlement?.datashow_access)
+
+    if (
+      (productType === 'video' && ownsVideo) ||
+      (productType === 'datashow' && ownsDatashow) ||
+      (productType === 'bundle' && ownsVideo && ownsDatashow)
+    ) {
+      return json({ error: 'You already own this product.' }, 409)
+    }
 
     const phone = String(profile.phone_no || '').trim()
     if (!phone) return json({ error: 'Add your phone number in My Profile before payment.' }, 400)
@@ -146,6 +170,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const amountCents = Math.round(priceEgp * 100)
+    const integrationId = paymentMethod === 'wallet' ? walletIntegrationId : cardIntegrationId
+    if (!integrationId) {
+      return json({
+        error: paymentMethod === 'wallet'
+          ? 'Mobile Wallet is not enabled in Paymob yet.'
+          : 'Card payments are not configured yet.',
+      }, 503)
+    }
     const nameParts = String(profile.full_name || userData.user.email || 'KIFARO Student').trim().split(/\s+/)
     const firstName = nameParts.shift() || 'KIFARO'
     const lastName = nameParts.join(' ') || 'Student'
@@ -156,6 +188,7 @@ Deno.serve(async (req: Request) => {
       u: userData.user.id,
       l: lectureId,
       p: productType,
+      pm: paymentMethod,
       a: amountCents,
       vl: viewLimit,
       y: profile.medical_year ?? null,
@@ -204,6 +237,7 @@ Deno.serve(async (req: Request) => {
         kifaro_state: kifaroState,
         lecture_id: lectureId,
         product_type: productType,
+        payment_method: paymentMethod,
       },
       special_reference: specialReference,
       expiration: 3600,
@@ -243,6 +277,7 @@ Deno.serve(async (req: Request) => {
       orderId: intention.intention_order_id || null,
       amountEgp: priceEgp,
       productType,
+      paymentMethod,
       testMode: /test/i.test(paymobSecret) || /test/i.test(paymobPublic),
     })
   } catch (error) {

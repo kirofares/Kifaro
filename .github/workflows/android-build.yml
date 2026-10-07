@@ -27,6 +27,7 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
       # Shows the Paymob sandbox notice at checkout; set to 'false' when live payments are enabled.
       VITE_PAYMOB_TEST_MODE: 'true'
+      VITE_APP_VERSION: '1.0.1'
 
     steps:
       - name: Checkout
@@ -75,12 +76,12 @@ jobs:
 
               View content = findViewById(android.R.id.content);
               ViewCompat.setOnApplyWindowInsetsListener(content, (view, insets) -> {
-                Insets nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+                Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
                 view.setPadding(
                   view.getPaddingLeft(),
-                  view.getPaddingTop(),
+                  bars.top,
                   view.getPaddingRight(),
-                  nav.bottom
+                  bars.bottom
                 );
                 return insets;
               });

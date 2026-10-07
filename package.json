@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
+    "test:viva": "node --test tests/viva.test.mjs",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
@@ -22,7 +23,9 @@
     "@supabase/supabase-js": "^2.57.4",
     "pdfjs-dist": "^5.4.149",
     "tus-js-client": "^4.3.1",
-    "@capacitor/ios": "^8.5.2"
+    "@capacitor/ios": "^8.5.2",
+    "pptxgenjs": "4.0.1",
+    "jspdf": "4.2.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",

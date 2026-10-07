@@ -1,13 +1,15 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
-import { NavLink, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
-  BookOpen, Brain, Check, ChevronRight, Clock3, GraduationCap,
+  ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
   Home, Library, Menu, Microscope, Palette,
-  CreditCard, Download, FileText, Lock, LogIn, LogOut, PlayCircle, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
+  CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import { getStudyResources, type StudyResource } from './data/anatomate/studyResources'
+import { getVivaDeck } from './viva/content'
+import './viva/viva.css'
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
@@ -19,8 +21,12 @@ import { useEntitlements } from './hooks/useEntitlements'
 import { useLectureSettings, type LectureSetting } from './hooks/useLectureSettings'
 import { usePricingRules } from './hooks/usePricingRules'
 import { useAssetReadiness } from './hooks/useAssetReadiness'
+import { useStudentYear } from './hooks/useStudentYear'
 import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
+import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
+import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
+import ProgressPage from './progress/ProgressPage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
@@ -47,12 +53,16 @@ function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ default: T
 const AdminPage = lazyPage(() => import('./admin/AdminPage'))
 const DatashowViewer = lazyPage(() => import('./components/DatashowViewer'))
 const ProtectedVideoPlayer = lazyPage(() => import('./components/ProtectedVideoPlayer'))
+const VivaPage = lazyPage(() => import('./viva/VivaPage'))
+const FlashcardsPage = lazyPage(() => import('./flashcards/FlashcardsPage'))
+const ReviewPage = lazyPage(() => import('./review/ReviewPage'))
 
 const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
 // Set VITE_PAYMOB_TEST_MODE=true in the build env while Paymob runs against its sandbox.
 const PAYMOB_TEST_MODE = import.meta.env.VITE_PAYMOB_TEST_MODE === 'true'
 const LATEST_RELEASE_API = 'https://api.github.com/repos/kirofares/Kifaro/releases/latest'
-const LATEST_APK_URL = 'https://github.com/kirofares/Kifaro/releases/latest/download/AnatoMate.apk'
+const FALLBACK_APK_URL = 'https://github.com/kirofares/Kifaro/releases/download/v1.0.2/AnatoMate.apk'
+const FALLBACK_RELEASE_PAGE = 'https://github.com/kirofares/Kifaro/releases/latest'
 
 function compareVersions(a: string, b: string) {
   const pa = a.replace(/^v/i, '').split('.').map((part) => Number(part) || 0)
@@ -100,7 +110,7 @@ function applyLectureSetting<T extends { id: string; title: string; description:
 const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
-    topics: 'Topics', studio: 'KIFARO Studio', library: 'My Library',
+    topics: 'Topics', mcq: 'MCQ Bank', flashcards: 'Flashcards', review: 'Review', cases: 'Cases', assessments: 'Assessments', progressPage: 'Progress', studio: 'KIFARO Studio', library: 'My Library',
     preferences: 'Preferences', search: 'Search lectures, modules, or systems',
     morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', nameSep: ', ',
     subtitle: 'Continue your medical journey with one focused step at a time.',
@@ -124,7 +134,7 @@ const copy = {
   },
   ar: {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
-    topics: 'الموضوعات', studio: 'KIFARO Studio', library: 'مكتبتي',
+    topics: 'الموضوعات', mcq: 'بنك MCQ', flashcards: 'البطاقات', review: 'المراجعة', cases: 'Cases', assessments: 'التقييمات', progressPage: 'التقدم', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المحاضرات أو الموديولات أو الأجهزة',
     morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير', nameSep: '، ',
     subtitle: 'كمّل رحلتك الطبية بخطوة مركزة كل مرة.',
@@ -149,6 +159,7 @@ const copy = {
 }
 
 const isNativeApp = Capacitor.isNativePlatform()
+const isAndroidApp = isNativeApp && Capacitor.getPlatform() === 'android'
 const isIOSDevice = typeof navigator !== 'undefined'
   && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 // The APK download only makes sense for web visitors on non-iOS devices.
@@ -173,6 +184,7 @@ export default function App() {
   const { progress, update } = useProgress()
   const { settings: lectureSettings } = useLectureSettings()
   const { user, configured, signOut } = useAuth()
+  const { year: studentYear } = useStudentYear()
   const [profileName, setProfileName] = useState('')
   const { isAdmin } = useAdmin(user?.id)
   const [query, setQuery] = useState('')
@@ -182,6 +194,9 @@ export default function App() {
   const [showOpeningSplash, setShowOpeningSplash] = useState(isNativeApp)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [latestApkUrl, setLatestApkUrl] = useState(FALLBACK_APK_URL)
+  const [latestReleasePage, setLatestReleasePage] = useState(FALLBACK_RELEASE_PAGE)
   const t = copy[lang]
   const nav = useNavigate()
   const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
@@ -220,34 +235,61 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [showOpeningSplash])
 
-  useEffect(() => {
-    // Only the installed Android app can be out of date; web visitors always get the latest build.
-    if (!isNativeApp) return
-    let active = true
-    fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Release check failed')))
-      .then((release) => {
-        if (!active) return
-        const latest = String(release?.tag_name || '').replace(/^v/i, '')
-        if (!latest) return
-        setLatestVersion(latest)
-        setUpdateAvailable(compareVersions(latest, CURRENT_APP_VERSION) > 0)
-      })
-      .catch(() => {
-        if (active) setUpdateAvailable(false)
-      })
+  async function checkForUpdate(manual = false) {
+    if (!isAndroidApp) {
+      if (manual) flash(lang === 'ar' ? 'نسخة الويب محدثة تلقائيًا.' : 'The web version updates automatically.')
+      return
+    }
 
-    return () => { active = false }
+    setCheckingUpdate(true)
+    try {
+      const response = await fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
+      if (!response.ok) throw new Error('Release check failed')
+      const release = await response.json()
+      const latest = String(release?.tag_name || '').replace(/^v/i, '')
+      if (!latest) throw new Error('No release version')
+      setLatestVersion(latest)
+      const available = compareVersions(latest, CURRENT_APP_VERSION) > 0
+      setUpdateAvailable(available)
+      if (manual) {
+        flash(available
+          ? (lang === 'ar' ? `يتوفر تحديث AnatoMate ${latest}.` : `AnatoMate ${latest} is available.`)
+          : (lang === 'ar' ? 'أنت تستخدم أحدث إصدار.' : 'You are using the latest version.'))
+      }
+    } catch {
+      if (manual) flash(lang === 'ar' ? 'تعذر فحص التحديث الآن.' : 'Could not check for updates right now.')
+    } finally {
+      setCheckingUpdate(false)
+    }
+  }
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
+        if (!response.ok) return
+        const release = await response.json()
+        const apkAsset = Array.isArray(release?.assets)
+          ? release.assets.find((asset: any) => asset?.name === 'AnatoMate.apk')
+          : null
+        if (apkAsset?.browser_download_url) setLatestApkUrl(String(apkAsset.browser_download_url))
+        if (release?.html_url) setLatestReleasePage(String(release.html_url))
+      } catch {
+        // Keep the pinned fallback URL if GitHub's release API is temporarily unavailable.
+      }
+    })()
+    if (isAndroidApp) void checkForUpdate(false)
   }, [])
 
   const lectures = useMemo(
     () => anatomateLectures
+      .filter((lecture) => isAdmin || !user || (studentYear != null && lecture.year === studentYear))
       .filter((lecture) => lectureSettings.get(lecture.id)?.published ?? true)
       .map((lecture) => ({
         ...applyLectureSetting(lecture, lectureSettings.get(lecture.id)),
         ...(progress[lecture.id] || { progress: 0 }),
       })),
-    [progress, lectureSettings],
+    [progress, lectureSettings, isAdmin, user, studentYear],
   )
 
   const filtered = useMemo(
@@ -267,6 +309,12 @@ export default function App() {
     ['/curriculum', t.curriculum, GraduationCap],
     ['/anatomate', t.anatomate, Microscope],
     ['/topics', t.topics, Brain],
+    ['/mcq', t.mcq, CircleHelp],
+    ['/flashcards', t.flashcards, Brain],
+    ['/review', t.review, BookOpenCheck],
+    ['/cases', t.cases, Stethoscope],
+    ['/assessments', t.assessments, ClipboardCheck],
+    ['/progress', t.progressPage, TrendingUp],
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
     ['/profile', t.profile, UserRound],
@@ -294,7 +342,7 @@ export default function App() {
             <strong>{lang === 'ar' ? `إصدار AnatoMate ${latestVersion} متاح` : `AnatoMate ${latestVersion} is available`}</strong>
             <span>{lang === 'ar' ? `أنت تستخدم الإصدار ${CURRENT_APP_VERSION}.` : `You are using version ${CURRENT_APP_VERSION}.`}</span>
           </div>
-          <a href={LATEST_APK_URL} target="_blank" rel="noreferrer">
+          <a href={latestApkUrl} target="_self" rel="noreferrer">
             <Download size={17} /> {lang === 'ar' ? 'حدّث AnatoMate' : 'Update AnatoMate'}
           </a>
         </div>
@@ -337,6 +385,12 @@ export default function App() {
         </nav>
         <div className="sidefoot">
           <NavLink to="/preferences" onClick={() => setDrawer(false)}><Settings size={19} /><span>{t.preferences}</span></NavLink>
+          {isAndroidApp && (
+            <button className="sideaccount appupdatecheck" onClick={() => void checkForUpdate(true)} disabled={checkingUpdate}>
+              <RefreshCw size={19} className={checkingUpdate ? 'spin' : ''} />
+              <span>{checkingUpdate ? (lang === 'ar' ? 'جارٍ فحص التحديث…' : 'Checking update…') : (lang === 'ar' ? 'فحص تحديث التطبيق' : 'Check for update')}</span>
+            </button>
+          )}
           {/* The top bar hides account actions on phones, so offer them in the drawer. */}
           {user ? (
             <button className="mobile sideaccount" onClick={() => { setDrawer(false); void signOut() }}><LogOut size={19} /><span>{t.signOut}</span></button>
@@ -349,9 +403,10 @@ export default function App() {
       {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
 
       <main className="main">
+        <GlobalBackButton lang={lang} />
         <Suspense fallback={<div className="page pageloading" role="status">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</div>}>
         <Routes>
-          <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} />} />
+          <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} latestApkUrl={latestApkUrl} latestReleasePage={latestReleasePage} />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -361,6 +416,7 @@ export default function App() {
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
+          <Route path="/anatomate/lecture/:slug/viva" element={<VivaPage />} />
           <Route path="/anatomate/lecture/:slug/datashow" element={<DatashowViewer mode="datashow" />} />
           <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
           <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
@@ -370,7 +426,19 @@ export default function App() {
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/refund" element={<LegalPage kind="refund" />} />
           <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
+          <Route path="/mcq" element={<MCQBankPage />} />
+          <Route path="/mcq/year/:year/module/:module" element={<MCQModulePage />} />
+          <Route path="/mcq/lecture/:slug" element={<MCQLecturePage />} />
+          <Route path="/assessments" element={<AssessmentCenterPage />} />
+          <Route path="/cases" element={<CasesPage />} />
+          <Route path="/osce" element={<OSCEPage />} />
+          <Route path="/spotters" element={<SpottersPage />} />
+          <Route path="/viva-bank" element={<VivaBankPage />} />
+          <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
+          <Route path="/progress" element={<ProgressPage />} />
           <Route path="/studio" element={<Studio />} />
+          <Route path="/flashcards" element={<FlashcardsPage />} />
+          <Route path="/review" element={<ReviewPage />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
           <Route path="*" element={<NotFound go={nav} />} />
@@ -391,6 +459,8 @@ export default function App() {
         </>
       )}
 
+      <ContactChannels />
+
       <footer className="sitefooter">
         <button onClick={() => nav('/privacy')}>{t.privacy}</button>
         <button onClick={() => nav('/terms')}>{t.terms}</button>
@@ -401,6 +471,139 @@ export default function App() {
       {toast && <div className="toast"><Check size={18} />{toast}</div>}
     </div>
     </LangProvider>
+  )
+}
+
+function GlobalBackButton({ lang }: { lang: Lang }) {
+  const location = useLocation()
+  const nav = useNavigate()
+  const hiddenPaths = new Set(['/', '/login', '/reset-password'])
+  if (hiddenPaths.has(location.pathname)) return null
+
+  const goBack = () => {
+    if (window.history.length > 1) nav(-1)
+    else nav('/')
+  }
+
+  return (
+    <div className="globalbackwrap">
+      <button className="globalback" onClick={goBack} aria-label={lang === 'ar' ? 'الرجوع للصفحة السابقة' : 'Back to previous page'}>
+        {lang === 'ar' ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}
+        <span>{lang === 'ar' ? 'رجوع' : 'Back'}</span>
+      </button>
+    </div>
+  )
+}
+
+function DashboardSocialLinks() {
+  const links = [
+    { name: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61594048447607&mibextid=ZbWKwL', icon: <Facebook size={20} />, className: 'facebook' },
+    { name: 'Instagram', href: 'https://www.instagram.com/anatomate130?stkn=MWt0a2dwbGZkeGdobQ==', icon: <Instagram size={20} />, className: 'instagram' },
+    { name: 'TikTok', href: 'https://www.tiktok.com/@anatomate130', icon: <span className="tiktokglyph compact">♪</span>, className: 'tiktok' },
+    { name: 'WhatsApp', href: 'https://wa.me/201055552867', icon: <MessageCircle size={20} />, className: 'whatsapp' },
+    { name: 'Phone', href: 'tel:+201055552867', icon: <Phone size={20} />, className: 'phone' },
+  ]
+
+  return (
+    <div className="dashsocial" aria-label="AnatoMate contact channels">
+      <span className="dashsociallabel">Connect with AnatoMate</span>
+      <div className="dashsociallinks">
+        {links.map((item) => (
+          <a
+            key={item.name}
+            className={'dashsocialbtn ' + item.className}
+            href={item.href}
+            target={item.href.startsWith('http') ? '_blank' : undefined}
+            rel={item.href.startsWith('http') ? 'noreferrer' : undefined}
+            aria-label={item.name}
+            title={item.name}
+          >
+            <span>{item.icon}</span>
+            <small>{item.name}</small>
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ContactChannels() {
+  const tr = useTr()
+  const channels = [
+    {
+      name: 'Facebook',
+      handle: 'AnatoMate',
+      href: 'https://www.facebook.com/profile.php?id=61594048447607&mibextid=ZbWKwL',
+      icon: <Facebook size={21} />,
+      className: 'facebook',
+    },
+    {
+      name: 'Instagram',
+      handle: '@anatomate130',
+      href: 'https://www.instagram.com/anatomate130?stkn=MWt0a2dwbGZkeGdobQ==',
+      icon: <Instagram size={21} />,
+      className: 'instagram',
+    },
+    {
+      name: 'TikTok',
+      handle: '@anatomate130',
+      href: 'https://www.tiktok.com/@anatomate130',
+      icon: <span className="tiktokglyph">♪</span>,
+      className: 'tiktok',
+    },
+    {
+      name: 'WhatsApp',
+      handle: '+20 10 5555 2867',
+      href: 'https://wa.me/201055552867',
+      icon: <MessageCircle size={21} />,
+      className: 'whatsapp',
+    },
+    {
+      name: tr('Phone', 'الهاتف'),
+      handle: '+20 10 5555 2867',
+      href: 'tel:+201055552867',
+      icon: <Phone size={21} />,
+      className: 'phone',
+    },
+  ]
+
+  return (
+    <section className="contactchannels" aria-label={tr('Contact channels', 'قنوات التواصل')}>
+      <div className="contactinner">
+        <div className="contactintro">
+          <span className="contacteyebrow">ANATOMATE BY KIFARO</span>
+          <h2>{tr('Stay connected with AnatoMate', 'خليك على تواصل مع AnatoMate')}</h2>
+          <p>{tr(
+            'Follow new lectures, revision content, announcements and student updates through our official channels.',
+            'تابع المحاضرات الجديدة والمراجعات والإعلانات وتحديثات الطلاب من خلال قنواتنا الرسمية.'
+          )}</p>
+        </div>
+
+        <div className="channelgrid">
+          {channels.map((channel) => (
+            <a
+              key={channel.name}
+              className={'channelcard ' + channel.className}
+              href={channel.href}
+              target={channel.href.startsWith('http') ? '_blank' : undefined}
+              rel={channel.href.startsWith('http') ? 'noreferrer' : undefined}
+            >
+              <span className="channelicon">{channel.icon}</span>
+              <span className="channelcopy">
+                <small>{channel.name}</small>
+                <strong dir="ltr">{channel.handle}</strong>
+              </span>
+              <ChevronRight size={18} />
+            </a>
+          ))}
+        </div>
+
+        <div className="contactsignature">
+          <span>KIFARO</span>
+          <small>{tr('Medical education, connected.', 'تعليم طبي متصل بيك.')}</small>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -416,7 +619,7 @@ function PageHead({ eyebrow, title, body }: { eyebrow: string; title: string; bo
   )
 }
 
-function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any; lang: Lang; lectures: any[]; allLectures: any[]; go: (path: string) => void; studentName: string }) {
+function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkUrl, latestReleasePage }: { t: any; lang: Lang; lectures: any[]; allLectures: any[]; go: (path: string) => void; studentName: string; latestApkUrl: string; latestReleasePage: string }) {
   const active = allLectures.filter((lecture) => lecture.progress > 0 && !lecture.completed)
   const favorites = allLectures.filter((lecture) => lecture.favorite)
   const completedCount = allLectures.filter((lecture) => lecture.completed).length
@@ -467,14 +670,21 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName }: { t: any
               <div className="heroactions">
                 <button className="lightbtn" onClick={() => go('/anatomate')}>{t.open}<ChevronRight size={17} className="dirarrow" /></button>
                 {showAndroidDownload && (
-                  <a className="lightbtn downloadappbtn" href={LATEST_APK_URL} target="_blank" rel="noreferrer">
-                    <Download size={17} /> {t.downloadAndroid}
-                  </a>
+                  <div className="downloadappgroup">
+                    <a className="lightbtn downloadappbtn" href={latestApkUrl} target="_self" rel="noreferrer">
+                      <Download size={17} /> {t.downloadAndroid}
+                    </a>
+                    <a className="downloadfallback" href={latestReleasePage} target="_blank" rel="noreferrer">
+                      {lang === 'ar' ? 'لو التحميل علّق، افتح صفحة الإصدار' : 'If download stalls, open the release page'}
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
             <Microscope className="heroicon" />
           </section>
+
+          <DashboardSocialLinks />
 
           <section className="section">
             <div className="sectiontitle"><h2>{t.yourYears}</h2></div>
@@ -539,6 +749,10 @@ function Curriculum({ lectures, go }: { lectures: any[]; go: (path: string) => v
 
 function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
   const tr = useTr()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
+  const { year: studentYear } = useStudentYear()
+  const visibleYears = isAdmin || !user ? anatomateYears : studentYear ? anatomateYears.filter((item) => item.year === studentYear) : []
   return (
     <div className="page">
       <section className="hero compact">
@@ -547,7 +761,7 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
       </section>
 
       <div className="yeargrid">
-        {anatomateYears.map((year) => (
+        {visibleYears.map((year) => (
           <section className="yearcard" key={year.year}>
             <div className="yearbadge">{tr('YEAR', 'السنة')} {year.year}</div>
             <h2>{tr('Medical Year', 'السنة الطبية')} {year.year}</h2>
@@ -582,6 +796,8 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   const { year, module } = useParams()
   const nav = useNavigate()
   const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
+  const { year: studentYear } = useStudentYear()
   const { entitlements } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
@@ -591,6 +807,10 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
 
   if (!yearData || !moduleData) {
     return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Module not found', 'الموديول غير موجود')} body={tr('This module is not available.', 'هذا الموديول غير متاح.')} /></div>
+  }
+
+  if (user && !isAdmin && studentYear && yearData.year !== studentYear) {
+    return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Not available for your year', 'غير متاح لسنتك الدراسية')} body={tr('Your account only has access to your registered academic year.', 'حسابك متاح له السنة الدراسية المسجلة فقط.')} /></div>
   }
 
   const visibleLectures = moduleData.lectures
@@ -644,6 +864,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const nav = useNavigate()
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
+  const { year: studentYear } = useStudentYear()
   const { entitlementByLecture, refresh: refreshEntitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
@@ -659,6 +880,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
   if (!lecture) {
     return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Lecture not found', 'المحاضرة غير موجودة')} body={tr('This lecture is not available.', 'هذه المحاضرة غير متاحة.')} /></div>
+  }
+
+  if (user && !isAdmin && studentYear && lecture.year !== studentYear) {
+    return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Not available for your year', 'غير متاح لسنتك الدراسية')} body={tr('Your account only has access to your registered academic year.', 'حسابك متاح له السنة الدراسية المسجلة فقط.')} /></div>
   }
 
   const state = progress[lecture.id] || { progress: 0 }
@@ -854,6 +1079,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
         <section className="lecturecontent">
           <p className="lead">{lecture.description}</p>
+          {getVivaDeck(lecture.id) && <div className="viva-launch">
+            <div><h2>KIFARO Viva</h2><p>{tr('5 short questions · Free self-assessment pilot', '٥ أسئلة قصيرة · تجربة مجانية بتقييم ذاتي')}</p></div>
+            <button className="primary" onClick={() => nav(`/anatomate/lecture/${lecture.slug}/viva`)}><Brain size={18} />{tr('Test me on this lecture', 'امتحنّي في المحاضرة دي')}</button>
+          </div>}
           <div className="tabs">
             <button className={tab === 'learn' ? 'active' : ''} onClick={() => setTab('learn')}>{tr('Learning objectives', 'أهداف المحاضرة')}</button>
             <button className={tab === 'clinical' ? 'active' : ''} onClick={() => setTab('clinical')}>{tr('Clinical relevance', 'الأهمية الإكلينيكية')}</button>
@@ -930,6 +1159,7 @@ function CheckoutPage() {
   const product = requested === 'video' || requested === 'datashow' || requested === 'bundle' ? requested : 'bundle'
   const [paymentBusy, setPaymentBusy] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState<'card'|'wallet'>('card')
   const tr = useTr()
 
   if (!lecture) {
@@ -961,7 +1191,7 @@ function CheckoutPage() {
 
     const popup = window.open('', '_self')
     const { data, error } = await supabase.functions.invoke('paymob-create-checkout', {
-      body: { lectureId: lecture.id, productType: product },
+      body: { lectureId: lecture.id, productType: product, paymentMethod },
     })
 
     if (error || data?.error || !data?.checkoutUrl) {
@@ -1028,8 +1258,27 @@ function CheckoutPage() {
         ) : (
           <>
             <small className="assetnote">{tr('Your price is matched to your academic year and nationality. Paymob confirms payment server-to-server before KIFARO unlocks access.', 'السعر محسوب حسب سنتك الدراسية وجنسيتك. Paymob بيأكد الدفع مع السيرفر قبل ما KIFARO يفتح المحتوى.')}</small>
+
+            <div className="paymentmethodchooser" role="group" aria-label={tr('Payment method', 'طريقة الدفع')}>
+              <button className={paymentMethod === 'card' ? 'selected' : ''} onClick={() => setPaymentMethod('card')}>
+                <CreditCard size={20} />
+                <div><strong>{tr('Bank card', 'بطاقة بنكية')}</strong><span>{tr('Visa / Mastercard', 'فيزا / ماستركارد')}</span></div>
+              </button>
+              <button className={paymentMethod === 'wallet' ? 'selected' : ''} onClick={() => setPaymentMethod('wallet')}>
+                <Phone size={20} />
+                <div><strong>{tr('Mobile Wallet', 'محفظة موبايل')}</strong><span>{tr('Vodafone Cash and supported wallets', 'فودافون كاش والمحافظ المدعومة')}</span></div>
+              </button>
+            </div>
+
             <button className="primary full" disabled={paymentBusy || entitlementsLoading || offerLoading} onClick={() => void startPayment()}>
-              <CreditCard size={17} /> {paymentBusy ? tr('Opening Paymob…', 'جارٍ فتح Paymob…') : entitlementsLoading || offerLoading ? tr('Checking account…', 'جارٍ التحقق من الحساب…') : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
+              {paymentMethod === 'wallet' ? <Phone size={17} /> : <CreditCard size={17} />}
+              {paymentBusy
+                ? tr('Opening Paymob…', 'جارٍ فتح Paymob…')
+                : entitlementsLoading || offerLoading
+                  ? tr('Checking account…', 'جارٍ التحقق من الحساب…')
+                  : paymentMethod === 'wallet'
+                    ? tr('Pay with Mobile Wallet', 'ادفع بمحفظة الموبايل')
+                    : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
             </button>
             {PAYMOB_TEST_MODE && <small className="paymenttestnote">{tr('Paymob is currently in TEST MODE — no real money is charged during testing.', 'بوابة Paymob حاليًا في وضع التجربة — مفيش فلوس حقيقية بتتخصم.')}</small>}
             {paymentMessage && <div className="authmessage">{paymentMessage}</div>}
@@ -1068,15 +1317,27 @@ function PaymentReturnPage() {
         if (!active) return
         await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 800 : 1600))
         if (!supabase) break
-        const { data } = await supabase
-          .from('lecture_entitlements')
-          .select('lecture_id, source, granted_at')
-          .eq('user_id', user.id)
-          .is('revoked_at', null)
-          .order('granted_at', { ascending: false })
-          .limit(1)
+        const [lectureAccess, moduleAccess] = await Promise.all([
+          supabase
+            .from('lecture_entitlements')
+            .select('lecture_id, source, granted_at')
+            .eq('user_id', user.id)
+            .is('revoked_at', null)
+            .order('granted_at', { ascending: false })
+            .limit(1),
+          supabase
+            .from('module_entitlements')
+            .select('module_code, product_type, source, granted_at')
+            .eq('user_id', user.id)
+            .is('revoked_at', null)
+            .order('granted_at', { ascending: false })
+            .limit(1),
+        ])
 
-        if (data?.length && String(data[0].source || '').startsWith('paymob:')) {
+        const lectureConfirmed = lectureAccess.data?.length && String(lectureAccess.data[0].source || '').startsWith('paymob:')
+        const moduleConfirmed = moduleAccess.data?.length && String(moduleAccess.data[0].source || '').startsWith('paymob:')
+
+        if (lectureConfirmed || moduleConfirmed) {
           if (active) {
             setChecking(false)
             setStatus('confirmed')
@@ -1110,7 +1371,8 @@ function PaymentReturnPage() {
         }[status]}</p>
         {transactionId && <small className="assetnote">{tr('Transaction reference:', 'رقم العملية:')} <bdi>{transactionId}</bdi></small>}
         <div className="paymentreturnactions">
-          <button className="primary" onClick={() => nav('/library')}><Library size={17}/> {tr('My Library', 'مكتبتي')}</button>
+          <button className="primary" onClick={() => nav('/assessments')}><ClipboardCheck size={17}/> {tr('Assessments', 'التقييمات')}</button>
+          <button className="secondary" onClick={() => nav('/library')}><Library size={17}/> {tr('My Library', 'مكتبتي')}</button>
           <button className="secondary" onClick={() => nav('/anatomate')}><BookOpen size={17}/> AnatoMate</button>
         </div>
       </div>
@@ -1226,18 +1488,19 @@ function Topics({ lectures, go }: { lectures: any[]; go: (path: string) => void 
 
 function Studio() {
   const tr = useTr()
+  const go = useNavigate()
   const tools = [
-    [tr('Flashcards', 'بطاقات المراجعة'), tr('Rapid active-recall decks from your modules.', 'بطاقات استرجاع سريعة من موديولاتك.')],
-    [tr('Revision Builder', 'منشئ المراجعة'), tr('Build a focused revision session.', 'جهّز جلسة مراجعة مركزة.')],
-    [tr('Exam Preparation', 'التحضير للامتحان'), tr('Practice clinically oriented MCQs.', 'تدرب على أسئلة MCQ إكلينيكية.')],
-    [tr('Saved Notes', 'الملاحظات المحفوظة'), tr('Keep important concepts in one place.', 'احتفظ بالمفاهيم المهمة في مكان واحد.')],
+    { title: tr('Flashcards', 'بطاقات المراجعة'), body: tr('666 active-recall cards from your learning points.', '666 بطاقة استرجاع من نقاط التعلم.'), action: () => go('/flashcards'), ready: true },
+    { title: tr('Revision Builder', 'منشئ المراجعة'), body: tr('Build a focused revision session.', 'جهّز جلسة مراجعة مركزة.'), ready: false },
+    { title: tr('Exam Preparation', 'التحضير للامتحان'), body: tr('Practice clinically oriented MCQs.', 'تدرب على أسئلة MCQ إكلينيكية.'), ready: false },
+    { title: tr('Saved Notes', 'الملاحظات المحفوظة'), body: tr('Keep important concepts in one place.', 'احتفظ بالمفاهيم المهمة في مكان واحد.'), ready: false },
   ]
   return (
     <div className="page">
       <PageHead eyebrow={tr('TOOLS', 'الأدوات')} title="KIFARO Studio" body={tr('Study tools that turn content into active revision.', 'أدوات مذاكرة بتحوّل المحتوى لمراجعة نشطة.')} />
       <div className="toolgrid">
-        {tools.map(([title, body]) => (
-          <div className="toolcard" key={title}><div className="softicon"><Sparkles /></div><h3>{title}</h3><p>{body}</p><button className="secondary" disabled>{tr('Coming soon', 'قريبًا')}</button></div>
+        {tools.map((tool) => (
+          <div className="toolcard" key={tool.title}><div className="softicon"><Sparkles /></div><h3>{tool.title}</h3><p>{tool.body}</p><button className="secondary" disabled={!tool.ready} onClick={tool.action}>{tool.ready ? tr('Open flashcards', 'افتح البطاقات') : tr('Coming soon', 'قريبًا')}</button></div>
         ))}
       </div>
     </div>

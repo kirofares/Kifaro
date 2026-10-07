@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anatomate-shell-v1';
+const CACHE_NAME = 'anatomate-shell-v2-flashcards';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/anatomate-icon.svg'];
 
 self.addEventListener('install', (event) => {
