@@ -285,6 +285,15 @@ Deno.serve(async (req: Request) => {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'lecture_id' })
 
+      // New curriculum slots enter production hidden. Existing published lectures keep their current state
+      // so a revision never removes the live version while a new draft is being prepared.
+      await adminClient.from('lecture_settings').upsert({
+        lecture_id: lectureId,
+        published: false,
+        updated_by: userData.user.id,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'lecture_id', ignoreDuplicates: true })
+
       const createResponse = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -608,7 +617,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: draft, error: draftError } = await adminClient
         .from('lecture_drafts')
-        .select('id, lecture_id, revision, status, content')
+        .select('id, lecture_id, revision, status, content, pptx_path, pdf_path, artifacts_built_at')
         .eq('id', draftId)
         .maybeSingle()
       if (draftError) return json({ error: draftError.message }, 500)
@@ -638,6 +647,13 @@ Deno.serve(async (req: Request) => {
             missingVisualSlides,
           }, 409)
         }
+      }
+
+      if (!draft.pptx_path || !draft.pdf_path) {
+        return json({
+          error: 'Build the PPTX and PDF preview before approving this lecture.',
+          artifactsRequired: true,
+        }, 409)
       }
 
       await adminClient
@@ -678,6 +694,15 @@ Deno.serve(async (req: Request) => {
         updated_by: userData.user.id,
       }).eq('lecture_id', draft.lecture_id)
       if (productionError) return json({ error: productionError.message }, 500)
+
+      const { error: assetError } = await adminClient.from('lecture_assets').upsert({
+        lecture_id: draft.lecture_id,
+        pptx_path: draft.pptx_path,
+        pdf_path: draft.pdf_path,
+        updated_at: now,
+        updated_by: userData.user.id,
+      }, { onConflict: 'lecture_id' })
+      if (assetError) return json({ error: assetError.message }, 500)
 
       return json({
         approved: true,
