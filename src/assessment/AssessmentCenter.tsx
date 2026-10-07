@@ -8,6 +8,7 @@ import { anatomateLectures, anatomateYears } from '../data/anatomate'
 import { getVivaDeck } from '../viva/content'
 import { ModuleAccessGate, type ModuleProductType } from '../payments/ModuleAccess'
 import { useStudentYear } from '../hooks/useStudentYear'
+import { useAdmin } from '../hooks/useAdmin'
 
 type AssessmentType = 'case' | 'osce' | 'ospe' | 'spotter'
 
@@ -83,19 +84,21 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
 }) {
   const nav = useNavigate()
   const tr = useTr()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(types)
 
   const grouped = useMemo(() => {
     const map = new Map<string, { year: number; moduleCode: string; items: AssessmentItem[] }>()
-    for (const item of items.filter((row) => !studentYear || row.year === studentYear)) {
+    for (const item of items.filter((row) => isAdmin || !studentYear || row.year === studentYear)) {
       const key = item.year + '::' + item.module_code
       const current = map.get(key) || { year: item.year, moduleCode: item.module_code, items: [] }
       current.items.push(item)
       map.set(key, current)
     }
     return Array.from(map.values())
-  }, [items, studentYear])
+  }, [items, studentYear, isAdmin])
 
   return (
     <div className="page assessmentpage">
@@ -167,10 +170,16 @@ export function CasesPage() {
   const nav = useNavigate()
   const tr = useTr()
   const lang = useLang()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(['case'])
   const caseItems = items.filter((item) => item.assessment_type === 'case')
-  const visibleYears = studentYear ? anatomateYears.filter((item) => item.year === studentYear) : anatomateYears
+  const visibleYears = isAdmin
+    ? anatomateYears
+    : studentYear
+      ? anatomateYears.filter((item) => item.year === studentYear)
+      : anatomateYears
 
   return (
     <div className="page assessmentpage casespage">
@@ -262,9 +271,15 @@ export function CasesPage() {
 export function OSCEPage() {
   const nav = useNavigate()
   const tr = useTr()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(['osce','ospe'])
-  const visibleYears = studentYear ? anatomateYears.filter((item) => item.year === studentYear) : anatomateYears
+  const visibleYears = isAdmin
+    ? anatomateYears
+    : studentYear
+      ? anatomateYears.filter((item) => item.year === studentYear)
+      : anatomateYears
 
   return (
     <div className="page assessmentpage">
@@ -315,8 +330,10 @@ export function SpottersPage() {
 export function VivaBankPage() {
   const nav = useNavigate()
   const tr = useTr()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
-  const lectures = anatomateLectures.filter((lecture) => (!studentYear || lecture.year === studentYear) && Boolean(getVivaDeck(lecture.id)))
+  const lectures = anatomateLectures.filter((lecture) => (isAdmin || !studentYear || lecture.year === studentYear) && Boolean(getVivaDeck(lecture.id)))
 
   return (
     <div className="page assessmentpage">
