@@ -6,6 +6,10 @@ import App from './App'
 import AppErrorBoundary from './components/AppErrorBoundary'
 import { reportClientError } from './lib/errorReporting'
 import { AuthProvider } from './auth/AuthContext'
+// Self-hosted fonts so the web and Android app render identically, offline too.
+import '@fontsource-variable/inter'
+import '@fontsource/ibm-plex-sans-arabic/arabic-400.css'
+import '@fontsource/ibm-plex-sans-arabic/arabic-700.css'
 import './styles.css'
 
 const isNative = Capacitor.isNativePlatform()
