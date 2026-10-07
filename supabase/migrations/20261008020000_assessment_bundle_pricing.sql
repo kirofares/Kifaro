@@ -1,0 +1,5 @@
+-- Monetization V1: assessment bundle and upgrade credit
+-- Applied to production on 2026-10-08.
+-- Keeps individual MCQ/Cases/OSCE products and adds a 299 EGP assessment bundle.
+-- Server-side manual-payment trigger recalculates the effective bundle price from owned entitlements.
+-- Approval of an assessment_bundle grants MCQ, Cases, and OSCE entitlements together.
