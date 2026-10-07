@@ -6,6 +6,8 @@ import { useLang, useTr } from '../i18n'
 import { useMCQBank, type BankQuestion } from './useMCQBank'
 import { ModuleAccessGate } from '../payments/ModuleAccess'
 import { useStudentYear } from '../hooks/useStudentYear'
+import { useAdmin } from '../hooks/useAdmin'
+import { useAuth } from '../auth/AuthContext'
 
 function questionCount(lectureId: string, fallback: number, counts: Map<string, number>) {
   return counts.get(lectureId) || fallback
@@ -15,8 +17,14 @@ export function MCQBankPage() {
   const nav = useNavigate()
   const tr = useTr()
   const { countsByLecture, mastery } = useMCQBank()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
-  const visibleYears = studentYear ? anatomateYears.filter((item) => item.year === studentYear) : anatomateYears
+  const visibleYears = isAdmin
+    ? anatomateYears
+    : studentYear
+      ? anatomateYears.filter((item) => item.year === studentYear)
+      : anatomateYears
 
   const overall = useMemo(() => {
     const attempts = mastery.reduce((sum, row) => sum + Number(row.attempts || 0), 0)
@@ -78,6 +86,8 @@ export function MCQModulePage() {
   const { year, module } = useParams()
   const nav = useNavigate()
   const tr = useTr()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { countsByLecture, mastery } = useMCQBank()
   const yearData = anatomateYears.find((item) => String(item.year) === year)
@@ -87,7 +97,7 @@ export function MCQModulePage() {
     return <div className="page"><div className="pagehead"><div><span className="eyebrow">MCQ BANK</span><h1>{tr('Module not found', 'الموديول غير موجود')}</h1></div></div></div>
   }
 
-  if (studentYear && yearData.year !== studentYear) {
+  if (!isAdmin && studentYear && yearData.year !== studentYear) {
     return <div className="page"><div className="assessmentempty">{tr('This module is not available for your academic year.', 'هذا الموديول غير متاح لسنتك الدراسية.')}</div></div>
   }
 
@@ -128,6 +138,8 @@ export function MCQLecturePage() {
   const [searchParams] = useSearchParams()
   const tr = useTr()
   const lang = useLang()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const lecture = getLectureBySlug(slug)
   const { questions: bankQuestions, levels, levelPerformance, reviewTargets, recordAttempt, refreshMastery } = useMCQBank()
@@ -245,7 +257,7 @@ export function MCQLecturePage() {
     return <div className="page"><div className="pagehead"><div><span className="eyebrow">MCQ BANK</span><h1>{tr('Lecture not found', 'المحاضرة غير موجودة')}</h1></div></div></div>
   }
 
-  if (studentYear && lecture.year !== studentYear) {
+  if (!isAdmin && studentYear && lecture.year !== studentYear) {
     return <div className="page"><div className="assessmentempty">{tr('This lecture is not available for your academic year.', 'هذه المحاضرة غير متاحة لسنتك الدراسية.')}</div></div>
   }
 
