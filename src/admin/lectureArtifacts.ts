@@ -440,7 +440,7 @@ export function buildLecturePdf(content: ArtifactDraftContent, visualData: Visua
     if (image) {
       doc.setDrawColor(...hexToRgb(C.line))
       doc.roundedRect(36, 78, 326, 238, 6, 6, 'S')
-      doc.addImage(image, 'PNG', 39, 81, 320, 232, undefined, 'FAST')
+      doc.addImage(image, image.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG', 39, 81, 320, 232, undefined, 'FAST')
       let y = 95
       for (const point of (slide.body_points || []).filter(Boolean).slice(0, 7)) {
         const lines = pdfText(doc, '• ' + point, 390, y, 286, 10.4, C.text)
