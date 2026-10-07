@@ -976,3 +976,6 @@ html[dir="rtl"] .casecard{text-align:right}
 .artifactstatus{display:flex;gap:6px;flex-wrap:wrap}.artifactstatus span,.artifactstatus button{display:inline-flex;align-items:center;gap:5px;border:1px solid #d7e8f1;border-radius:999px;padding:6px 8px;font-size:9px;font-weight:800;color:#71879a;background:#fff}.artifactstatus button{cursor:pointer}.artifactstatus .ready{color:#13733b;border-color:#c8e7d2;background:#f1faf4}
 .spin{animation:kifaro-spin 1s linear infinite}@keyframes kifaro-spin{to{transform:rotate(360deg)}}
 @media(max-width:800px){.artifactreview{grid-template-columns:1fr}.artifactstatus{justify-content:flex-start}.draftvisualactions{display:grid;grid-template-columns:1fr}.draftvisualactions button{width:100%}}
+
+.draftbatchvisuals{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #cfe4ed;background:#f3faff;border-radius:14px;padding:12px 14px}.draftbatchvisuals>div{display:flex;align-items:center;gap:9px}.draftbatchvisuals span{display:grid;gap:2px}.draftbatchvisuals strong{font-size:11px;color:#123658}.draftbatchvisuals small{font-size:9px;color:#5c7589}
+@media(max-width:800px){.draftbatchvisuals{align-items:stretch;flex-direction:column}.draftbatchvisuals button{width:100%}}
