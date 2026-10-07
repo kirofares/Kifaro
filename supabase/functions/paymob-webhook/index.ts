@@ -141,18 +141,28 @@ Deno.serve(async (req: Request) => {
       ''
 
     const state = await decodeAndVerifyState(hmacSecret, String(stateToken))
-    if (!state || state.v !== 1) return json({ error: 'Invalid KIFARO payment state' }, 400)
+    if (!state || ![1,2].includes(Number(state.v))) return json({ error: 'Invalid KIFARO payment state' }, 400)
     if (callbackIntegration !== integrationId) return json({ error: 'Integration mismatch' }, 400)
     if (amountCents !== Number(state.a || 0)) return json({ error: 'Amount mismatch' }, 400)
-    if (!['video', 'datashow', 'bundle'].includes(String(state.p || ''))) return json({ error: 'Invalid product' }, 400)
+
+    const isModulePurchase = Number(state.v) === 2 && String(state.s || '') === 'module'
+    if (isModulePurchase) {
+      if (!['mcq','cases','osce'].includes(String(state.p || '')) || !String(state.m || '').trim()) {
+        return json({ error: 'Invalid module product' }, 400)
+      }
+    } else if (!['video', 'datashow', 'bundle'].includes(String(state.p || ''))) {
+      return json({ error: 'Invalid product' }, 400)
+    }
 
     const adminClient = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
     const userId = String(state.u || '')
-    const lectureId = String(state.l || '')
-    const productType = String(state.p)
+    const moduleCode = isModulePurchase ? String(state.m || '').trim().toUpperCase() : null
+    const lectureId = isModulePurchase ? 'module:' + moduleCode : String(state.l || '')
+    const rawProductType = String(state.p)
+    const productType = isModulePurchase ? rawProductType + '_module' : rawProductType
     const specialReference = String(obj?.order?.merchant_order_id || obj?.order?.id || '') || null
     const paymobOrderId = obj?.order?.id == null ? null : String(obj.order.id)
     const terminalStatus =
@@ -181,6 +191,7 @@ Deno.serve(async (req: Request) => {
         user_id: userId,
         lecture_id: lectureId,
         product_type: productType,
+        module_code: moduleCode,
         amount_cents: amountCents,
         amount_egp: amountCents / 100,
         currency: String(obj.currency || 'EGP'),
@@ -197,8 +208,56 @@ Deno.serve(async (req: Request) => {
     }
 
     const userIdChecked = userId
-    const videoGrant = productType === 'video' || productType === 'bundle'
-    const datashowGrant = productType === 'datashow' || productType === 'bundle'
+
+    if (isModulePurchase) {
+      const { data: product, error: productError } = await adminClient
+        .from('module_products')
+        .select('module_code, academic_year, product_type, price_egp, enabled')
+        .eq('module_code', moduleCode)
+        .eq('product_type', rawProductType)
+        .maybeSingle()
+
+      if (productError) return json({ error: productError.message }, 500)
+      if (!product || product.enabled === false) return json({ error: 'Module product unavailable' }, 404)
+      if (Math.round(Number(product.price_egp) * 100) !== amountCents) return json({ error: 'Module price mismatch' }, 400)
+
+      const { error: entitlementError } = await adminClient
+        .from('module_entitlements')
+        .upsert({
+          user_id: userIdChecked,
+          module_code: moduleCode,
+          product_type: rawProductType,
+          academic_year: Number(product.academic_year),
+          price_paid_egp: amountCents / 100,
+          source: 'paymob:' + transactionId,
+          granted_at: new Date().toISOString(),
+          revoked_at: null,
+        }, { onConflict: 'user_id,module_code,product_type' })
+
+      if (entitlementError) return json({ error: entitlementError.message }, 500)
+
+      const { error: finalizeModuleTransactionError } = await adminClient
+        .from('payment_transactions')
+        .update({
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('paymob_transaction_id', transactionId)
+
+      if (finalizeModuleTransactionError) return json({ error: finalizeModuleTransactionError.message }, 500)
+
+      return json({
+        received: true,
+        paid: true,
+        transactionId,
+        moduleCode,
+        productType: rawProductType,
+      })
+    }
+
+    const videoGrant = rawProductType === 'video' || rawProductType === 'bundle'
+    const datashowGrant = rawProductType === 'datashow' || rawProductType === 'bundle'
 
     const { data: existing, error: existingError } = await adminClient
       .from('lecture_entitlements')
