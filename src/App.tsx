@@ -1317,15 +1317,27 @@ function PaymentReturnPage() {
         if (!active) return
         await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 800 : 1600))
         if (!supabase) break
-        const { data } = await supabase
-          .from('lecture_entitlements')
-          .select('lecture_id, source, granted_at')
-          .eq('user_id', user.id)
-          .is('revoked_at', null)
-          .order('granted_at', { ascending: false })
-          .limit(1)
+        const [lectureAccess, moduleAccess] = await Promise.all([
+          supabase
+            .from('lecture_entitlements')
+            .select('lecture_id, source, granted_at')
+            .eq('user_id', user.id)
+            .is('revoked_at', null)
+            .order('granted_at', { ascending: false })
+            .limit(1),
+          supabase
+            .from('module_entitlements')
+            .select('module_code, product_type, source, granted_at')
+            .eq('user_id', user.id)
+            .is('revoked_at', null)
+            .order('granted_at', { ascending: false })
+            .limit(1),
+        ])
 
-        if (data?.length && String(data[0].source || '').startsWith('paymob:')) {
+        const lectureConfirmed = lectureAccess.data?.length && String(lectureAccess.data[0].source || '').startsWith('paymob:')
+        const moduleConfirmed = moduleAccess.data?.length && String(moduleAccess.data[0].source || '').startsWith('paymob:')
+
+        if (lectureConfirmed || moduleConfirmed) {
           if (active) {
             setChecking(false)
             setStatus('confirmed')
@@ -1359,7 +1371,8 @@ function PaymentReturnPage() {
         }[status]}</p>
         {transactionId && <small className="assetnote">{tr('Transaction reference:', 'رقم العملية:')} <bdi>{transactionId}</bdi></small>}
         <div className="paymentreturnactions">
-          <button className="primary" onClick={() => nav('/library')}><Library size={17}/> {tr('My Library', 'مكتبتي')}</button>
+          <button className="primary" onClick={() => nav('/assessments')}><ClipboardCheck size={17}/> {tr('Assessments', 'التقييمات')}</button>
+          <button className="secondary" onClick={() => nav('/library')}><Library size={17}/> {tr('My Library', 'مكتبتي')}</button>
           <button className="secondary" onClick={() => nav('/anatomate')}><BookOpen size={17}/> AnatoMate</button>
         </div>
       </div>
