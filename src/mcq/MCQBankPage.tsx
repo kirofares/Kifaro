@@ -380,7 +380,7 @@ export function MCQLecturePage() {
               disabled={answers[currentIndex] === undefined}
               onClick={() => setCurrentIndex((index) => Math.min(index + 1, questions.length - 1))}
             >
-              {tr('Next question', 'السؤال التالي')} <ChevronRight size={18}/>
+              {tr('Next MCQ', 'السؤال التالي')} <ChevronRight size={18}/>
             </button>
           ) : (
             <button
