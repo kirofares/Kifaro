@@ -53,6 +53,7 @@ const DatashowViewer = lazyPage(() => import('./components/DatashowViewer'))
 const ProtectedVideoPlayer = lazyPage(() => import('./components/ProtectedVideoPlayer'))
 const VivaPage = lazyPage(() => import('./viva/VivaPage'))
 const FlashcardsPage = lazyPage(() => import('./flashcards/FlashcardsPage'))
+const ReviewPage = lazyPage(() => import('./review/ReviewPage'))
 
 const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
 // Set VITE_PAYMOB_TEST_MODE=true in the build env while Paymob runs against its sandbox.
@@ -107,7 +108,7 @@ function applyLectureSetting<T extends { id: string; title: string; description:
 const copy = {
   en: {
     overview: 'Overview', curriculum: 'Curriculum', anatomate: 'AnatoMate',
-    topics: 'Topics', mcq: 'MCQ Bank', flashcards: 'Flashcards', cases: 'Cases', assessments: 'Assessments', studio: 'KIFARO Studio', library: 'My Library',
+    topics: 'Topics', mcq: 'MCQ Bank', flashcards: 'Flashcards', review: 'Review', cases: 'Cases', assessments: 'Assessments', studio: 'KIFARO Studio', library: 'My Library',
     preferences: 'Preferences', search: 'Search lectures, modules, or systems',
     morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', nameSep: ', ',
     subtitle: 'Continue your medical journey with one focused step at a time.',
@@ -131,7 +132,7 @@ const copy = {
   },
   ar: {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
-    topics: 'الموضوعات', mcq: 'بنك MCQ', flashcards: 'البطاقات', cases: 'Cases', assessments: 'التقييمات', studio: 'KIFARO Studio', library: 'مكتبتي',
+    topics: 'الموضوعات', mcq: 'بنك MCQ', flashcards: 'البطاقات', review: 'المراجعة', cases: 'Cases', assessments: 'التقييمات', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المحاضرات أو الموديولات أو الأجهزة',
     morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير', nameSep: '، ',
     subtitle: 'كمّل رحلتك الطبية بخطوة مركزة كل مرة.',
@@ -306,6 +307,7 @@ export default function App() {
     ['/topics', t.topics, Brain],
     ['/mcq', t.mcq, CircleHelp],
     ['/flashcards', t.flashcards, Brain],
+    ['/review', t.review, BookOpenCheck],
     ['/cases', t.cases, Stethoscope],
     ['/assessments', t.assessments, ClipboardCheck],
     ['/studio', t.studio, Sparkles],
@@ -430,6 +432,7 @@ export default function App() {
           <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
+          <Route path="/review" element={<ReviewPage />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
           <Route path="*" element={<NotFound go={nav} />} />
