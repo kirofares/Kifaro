@@ -66,7 +66,11 @@ export default function ManualPaymentPage() {
 
   const amount = existing?.amount_egp || requestedAmount
   const selectedChannel = channels.find((item) => item.id === channelId)
-  const paymentAppUrl = selectedChannel ? 'https://www.instapay.eg/?lang=ar' : ''
+  const paymentAppUrl = selectedChannel
+    ? selectedChannel.id === 'wallet'
+      ? 'https://backend.orange.eg/deeplinkredirect.html?screen=Dashboard&utm_source=KIFARO'
+      : 'https://www.instapay.eg/?lang=ar'
+    : ''
 
   const load = async () => {
     if (!supabase || !user) {
@@ -265,7 +269,7 @@ export default function ManualPaymentPage() {
                       <a className="primary" href={paymentAppUrl} target="_blank" rel="noreferrer">
                         <ExternalLink size={16}/>
                         {selectedChannel.id === 'wallet'
-                          ? tr('Open InstaPay to wallet', 'افتح InstaPay للتحويل للمحفظة')
+                          ? tr('Open Orange Cash', 'افتح Orange Cash')
                           : tr('Open InstaPay', 'افتح InstaPay')}
                       </a>
                     </div>
