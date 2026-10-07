@@ -749,6 +749,10 @@ function Curriculum({ lectures, go }: { lectures: any[]; go: (path: string) => v
 
 function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
   const tr = useTr()
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
+  const { year: studentYear } = useStudentYear()
+  const visibleYears = isAdmin || !user || !studentYear ? anatomateYears : anatomateYears.filter((item) => item.year === studentYear)
   return (
     <div className="page">
       <section className="hero compact">
@@ -757,7 +761,7 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
       </section>
 
       <div className="yeargrid">
-        {anatomateYears.map((year) => (
+        {visibleYears.map((year) => (
           <section className="yearcard" key={year.year}>
             <div className="yearbadge">{tr('YEAR', 'السنة')} {year.year}</div>
             <h2>{tr('Medical Year', 'السنة الطبية')} {year.year}</h2>
@@ -792,6 +796,8 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   const { year, module } = useParams()
   const nav = useNavigate()
   const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
+  const { year: studentYear } = useStudentYear()
   const { entitlements } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
@@ -801,6 +807,10 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
 
   if (!yearData || !moduleData) {
     return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Module not found', 'الموديول غير موجود')} body={tr('This module is not available.', 'هذا الموديول غير متاح.')} /></div>
+  }
+
+  if (user && !isAdmin && studentYear && yearData.year !== studentYear) {
+    return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Not available for your year', 'غير متاح لسنتك الدراسية')} body={tr('Your account only has access to your registered academic year.', 'حسابك متاح له السنة الدراسية المسجلة فقط.')} /></div>
   }
 
   const visibleLectures = moduleData.lectures
@@ -869,6 +879,11 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
 
   if (!lecture) {
     return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Lecture not found', 'المحاضرة غير موجودة')} body={tr('This lecture is not available.', 'هذه المحاضرة غير متاحة.')} /></div>
+  }
+
+  const { year: studentYear } = useStudentYear()
+  if (user && !isAdmin && studentYear && lecture.year !== studentYear) {
+    return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Not available for your year', 'غير متاح لسنتك الدراسية')} body={tr('Your account only has access to your registered academic year.', 'حسابك متاح له السنة الدراسية المسجلة فقط.')} /></div>
   }
 
   const state = progress[lecture.id] || { progress: 0 }
