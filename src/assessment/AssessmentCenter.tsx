@@ -6,7 +6,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useLang, useTr } from '../i18n'
 import { anatomateLectures, anatomateYears } from '../data/anatomate'
 import { getVivaDeck } from '../viva/content'
-import { ModuleAccessGate, type ModuleProductType } from '../payments/ModuleAccess'
+import { ModuleAccessGate, ModuleProductSummary, type ModuleProductType } from '../payments/ModuleAccess'
 import { useStudentYear } from '../hooks/useStudentYear'
 import { useAdmin } from '../hooks/useAdmin'
 
@@ -219,7 +219,10 @@ export function CasesPage() {
                       <div className="casemodule" key={module.slug}>
                         <div className="casemodulehead">
                           <div><small>{module.code}</small><h3>{module.title}</h3></div>
-                          <span>{moduleCases.length}</span>
+                          <div className="casemodulemeta">
+                            <ModuleProductSummary moduleCode={module.code} productType="cases" />
+                            <span>{moduleCases.length}</span>
+                          </div>
                         </div>
 
                         <ModuleAccessGate moduleCode={module.code} productType="cases">
