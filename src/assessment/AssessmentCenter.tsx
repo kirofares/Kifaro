@@ -167,8 +167,10 @@ export function CasesPage() {
   const nav = useNavigate()
   const tr = useTr()
   const lang = useLang()
+  const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(['case'])
   const caseItems = items.filter((item) => item.assessment_type === 'case')
+  const visibleYears = studentYear ? anatomateYears.filter((item) => item.year === studentYear) : anatomateYears
 
   return (
     <div className="page assessmentpage casespage">
@@ -191,7 +193,7 @@ export function CasesPage() {
         <div className="assessmentempty">{tr('Loading cases…', 'جارٍ تحميل الحالات…')}</div>
       ) : (
         <div className="caseyears">
-          {anatomateYears.map((year) => {
+          {visibleYears.map((year) => {
             const yearCases = caseItems.filter((item) => item.year === year.year)
             return (
               <section className="caseyear" key={year.year}>
@@ -210,6 +212,7 @@ export function CasesPage() {
                           <span>{moduleCases.length}</span>
                         </div>
 
+                        <ModuleAccessGate moduleCode={module.code} productType="cases">
                         <div className="caselectures">
                           {module.lectures.map((lecture) => {
                             const lectureCases = moduleCases.filter((item) => item.lecture_id === lecture.id)
@@ -242,6 +245,7 @@ export function CasesPage() {
                             )
                           })}
                         </div>
+                        </ModuleAccessGate>
                       </div>
                     )
                   })}
