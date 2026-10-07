@@ -64,19 +64,23 @@ export function useModuleAccess() {
   const owned = useMemo(() => new Set(
     entitlements
       .filter((item) => !item.revoked_at)
-      .map((item) => item.module_code + '::' + item.product_type),
+      .map((item) => item.academic_year + '::' + item.module_code + '::' + item.product_type),
   ), [entitlements])
 
   const hasAccess = useCallback(
     (moduleCode: string, productType: ModuleProductType) =>
-      isAdmin || owned.has(moduleCode + '::' + productType),
-    [owned, isAdmin],
+      isAdmin || Boolean(year && owned.has(year + '::' + moduleCode + '::' + productType)),
+    [owned, isAdmin, year],
   )
 
   const priceFor = useCallback(
     (moduleCode: string, productType: ModuleProductType) =>
-      Number(products.find((item) => item.module_code === moduleCode && item.product_type === productType)?.price_egp || 0),
-    [products],
+      Number(products.find((item) =>
+        item.academic_year === year
+        && item.module_code === moduleCode
+        && item.product_type === productType
+      )?.price_egp || 0),
+    [products, year],
   )
 
   const buy = useCallback(async (moduleCode: string, productType: ModuleProductType) => {
@@ -92,6 +96,24 @@ export function useModuleAccess() {
   return { year, products, entitlements, loading, hasAccess, priceFor, buy, refresh }
 }
 
+
+export function ModuleProductSummary({
+  moduleCode,
+  productType,
+}: {
+  moduleCode: string
+  productType: ModuleProductType
+}) {
+  const tr = useTr()
+  const { loading, hasAccess, priceFor } = useModuleAccess()
+  if (loading) return <span className="moduleproductsummary loading">{tr('Checking…', 'جارٍ الفحص…')}</span>
+  if (hasAccess(moduleCode, productType)) {
+    return <span className="moduleproductsummary owned"><ShieldCheck size={14}/>{tr('Unlocked', 'مفتوح')}</span>
+  }
+  const fallback = productType === 'cases' ? 200 : 100
+  return <span className="moduleproductsummary"><LockKeyhole size={14}/>{priceFor(moduleCode, productType) || fallback} EGP</span>
+}
+
 export function ModuleAccessGate({
   moduleCode,
   productType,
@@ -104,7 +126,7 @@ export function ModuleAccessGate({
   const tr = useTr()
   const nav = useNavigate()
   const { user } = useAuth()
-  const { loading, hasAccess, priceFor, buy } = useModuleAccess()
+  const { year, loading, hasAccess, priceFor, buy } = useModuleAccess()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -136,7 +158,7 @@ export function ModuleAccessGate({
   return (
     <section className="modulepaywall">
       <div className="modulepaywallicon"><LockKeyhole /></div>
-      <span className="eyebrow">ONE-TIME MODULE ACCESS</span>
+      <span className="eyebrow">ONE-TIME MODULE ACCESS · YEAR {year || '—'}</span>
       <h2>{labels[productType]} · {moduleCode}</h2>
       <p>{tr(
         'Pay once and keep access to this assessment section for the entire module.',
@@ -153,6 +175,7 @@ export function ModuleAccessGate({
         onClick={() => nav(
           '/manual-payment?target=module&module=' + encodeURIComponent(moduleCode)
           + '&product=' + encodeURIComponent(productType)
+          + '&year=' + encodeURIComponent(String(year || ''))
           + '&amount=' + encodeURIComponent(String(price || (productType === 'cases' ? 200 : 100)))
         )}
       >
