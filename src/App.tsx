@@ -21,6 +21,7 @@ import { useEntitlements } from './hooks/useEntitlements'
 import { useLectureSettings, type LectureSetting } from './hooks/useLectureSettings'
 import { usePricingRules } from './hooks/usePricingRules'
 import { useAssetReadiness } from './hooks/useAssetReadiness'
+import { useStudentYear } from './hooks/useStudentYear'
 import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
@@ -183,6 +184,7 @@ export default function App() {
   const { progress, update } = useProgress()
   const { settings: lectureSettings } = useLectureSettings()
   const { user, configured, signOut } = useAuth()
+  const { year: studentYear } = useStudentYear()
   const [profileName, setProfileName] = useState('')
   const { isAdmin } = useAdmin(user?.id)
   const [query, setQuery] = useState('')
@@ -281,12 +283,13 @@ export default function App() {
 
   const lectures = useMemo(
     () => anatomateLectures
+      .filter((lecture) => isAdmin || !user || !studentYear || lecture.year === studentYear)
       .filter((lecture) => lectureSettings.get(lecture.id)?.published ?? true)
       .map((lecture) => ({
         ...applyLectureSetting(lecture, lectureSettings.get(lecture.id)),
         ...(progress[lecture.id] || { progress: 0 }),
       })),
-    [progress, lectureSettings],
+    [progress, lectureSettings, isAdmin, user, studentYear],
   )
 
   const filtered = useMemo(
