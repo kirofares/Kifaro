@@ -7,7 +7,7 @@ import { useAdmin } from '../hooks/useAdmin'
 import { useStudentYear } from '../hooks/useStudentYear'
 import { useTr } from '../i18n'
 
-export type ModuleProductType = 'mcq' | 'cases' | 'osce'
+export type ModuleProductType = 'mcq' | 'cases' | 'osce' | 'assessment_bundle'
 
 type ModuleProduct = {
   module_code: string
@@ -110,7 +110,7 @@ export function ModuleProductSummary({
   if (hasAccess(moduleCode, productType)) {
     return <span className="moduleproductsummary owned"><ShieldCheck size={14}/>{tr('Unlocked', 'مفتوح')}</span>
   }
-  const fallback = productType === 'cases' ? 200 : 100
+  const fallback = productType === 'assessment_bundle' ? 299 : productType === 'cases' ? 200 : 100
   return <span className="moduleproductsummary"><LockKeyhole size={14}/>{priceFor(moduleCode, productType) || fallback} EGP</span>
 }
 
@@ -134,10 +134,12 @@ export function ModuleAccessGate({
   if (hasAccess(moduleCode, productType)) return <>{children}</>
 
   const price = priceFor(moduleCode, productType)
+  const bundlePrice = priceFor(moduleCode, 'assessment_bundle') || 299
   const labels = {
     mcq: tr('MCQ Bank', 'بنك MCQ'),
     cases: tr('Clinical Cases', 'الحالات السريرية'),
     osce: 'OSCE / OSPE',
+    assessment_bundle: tr('Assessment Bundle', 'باقة التقييمات'),
   }
 
   const start = async () => {
@@ -164,8 +166,15 @@ export function ModuleAccessGate({
         'Pay once and keep access to this assessment section for the entire module.',
         'ادفع مرة واحدة واحتفظ بالوصول لهذا القسم من التقييمات لكل الموديول.'
       )}</p>
-      <div className="moduleprice"><strong>{price || (productType === 'cases' ? 200 : 100)} EGP</strong><span>{tr('one-time payment', 'دفع مرة واحدة')}</span></div>
+      <div className="moduleprice"><strong>{price || (productType === 'assessment_bundle' ? 299 : productType === 'cases' ? 200 : 100)} EGP</strong><span>{tr('one-time payment', 'دفع مرة واحدة')}</span></div>
       <div className="modulepaywallbenefit"><ShieldCheck size={18}/>{tr('Permanent module access after successful payment', 'فتح الموديول بشكل دائم بعد نجاح الدفع')}</div>
+      {productType !== 'assessment_bundle' && (
+        <div className="modulepaywallbenefit">
+          <ShieldCheck size={18}/>
+          <span>{tr('Best value: unlock MCQs + Clinical Cases + OSCE together for ', 'أفضل قيمة: افتح MCQ + الحالات + OSCE معًا مقابل ')}<strong>{bundlePrice} EGP</strong></span>
+          <button className="secondary" onClick={() => nav('/manual-payment?target=module&module=' + encodeURIComponent(moduleCode) + '&product=assessment_bundle&year=' + encodeURIComponent(String(year || '')) + '&amount=' + encodeURIComponent(String(bundlePrice)))}>{tr('Get Assessment Bundle', 'افتح باقة التقييمات')}</button>
+        </div>
+      )}
       {message && <div className="authmessage">{message}</div>}
       <div className="manualcheckoutnotice compact">
         <ShieldCheck size={18}/>
