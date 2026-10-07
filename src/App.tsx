@@ -26,7 +26,8 @@ import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
-import ProgressPage from './progress/ProgressPage'\nimport ManualPaymentPage from './payments/ManualPaymentPage'
+import ProgressPage from './progress/ProgressPage'
+import ManualPaymentPage from './payments/ManualPaymentPage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
