@@ -6,6 +6,7 @@ import { useProgress } from '../hooks/useProgress'
 import { useMCQBank } from '../mcq/useMCQBank'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
+import { useStudentYear } from '../hooks/useStudentYear'
 import { useLang, useTr } from '../i18n'
 
 type AssessmentSummary = {
@@ -18,6 +19,7 @@ export default function ProgressPage() {
   const tr = useTr()
   const lang = useLang()
   const { user } = useAuth()
+  const { year: studentYear } = useStudentYear()
   const { progress } = useProgress()
   const { levels, levelPerformance, reviewTargets, mastery } = useMCQBank()
   const [assessmentSummary, setAssessmentSummary] = useState<AssessmentSummary>({ attempts: 0, average: 0 })
@@ -45,10 +47,11 @@ export default function ProgressPage() {
   }, [user])
 
   const overallLectureProgress = useMemo(() => {
-    if (!anatomateLectures.length) return 0
-    const total = anatomateLectures.reduce((sum, lecture) => sum + Number(progress[lecture.id]?.progress || 0), 0)
-    return Math.round(total / anatomateLectures.length)
-  }, [progress])
+    const visibleLectures = studentYear ? anatomateLectures.filter((lecture) => lecture.year === studentYear) : anatomateLectures
+    if (!visibleLectures.length) return 0
+    const total = visibleLectures.reduce((sum, lecture) => sum + Number(progress[lecture.id]?.progress || 0), 0)
+    return Math.round(total / visibleLectures.length)
+  }, [progress, studentYear])
 
   const mcqSummary = useMemo(() => {
     const attempts = mastery.reduce((sum, row) => sum + Number(row.attempts || 0), 0)
@@ -107,7 +110,7 @@ export default function ProgressPage() {
     return Array.from(map.values()).sort((a, b) => a.score - b.score).slice(0, 12)
   }, [reviewTargets])
 
-  const yearProgress = useMemo(() => anatomateYears.map((year) => {
+  const yearProgress = useMemo(() => anatomateYears.filter((year) => !studentYear || year.year === studentYear).map((year) => {
     const lectures = year.modules.flatMap((module) => module.lectures)
     const value = lectures.length
       ? Math.round(lectures.reduce((sum, lecture) => sum + Number(progress[lecture.id]?.progress || 0), 0) / lectures.length)
@@ -123,7 +126,7 @@ export default function ProgressPage() {
         return { ...module, value: moduleValue }
       }),
     }
-  }), [progress])
+  }), [progress, studentYear])
 
   const lectureFor = (lectureId: string) => anatomateLectures.find((lecture) => lecture.id === lectureId)
 
