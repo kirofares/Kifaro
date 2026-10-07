@@ -153,7 +153,7 @@ export function AssessmentCenterPage() {
 export function CasesPage() {
   const nav = useNavigate()
   const tr = useTr()
-  const { lang } = useLang()
+  const lang = useLang()
   const { items, loading } = useAssessmentItems(['case'])
   const caseItems = items.filter((item) => item.assessment_type === 'case')
 
