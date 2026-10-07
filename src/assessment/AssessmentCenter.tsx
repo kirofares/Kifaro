@@ -6,6 +6,8 @@ import { useAuth } from '../auth/AuthContext'
 import { useLang, useTr } from '../i18n'
 import { anatomateLectures, anatomateYears } from '../data/anatomate'
 import { getVivaDeck } from '../viva/content'
+import { ModuleAccessGate, type ModuleProductType } from '../payments/ModuleAccess'
+import { useStudentYear } from '../hooks/useStudentYear'
 
 type AssessmentType = 'case' | 'osce' | 'ospe' | 'spotter'
 
@@ -71,25 +73,29 @@ function useAssessmentItems(types?: AssessmentType[]) {
   return { items, loading }
 }
 
-function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr }: {
+function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productType }: {
   types: AssessmentType[]
   titleEn: string
   titleAr: string
   bodyEn: string
   bodyAr: string
+  productType?: ModuleProductType
 }) {
   const nav = useNavigate()
   const tr = useTr()
+  const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(types)
 
   const grouped = useMemo(() => {
-    const map = new Map<string, AssessmentItem[]>()
-    for (const item of items) {
-      const key = `Year ${item.year} · ${item.module_code}`
-      map.set(key, [...(map.get(key) || []), item])
+    const map = new Map<string, { year: number; moduleCode: string; items: AssessmentItem[] }>()
+    for (const item of items.filter((row) => !studentYear || row.year === studentYear)) {
+      const key = item.year + '::' + item.module_code
+      const current = map.get(key) || { year: item.year, moduleCode: item.module_code, items: [] }
+      current.items.push(item)
+      map.set(key, current)
     }
-    return Array.from(map.entries())
-  }, [items])
+    return Array.from(map.values())
+  }, [items, studentYear])
 
   return (
     <div className="page assessmentpage">
@@ -103,11 +109,11 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr }: {
 
       {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : grouped.length ? (
         <div className="assessmentgroups">
-          {grouped.map(([group, groupItems]) => (
-            <section className="assessmentgroup" key={group}>
-              <div className="assessmentgrouphead"><h2>{group}</h2><span>{groupItems.length}</span></div>
-              <div className="assessmentcards">
-                {groupItems.map((item) => (
+          {grouped.map((group) => (
+            <section className="assessmentgroup" key={group.year + '-' + group.moduleCode}>
+              <div className="assessmentgrouphead"><h2>Year {group.year} · {group.moduleCode}</h2><span>{group.items.length}</span></div>
+              {productType ? <ModuleAccessGate moduleCode={group.moduleCode} productType={productType}><div className="assessmentcards">
+                {group.items.map((item) => (
                   <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
                     <div className="assessmenticon">
                       {item.assessment_type === 'case' ? <Activity /> : item.assessment_type === 'spotter' ? <Eye /> : <Stethoscope />}
@@ -120,7 +126,14 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr }: {
                     <ChevronRight />
                   </button>
                 ))}
-              </div>
+              </div></ModuleAccessGate> : <div className="assessmentcards">
+                {group.items.map((item) => (
+                  <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
+                    <div className="assessmenticon">{item.assessment_type === 'case' ? <Activity /> : item.assessment_type === 'spotter' ? <Eye /> : <Stethoscope />}</div>
+                    <div className="grow"><small>{item.assessment_type.toUpperCase()} · {item.time_limit_seconds ? Math.ceil(item.time_limit_seconds / 60) + ' min' : tr('Untimed', 'بدون وقت')}</small><h3>{item.title}</h3><p>{item.stem}</p></div><ChevronRight />
+                  </button>
+                ))}
+              </div>}
             </section>
           ))}
         </div>
@@ -243,7 +256,7 @@ export function CasesPage() {
 }
 
 export function OSCEPage() {
-  return <AssessmentListPage types={['osce','ospe']} titleEn="OSCE / OSPE Stations" titleAr="محطات OSCE / OSPE" bodyEn="Timed structured stations with practical checklists and key points." bodyAr="محطات منظمة بوقت مع قوائم تقييم عملية ونقاط أساسية." />
+  return <AssessmentListPage types={['osce','ospe']} productType="osce" titleEn="OSCE / OSPE Stations" titleAr="محطات OSCE / OSPE" bodyEn="Timed structured stations with practical checklists and key points." bodyAr="محطات منظمة بوقت مع قوائم تقييم عملية ونقاط أساسية." />
 }
 
 export function SpottersPage() {
