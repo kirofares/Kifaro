@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Check, ChevronRight, Circle, RefreshCw, Search, Workflow } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  Clock3,
+  Eye,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Sparkles,
+  ThumbsUp,
+  Workflow,
+  X,
+} from 'lucide-react'
 import { anatomateLectures } from '../data/anatomate'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -7,6 +22,8 @@ import { supabase } from '../lib/supabase'
 type StageKey = 'outline' | 'slides' | 'images' | 'clinical' | 'mcq' | 'cases' | 'osce' | 'recall' | 'final_qa' | 'publish'
 type StageState = 'pending' | 'in_progress' | 'needs_review' | 'complete' | 'blocked'
 type OverallState = 'not_started' | 'in_progress' | 'needs_review' | 'ready' | 'published' | 'blocked'
+type ReviewState = 'not_generated' | 'generating' | 'awaiting_review' | 'changes_requested' | 'approved'
+type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 type ProductionRow = {
   lecture_id: string
@@ -17,6 +34,9 @@ type ProductionRow = {
   current_stage: StageKey
   stage_status: Partial<Record<StageKey, StageState>>
   production_notes: string | null
+  approved_draft_id: string | null
+  review_state: ReviewState
+  review_feedback: string | null
   updated_at: string
 }
 
@@ -33,6 +53,62 @@ type QualityRow = {
   osce_image_issues: number
   spotter_total: number
   spotter_ready: number
+}
+
+type DraftSlide = {
+  slide_number?: number
+  type?: string
+  title?: string
+  subtitle?: string
+  body_points?: string[]
+  highlight?: string
+  clinical_application?: string
+  visual_required?: boolean
+  visual_brief?: string
+  visual_labels?: string[]
+  source_tags?: string[]
+  speaker_notes?: string
+}
+
+type DraftContent = {
+  lecture_title?: string
+  academic_year?: number
+  module?: string
+  system?: string
+  estimated_minutes?: number
+  learning_objectives?: string[]
+  slides?: DraftSlide[]
+  active_recall?: string[]
+  mcqs?: Array<Record<string, unknown>>
+  cases?: Array<Record<string, unknown>>
+  osce?: Array<Record<string, unknown>>
+  exam_pearls?: string[]
+  key_takeaways?: string[]
+  qa_checklist?: string[]
+}
+
+type DraftRow = {
+  id: string
+  lecture_id: string
+  revision: number
+  status: 'draft' | 'needs_changes' | 'approved' | 'superseded' | 'rejected'
+  model: string | null
+  content: DraftContent
+  feedback: string | null
+  created_at: string
+  updated_at: string
+  approved_at: string | null
+}
+
+type GenerationJob = {
+  id: string
+  lecture_id: string
+  action: 'generate' | 'revise'
+  status: JobStatus
+  model: string | null
+  error_message: string | null
+  result_draft_id: string | null
+  created_at: string
 }
 
 const STAGES: Array<{ key: StageKey; label: string }> = [
@@ -91,41 +167,92 @@ function badgeLabel(value: string) {
   return value.replace(/_/g, ' ')
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function jobIsRunning(job?: GenerationJob) {
+  return Boolean(job && (job.status === 'queued' || job.status === 'running'))
+}
+
 export default function ContentProduction() {
   const { user } = useAuth()
   const [rows, setRows] = useState<Map<string, ProductionRow>>(new Map())
   const [quality, setQuality] = useState<Map<string, QualityRow>>(new Map())
+  const [drafts, setDrafts] = useState<Map<string, DraftRow>>(new Map())
+  const [jobs, setJobs] = useState<Map<string, GenerationJob>>(new Map())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
+  const [pollingJob, setPollingJob] = useState('')
   const [message, setMessage] = useState('')
   const [query, setQuery] = useState('')
   const [year, setYear] = useState(0)
   const [status, setStatus] = useState<'all' | OverallState>('all')
+  const [aiConfigured, setAiConfigured] = useState<boolean | null>(null)
+  const [aiModel, setAiModel] = useState('')
+  const [selectedDraft, setSelectedDraft] = useState<DraftRow | null>(null)
+  const [feedback, setFeedback] = useState('')
 
   const load = async () => {
     if (!supabase) return
     setLoading(true)
     setMessage('')
 
-    const [productionResult, qualityResult] = await Promise.all([
+    const [productionResult, qualityResult, draftsResult, jobsResult] = await Promise.all([
       supabase
         .from('content_production')
-        .select('lecture_id, academic_year, module_code, lecture_title, overall_status, current_stage, stage_status, production_notes, updated_at'),
+        .select('lecture_id, academic_year, module_code, lecture_title, overall_status, current_stage, stage_status, production_notes, approved_draft_id, review_state, review_feedback, updated_at'),
       supabase
         .from('content_production_quality_summary')
         .select('lecture_id, mcq_total, mcq_ready, mcq_image_issues, case_total, case_ready, case_image_issues, osce_total, osce_ready, osce_image_issues, spotter_total, spotter_ready'),
+      supabase
+        .from('lecture_drafts')
+        .select('id, lecture_id, revision, status, model, content, feedback, created_at, updated_at, approved_at')
+        .order('revision', { ascending: false }),
+      supabase
+        .from('lecture_generation_jobs')
+        .select('id, lecture_id, action, status, model, error_message, result_draft_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(300),
     ])
 
-    if (productionResult.error) setMessage(productionResult.error.message)
-    if (qualityResult.error) setMessage(qualityResult.error.message)
+    for (const result of [productionResult, qualityResult, draftsResult, jobsResult]) {
+      if (result.error) setMessage(result.error.message)
+    }
+
+    const draftMap = new Map<string, DraftRow>()
+    for (const draft of (draftsResult.data || []) as DraftRow[]) {
+      if (!draftMap.has(draft.lecture_id)) draftMap.set(draft.lecture_id, draft)
+    }
+
+    const jobMap = new Map<string, GenerationJob>()
+    for (const job of (jobsResult.data || []) as GenerationJob[]) {
+      if (!jobMap.has(job.lecture_id)) jobMap.set(job.lecture_id, job)
+    }
 
     setRows(new Map(((productionResult.data || []) as ProductionRow[]).map((row) => [row.lecture_id, row])))
     setQuality(new Map(((qualityResult.data || []) as QualityRow[]).map((row) => [row.lecture_id, row])))
+    setDrafts(draftMap)
+    setJobs(jobMap)
     setLoading(false)
+  }
+
+  const loadConfiguration = async () => {
+    if (!supabase) return
+    const { data, error } = await supabase.functions.invoke('lecture-content-generator', {
+      body: { action: 'configuration' },
+    })
+    if (error) {
+      setAiConfigured(false)
+      return
+    }
+    setAiConfigured(Boolean(data?.configured))
+    setAiModel(String(data?.model || ''))
   }
 
   useEffect(() => {
     void load()
+    void loadConfiguration()
   }, [])
 
   const lectureState = (lecture: (typeof anatomateLectures)[number]) => {
@@ -137,6 +264,7 @@ export default function ContentProduction() {
       overall: existing?.overall_status || deriveOverall(stages),
       current: existing?.current_stage || firstOpenStage(stages),
       progress: progressPercent(stages),
+      review: existing?.review_state || ('not_generated' as ReviewState),
     }
   }
 
@@ -179,7 +307,7 @@ export default function ContentProduction() {
     const { data, error } = await supabase
       .from('content_production')
       .upsert(payload, { onConflict: 'lecture_id' })
-      .select('lecture_id, academic_year, module_code, lecture_title, overall_status, current_stage, stage_status, production_notes, updated_at')
+      .select('lecture_id, academic_year, module_code, lecture_title, overall_status, current_stage, stage_status, production_notes, approved_draft_id, review_state, review_feedback, updated_at')
       .single()
 
     if (error) {
@@ -203,6 +331,10 @@ export default function ContentProduction() {
   }
 
   const cycleStage = async (lecture: (typeof anatomateLectures)[number], key: StageKey) => {
+    if (key === 'publish' && lectureState(lecture).review !== 'approved') {
+      setMessage('Publishing stays locked until you approve an AI draft.')
+      return
+    }
     const state = lectureState(lecture)
     const currentIndex = STATE_ORDER.indexOf(state.stages[key])
     const nextValue = STATE_ORDER[(currentIndex + 1) % STATE_ORDER.length]
@@ -210,16 +342,146 @@ export default function ContentProduction() {
     await saveStages(lecture, next, key)
   }
 
-  const markReady = async (lecture: (typeof anatomateLectures)[number]) => {
-    const next = emptyStages()
-    STAGES.forEach(({ key }) => { next[key] = key === 'publish' ? 'pending' : 'complete' })
-    await saveStages(lecture, next, 'publish')
+  const pollGeneration = async (jobId: string, lectureId: string) => {
+    if (!supabase) return
+    setPollingJob(jobId)
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (attempt > 0) await delay(3000)
+      const { data, error } = await supabase.functions.invoke('lecture-content-generator', {
+        body: { action: 'status', jobId },
+      })
+
+      if (error) {
+        setMessage(error.message)
+        setPollingJob('')
+        return
+      }
+
+      if (data?.status === 'completed') {
+        setMessage('Lecture draft is ready for your review.')
+        setPollingJob('')
+        await load()
+        const { data: draftData } = await supabase
+          .from('lecture_drafts')
+          .select('id, lecture_id, revision, status, model, content, feedback, created_at, updated_at, approved_at')
+          .eq('lecture_id', lectureId)
+          .order('revision', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (draftData) setSelectedDraft(draftData as DraftRow)
+        return
+      }
+
+      if (data?.status === 'failed') {
+        setMessage(data?.error || 'Lecture generation failed.')
+        setPollingJob('')
+        await load()
+        return
+      }
+    }
+
+    setPollingJob('')
+    setMessage('Generation is still running. You can use Check AI status later; nothing was lost.')
+    await load()
+  }
+
+  const startGeneration = async (
+    lecture: (typeof anatomateLectures)[number],
+    mode: 'generate' | 'revise',
+    draft?: DraftRow
+  ) => {
+    if (!supabase) return
+    if (!aiConfigured) {
+      setMessage('AI production is not configured yet. Add OPENAI_API_KEY to Supabase Edge Function secrets.')
+      return
+    }
+    if (mode === 'revise' && !feedback.trim()) {
+      setMessage('Write the requested changes first.')
+      return
+    }
+
+    setSaving(lecture.id)
+    setMessage(mode === 'generate' ? 'Starting AI lecture production…' : 'Starting a new revision…')
+
+    const { data, error } = await supabase.functions.invoke('lecture-content-generator', {
+      body: {
+        action: mode,
+        lecture: {
+          id: lecture.id,
+          title: lecture.title,
+          year: lecture.year,
+          module: lecture.module,
+          system: lecture.system,
+          duration: lecture.duration,
+          objectives: lecture.objectives,
+        },
+        draftId: mode === 'revise' ? draft?.id : undefined,
+        feedback: mode === 'revise' ? feedback.trim() : undefined,
+      },
+    })
+
+    setSaving('')
+    if (error || data?.error || !data?.jobId) {
+      setMessage(data?.error || error?.message || 'Could not start lecture generation.')
+      return
+    }
+
+    const job: GenerationJob = {
+      id: String(data.jobId),
+      lecture_id: lecture.id,
+      action: mode,
+      status: 'running',
+      model: String(data.model || aiModel || ''),
+      error_message: null,
+      result_draft_id: null,
+      created_at: new Date().toISOString(),
+    }
+    setJobs((current) => new Map(current).set(lecture.id, job))
+    setFeedback('')
+    setSelectedDraft(null)
+    void pollGeneration(job.id, lecture.id)
+  }
+
+  const checkJob = async (job: GenerationJob) => {
+    if (!jobIsRunning(job)) return
+    await pollGeneration(job.id, job.lecture_id)
+  }
+
+  const approveDraft = async (draft: DraftRow) => {
+    if (!supabase) return
+    setSaving(draft.lecture_id)
+    setMessage('Approving this revision…')
+    const { data, error } = await supabase.functions.invoke('lecture-content-generator', {
+      body: { action: 'approve', draftId: draft.id },
+    })
+    setSaving('')
+    if (error || data?.error) {
+      setMessage(data?.error || error?.message || 'Could not approve this draft.')
+      return
+    }
+    setMessage('Revision approved. Publishing is now unlocked, but nothing has been published automatically.')
+    setSelectedDraft(null)
+    await load()
+  }
+
+  const generateNext = async () => {
+    const nextLecture = anatomateLectures.find((lecture) => {
+      const draft = drafts.get(lecture.id)
+      const job = jobs.get(lecture.id)
+      const state = lectureState(lecture)
+      return !draft && !jobIsRunning(job) && state.overall !== 'published'
+    })
+    if (!nextLecture) {
+      setMessage('Every lecture already has a draft or an active generation job.')
+      return
+    }
+    await startGeneration(nextLecture, 'generate')
   }
 
   const totalStarted = anatomateLectures.filter((lecture) => lectureState(lecture).overall !== 'not_started').length
   const totalReady = anatomateLectures.filter((lecture) => ['ready', 'published'].includes(lectureState(lecture).overall)).length
-  const totalReview = anatomateLectures.filter((lecture) => lectureState(lecture).overall === 'needs_review').length
-  const totalBlocked = anatomateLectures.filter((lecture) => lectureState(lecture).overall === 'blocked').length
+  const totalReview = anatomateLectures.filter((lecture) => lectureState(lecture).review === 'awaiting_review').length
+  const totalGenerating = anatomateLectures.filter((lecture) => jobIsRunning(jobs.get(lecture.id))).length
 
   return (
     <div className="productiontracker">
@@ -228,16 +490,30 @@ export default function ContentProduction() {
           <div>
             <span className="eyebrow">ANATOMATE CONTENT ENGINE</span>
             <h2>Lecture Production</h2>
-            <p>One workflow for every lecture: Outline → Slides → Images → Clinical → MCQ → Cases → OSCE → Recall → Final QA → Publish.</p>
+            <p>AI prepares the lecture in the AnatoMate house style, then stops for your approval before publishing.</p>
           </div>
-          <button className="secondary" onClick={() => void load()} disabled={loading}><RefreshCw size={16}/>{loading ? 'Refreshing…' : 'Refresh'}</button>
+          <div className="productiontopactions">
+            <button className="secondary" onClick={() => void load()} disabled={loading}><RefreshCw size={16}/>{loading ? 'Refreshing…' : 'Refresh'}</button>
+            <button className="primary" onClick={() => void generateNext()} disabled={!aiConfigured || totalGenerating > 0}><Sparkles size={16}/>Produce next lecture</button>
+          </div>
+        </div>
+
+        <div className={aiConfigured ? 'aienginestatus connected' : 'aienginestatus setup'}>
+          <div>
+            <Sparkles size={18}/>
+            <span>
+              <strong>{aiConfigured === null ? 'Checking AI engine…' : aiConfigured ? 'AI production engine connected' : 'AI engine needs one secret'}</strong>
+              <small>{aiConfigured ? 'Model: ' + (aiModel || 'configured model') + ' · Drafts never publish without approval.' : 'Add OPENAI_API_KEY to Supabase Edge Function secrets. ChatGPT subscription and API billing are separate.'}</small>
+            </span>
+          </div>
+          <b>{aiConfigured === null ? 'Checking' : aiConfigured ? 'Ready' : 'Setup required'}</b>
         </div>
 
         <div className="productionstats">
           <div><small>STARTED</small><strong>{totalStarted}</strong><span>of {anatomateLectures.length}</span></div>
-          <div><small>READY / PUBLISHED</small><strong>{totalReady}</strong><span>production complete</span></div>
-          <div><small>NEEDS REVIEW</small><strong>{totalReview}</strong><span>QA attention</span></div>
-          <div><small>BLOCKED</small><strong>{totalBlocked}</strong><span>needs intervention</span></div>
+          <div><small>GENERATING</small><strong>{totalGenerating}</strong><span>AI jobs running</span></div>
+          <div><small>AWAITING YOU</small><strong>{totalReview}</strong><span>drafts to review</span></div>
+          <div><small>APPROVED / READY</small><strong>{totalReady}</strong><span>publish unlocked</span></div>
         </div>
 
         <div className="productionfilters">
@@ -264,7 +540,11 @@ export default function ContentProduction() {
         {filtered.map((lecture) => {
           const state = lectureState(lecture)
           const qa = quality.get(lecture.id)
+          const draft = drafts.get(lecture.id)
+          const job = jobs.get(lecture.id)
+          const running = jobIsRunning(job) || Boolean(pollingJob && pollingJob === job?.id)
           const imageIssues = Number(qa?.mcq_image_issues || 0) + Number(qa?.case_image_issues || 0) + Number(qa?.osce_image_issues || 0)
+
           return (
             <article className="productioncard" key={lecture.id}>
               <div className="productionhead">
@@ -274,6 +554,7 @@ export default function ContentProduction() {
                   <p>{lecture.system}</p>
                 </div>
                 <div className="productionoverall">
+                  <span className={'reviewstatus ' + state.review}>{badgeLabel(state.review)}</span>
                   <span className={'productionstatus ' + state.overall}>{badgeLabel(state.overall)}</span>
                   <strong>{state.progress}%</strong>
                 </div>
@@ -286,8 +567,8 @@ export default function ContentProduction() {
                   <button
                     key={stage.key}
                     className={'productionstage ' + state.stages[stage.key]}
-                    disabled={saving === lecture.id}
-                    title="Tap to cycle stage status"
+                    disabled={saving === lecture.id || running}
+                    title={stage.key === 'publish' && state.review !== 'approved' ? 'Locked until you approve a draft' : 'Tap to cycle stage status'}
                     onClick={() => void cycleStage(lecture, stage.key)}
                   >
                     {state.stages[stage.key] === 'complete' ? <Check size={14}/> : <Circle size={12}/>}
@@ -297,19 +578,32 @@ export default function ContentProduction() {
               </div>
 
               <div className="productionqa">
-                <div><small>MCQ</small><strong>{qa?.mcq_ready || 0}/{qa?.mcq_total || 0}</strong><span>ready</span></div>
-                <div><small>CASES</small><strong>{qa?.case_ready || 0}/{qa?.case_total || 0}</strong><span>ready</span></div>
+                <div><small>MCQ BANK</small><strong>{qa?.mcq_ready || 0}/{qa?.mcq_total || 0}</strong><span>ready</span></div>
+                <div><small>CASE BANK</small><strong>{qa?.case_ready || 0}/{qa?.case_total || 0}</strong><span>ready</span></div>
                 <div><small>OSCE / OSPE</small><strong>{qa?.osce_ready || 0}/{qa?.osce_total || 0}</strong><span>ready</span></div>
                 <div className={imageIssues ? 'issue' : 'ok'}><small>IMAGE QA</small><strong>{imageIssues}</strong><span>{imageIssues ? 'issues' : 'clear'}</span></div>
+              </div>
+
+              <div className="aidraftstrip">
+                <div>
+                  {running ? <Clock3 size={17}/> : draft?.status === 'approved' ? <CheckCircle2 size={17}/> : <Sparkles size={17}/>}
+                  <span>
+                    <strong>{running ? 'AI is producing this lecture' : draft ? 'Revision ' + draft.revision + ' · ' + badgeLabel(draft.status) : 'No AI draft yet'}</strong>
+                    <small>{running ? 'Generation continues in the background.' : draft ? (draft.model || 'AI model') + ' · ' + new Date(draft.updated_at).toLocaleString() : 'Generate the first draft using the AnatoMate master pattern.'}</small>
+                  </span>
+                </div>
+                <div className="aidraftactions">
+                  {draft && <button className="secondary" onClick={() => { setSelectedDraft(draft); setFeedback('') }}><Eye size={16}/>Review draft</button>}
+                  {running && job && <button className="secondary" disabled={pollingJob === job.id} onClick={() => void checkJob(job)}><RefreshCw size={16}/>Check AI status</button>}
+                  {!running && !draft && <button className="primary" disabled={!aiConfigured || saving === lecture.id} onClick={() => void startGeneration(lecture, 'generate')}><Sparkles size={16}/>Generate draft</button>}
+                  {!running && draft && draft.status !== 'approved' && <button className="secondary" disabled={!aiConfigured || saving === lecture.id} onClick={() => { setSelectedDraft(draft); setFeedback('') }}><RotateCcw size={16}/>Request changes</button>}
+                </div>
               </div>
 
               <div className="productionactions">
                 <span><Workflow size={16}/>Current: <b>{STAGES.find((stage) => stage.key === state.current)?.label || state.current}</b></span>
                 <div>
-                  <button className="secondary" disabled={saving === lecture.id} onClick={() => void markReady(lecture)}>Complete through QA</button>
-                  <button className="primary" disabled={saving === lecture.id || state.overall === 'published'} onClick={() => void continueLecture(lecture)}>
-                    {saving === lecture.id ? 'Saving…' : state.overall === 'not_started' ? 'Start production' : 'Continue production'}<ChevronRight size={16}/>
-                  </button>
+                  <button className="secondary" disabled={saving === lecture.id || running} onClick={() => void continueLecture(lecture)}>Manual continue<ChevronRight size={16}/></button>
                 </div>
               </div>
             </article>
@@ -317,9 +611,74 @@ export default function ContentProduction() {
         })}
       </div>
 
-      {!loading && !filtered.length && (
-        <div className="adminpanel productionempty">No lectures match the current filters.</div>
-      )}
+      {!loading && !filtered.length && <div className="adminpanel productionempty">No lectures match the current filters.</div>}
+
+      {selectedDraft && (() => {
+        const lecture = anatomateLectures.find((item) => item.id === selectedDraft.lecture_id)
+        const slides = selectedDraft.content?.slides || []
+        return (
+          <div className="draftmodalbackdrop" onClick={() => setSelectedDraft(null)}>
+            <section className="draftmodal" onClick={(event) => event.stopPropagation()}>
+              <div className="draftmodalhead">
+                <div>
+                  <span className="eyebrow">AI LECTURE REVIEW</span>
+                  <h2>{selectedDraft.content?.lecture_title || lecture?.title || selectedDraft.lecture_id}</h2>
+                  <p>Revision {selectedDraft.revision} · {slides.length} slides · {selectedDraft.model || 'AI model'} · Nothing here is visible to students yet.</p>
+                </div>
+                <button className="iconbtn" onClick={() => setSelectedDraft(null)} aria-label="Close"><X/></button>
+              </div>
+
+              <div className="draftsummary">
+                <div><small>SLIDES</small><strong>{slides.length}</strong></div>
+                <div><small>ACTIVE RECALL</small><strong>{selectedDraft.content?.active_recall?.length || 0}</strong></div>
+                <div><small>MCQs</small><strong>{selectedDraft.content?.mcqs?.length || 0}</strong></div>
+                <div><small>CASES</small><strong>{selectedDraft.content?.cases?.length || 0}</strong></div>
+                <div><small>OSCE</small><strong>{selectedDraft.content?.osce?.length || 0}</strong></div>
+              </div>
+
+              <div className="draftobjectives">
+                <h3>Learning objectives</h3>
+                <ul>{(selectedDraft.content?.learning_objectives || []).map((item, index) => <li key={index}>{item}</li>)}</ul>
+              </div>
+
+              <div className="draftslides">
+                {slides.map((slide, index) => (
+                  <article key={index} className="draftslide">
+                    <div className="draftslidenumber">{slide.slide_number || index + 1}</div>
+                    <div className="grow">
+                      <small>{(slide.type || 'concept').replace(/_/g, ' ')}</small>
+                      <h3>{slide.title || 'Untitled slide'}</h3>
+                      {slide.subtitle && <p className="draftsubtitle">{slide.subtitle}</p>}
+                      <ul>{(slide.body_points || []).map((point, pointIndex) => <li key={pointIndex}>{point}</li>)}</ul>
+                      {slide.highlight && <div className="drafthighlight">{slide.highlight}</div>}
+                      {slide.clinical_application && <div className="draftclinical"><strong>Clinical:</strong> {slide.clinical_application}</div>}
+                      {slide.visual_required && <div className="draftvisual"><strong>Visual brief:</strong> {slide.visual_brief || 'Visual required'}{slide.visual_labels?.length ? <span>Labels: {slide.visual_labels.join(' · ')}</span> : null}</div>}
+                      {slide.source_tags?.length ? <div className="draftsources">{slide.source_tags.join(' · ')}</div> : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="draftreviewbox">
+                <label>
+                  Requested changes
+                  <textarea
+                    rows={4}
+                    value={feedback}
+                    onChange={(event) => setFeedback(event.target.value)}
+                    placeholder="Example: reduce the first 5 slides, add more clinical anatomy of the axilla, replace the brachial plexus case, and simplify slide 18."
+                  />
+                </label>
+                <div>
+                  <button className="secondary" disabled={!lecture || !feedback.trim() || saving === selectedDraft.lecture_id} onClick={() => lecture && void startGeneration(lecture, 'revise', selectedDraft)}><RotateCcw size={17}/>Generate revised version</button>
+                  <button className="primary" disabled={saving === selectedDraft.lecture_id || selectedDraft.status === 'approved'} onClick={() => void approveDraft(selectedDraft)}><ThumbsUp size={17}/>{selectedDraft.status === 'approved' ? 'Approved' : 'Approve this revision'}</button>
+                </div>
+                <p>Approval only unlocks publishing. It does not publish the lecture automatically.</p>
+              </div>
+            </section>
+          </div>
+        )
+      })()}
     </div>
   )
 }
