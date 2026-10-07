@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import {
   ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
   Home, Library, Menu, Microscope, Palette,
-  CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, UserRound, X,
+  CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import { getStudyResources, type StudyResource } from './data/anatomate/studyResources'
