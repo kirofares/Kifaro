@@ -26,7 +26,7 @@ import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
-import ProgressPage from './progress/ProgressPage'
+import ProgressPage from './progress/ProgressPage'\nimport ManualPaymentPage from './payments/ManualPaymentPage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
@@ -421,7 +421,7 @@ export default function App() {
           <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
           <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
-          <Route path="/payment/return" element={<PaymentReturnPage />} />
+          <Route path="/manual-payment" element={<ManualPaymentPage />} />\n          <Route path="/payment/return" element={<PaymentReturnPage />} />
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/refund" element={<LegalPage kind="refund" />} />
@@ -1280,6 +1280,19 @@ function CheckoutPage() {
                     ? tr('Pay with Mobile Wallet', 'ادفع بمحفظة الموبايل')
                     : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
             </button>
+            <button
+              className="secondary full"
+              disabled={entitlementsLoading || offerLoading}
+              onClick={() => nav(
+                '/manual-payment?target=lecture&lecture=' + encodeURIComponent(lecture.id)
+                + '&product=' + encodeURIComponent(product)
+                + '&amount=' + encodeURIComponent(String(offer.price))
+                + (offer.viewLimit == null ? '' : '&viewLimit=' + encodeURIComponent(String(offer.viewLimit)))
+              )}
+            >
+              <Phone size={17} /> {tr('Pay manually by InstaPay / Wallet', 'ادفع يدويًا عن طريق InstaPay / المحفظة')}
+            </button>
+            <small className="assetnote">{tr('Temporary option: submit your transfer reference and receipt. Access opens only after admin verification.', 'خيار مؤقت: ابعت رقم العملية والإيصال، والمحتوى يفتح فقط بعد مراجعة الإدارة.')}</small>
             {PAYMOB_TEST_MODE && <small className="paymenttestnote">{tr('Paymob is currently in TEST MODE — no real money is charged during testing.', 'بوابة Paymob حاليًا في وضع التجربة — مفيش فلوس حقيقية بتتخصم.')}</small>}
             {paymentMessage && <div className="authmessage">{paymentMessage}</div>}
           </>
