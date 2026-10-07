@@ -25,6 +25,7 @@ import { supabase } from './lib/supabase'
 import { LangProvider, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
+import ProgressPage from './progress/ProgressPage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
@@ -310,6 +311,7 @@ export default function App() {
     ['/review', t.review, BookOpenCheck],
     ['/cases', t.cases, Stethoscope],
     ['/assessments', t.assessments, ClipboardCheck],
+    ['/progress', t.progressPage, TrendingUp],
     ['/studio', t.studio, Sparkles],
     ['/library', t.library, Library],
     ['/profile', t.profile, UserRound],
@@ -430,6 +432,7 @@ export default function App() {
           <Route path="/spotters" element={<SpottersPage />} />
           <Route path="/viva-bank" element={<VivaBankPage />} />
           <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
+          <Route path="/progress" element={<ProgressPage />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/review" element={<ReviewPage />} />
