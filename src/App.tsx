@@ -178,6 +178,57 @@ function useStored<T>(key: string, initial: T) {
   return [value, setValue] as const
 }
 
+// Five top-level areas. Each existing route belongs to one area, so old links keep working;
+// hub pages show a tab strip for the routes inside their area.
+type NavSection = {
+  key: string
+  to: string
+  label: [string, string]
+  icon: typeof Home
+  match: (path: string) => boolean
+  tabs?: { to: string; label: [string, string] }[]
+}
+
+const PRACTICE_ROUTES = ['/assessments', '/mcq', '/cases', '/osce', '/spotters', '/viva-bank', '/flashcards', '/studio']
+
+const NAV_SECTIONS: NavSection[] = [
+  { key: 'home', to: '/', label: ['Home', 'الرئيسية'], icon: Home, match: (path) => path === '/' },
+  {
+    key: 'learn', to: '/anatomate', label: ['Learn', 'تعلّم'], icon: GraduationCap,
+    match: (path) => path.startsWith('/anatomate') || path === '/curriculum' || path === '/topics',
+    tabs: [
+      { to: '/anatomate', label: ['By year', 'حسب السنة'] },
+      { to: '/curriculum', label: ['All lectures', 'كل المحاضرات'] },
+      { to: '/topics', label: ['Topics', 'الموضوعات'] },
+    ],
+  },
+  {
+    key: 'practice', to: '/assessments', label: ['Practice', 'تدرّب'], icon: ClipboardCheck,
+    match: (path) => PRACTICE_ROUTES.some((route) => path === route || path.startsWith(route + '/')),
+    tabs: [
+      { to: '/assessments', label: ['Overview', 'نظرة عامة'] },
+      { to: '/mcq', label: ['MCQ', 'MCQ'] },
+      { to: '/cases', label: ['Cases', 'الحالات'] },
+      { to: '/osce', label: ['OSCE', 'OSCE'] },
+      { to: '/spotters', label: ['Spotters', 'السبوتر'] },
+      { to: '/viva-bank', label: ['Viva', 'الفايفا'] },
+      { to: '/flashcards', label: ['Flashcards', 'البطاقات'] },
+    ],
+  },
+  {
+    key: 'progress', to: '/progress', label: ['Progress', 'التقدم'], icon: TrendingUp,
+    match: (path) => path === '/progress' || path === '/review',
+    tabs: [
+      { to: '/progress', label: ['Progress', 'التقدم'] },
+      { to: '/review', label: ['Review queue', 'قائمة المراجعة'] },
+    ],
+  },
+  { key: 'library', to: '/library', label: ['Library', 'مكتبتي'], icon: Library, match: (path) => path === '/library' },
+]
+
+// Full-screen protected viewers need the whole phone screen, so they hide the bottom tab bar.
+const IMMERSIVE_ROUTE = /^\/anatomate\/lecture\/[^/]+\/(datashow|pdf|video|viva)$/
+
 export default function App() {
   const [lang, setLang] = useStored<Lang>('kifaro-lang', 'en')
   const [theme, setTheme] = useStored<Theme>('kifaro-theme', 'blue')
@@ -306,22 +357,10 @@ export default function App() {
     window.setTimeout(() => setToast(''), 1800)
   }
 
-  const links = [
-    ['/', t.overview, Home],
-    ['/curriculum', t.curriculum, GraduationCap],
-    ['/anatomate', t.anatomate, Microscope],
-    ['/topics', t.topics, Brain],
-    ['/mcq', t.mcq, CircleHelp],
-    ['/flashcards', t.flashcards, Brain],
-    ['/review', t.review, BookOpenCheck],
-    ['/cases', t.cases, Stethoscope],
-    ['/assessments', t.assessments, ClipboardCheck],
-    ['/progress', t.progressPage, TrendingUp],
-    ['/studio', t.studio, Sparkles],
-    ['/library', t.library, Library],
-    ['/profile', t.profile, UserRound],
-    ...(isAdmin ? [['/admin', t.admin, ShieldCheck] as const] : []),
-  ] as const
+  const pick = (label: [string, string]) => label[lang === 'ar' ? 1 : 0]
+  const activeSection = NAV_SECTIONS.find((section) => section.match(location.pathname))
+  const sectionTabs = activeSection?.tabs?.some((tab) => tab.to === location.pathname) ? activeSection.tabs : undefined
+  const showBottomTabs = !IMMERSIVE_ROUTE.test(location.pathname)
 
   if (showOpeningSplash) {
     return (
@@ -337,7 +376,7 @@ export default function App() {
 
   return (
     <LangProvider value={lang}>
-    <div className="shell">
+    <div className={showBottomTabs ? 'shell hasbottomtabs' : 'shell'}>
       {updateAvailable && (
         <div className="appupdatebar">
           <div>
@@ -379,13 +418,15 @@ export default function App() {
           <button className="icon" onClick={() => setDrawer(false)} aria-label={t.closeMenu}><X /></button>
         </div>
         <nav>
-          {links.map(([to, label, Icon]) => (
-            <NavLink end={to === '/'} to={to} key={to} onClick={() => setDrawer(false)}>
-              <Icon size={19} /><span>{label}</span>
+          {NAV_SECTIONS.map(({ key, to, label, icon: Icon }) => (
+            <NavLink to={to} key={key} className={activeSection?.key === key ? 'active' : ''} onClick={() => setDrawer(false)}>
+              <Icon size={19} /><span>{pick(label)}</span>
             </NavLink>
           ))}
         </nav>
         <div className="sidefoot">
+          <NavLink to="/profile" onClick={() => setDrawer(false)}><UserRound size={19} /><span>{t.profile}</span></NavLink>
+          {isAdmin && <NavLink to="/admin" onClick={() => setDrawer(false)}><ShieldCheck size={19} /><span>{t.admin}</span></NavLink>}
           <NavLink to="/preferences" onClick={() => setDrawer(false)}><Settings size={19} /><span>{t.preferences}</span></NavLink>
           {isAndroidApp && (
             <button className="sideaccount appupdatecheck" onClick={() => void checkForUpdate(true)} disabled={checkingUpdate}>
@@ -404,7 +445,24 @@ export default function App() {
 
       {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
 
+      {showBottomTabs && (
+        <nav className="bottomtabs" aria-label={lang === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>
+          {NAV_SECTIONS.map(({ key, to, label, icon: Icon }) => (
+            <NavLink key={key} to={to} className={activeSection?.key === key ? 'active' : ''} aria-current={activeSection?.key === key ? 'page' : undefined}>
+              <Icon size={22} /><span>{pick(label)}</span>
+            </NavLink>
+          ))}
+        </nav>
+      )}
+
       <main className="main">
+        {sectionTabs && (
+          <nav className="sectiontabs" aria-label={pick(activeSection!.label)}>
+            {sectionTabs.map((tab) => (
+              <NavLink key={tab.to} to={tab.to} end>{pick(tab.label)}</NavLink>
+            ))}
+          </nav>
+        )}
         <GlobalBackButton lang={lang} />
         <Suspense fallback={<div className="page pageloading" role="status">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</div>}>
         <Routes>

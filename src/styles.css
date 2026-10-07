@@ -992,3 +992,36 @@ html[dir="rtl"] .quiz button{text-align:left}
 /* RTL: the active-nav indicator belongs on the inline-start (right) edge */
 html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
 .sitefooter a{color:var(--primary);font-weight:700;text-decoration:none}
+
+/* Section tabs: sub-navigation inside Learn / Practice / Progress */
+.sectiontabs{max-width:1500px;margin:0 auto;padding:22px 36px 0;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.sectiontabs::-webkit-scrollbar{display:none}
+.sectiontabs a{flex:0 0 auto;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap}
+.sectiontabs a:hover{border-color:var(--primary);color:var(--primary)}
+.sectiontabs a.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.sectiontabs+.page,.sectiontabs+*>.page{padding-top:20px}
+
+/* Mobile bottom tab bar (web + Android app) */
+.bottomtabs{display:none}
+@media(max-width:780px){
+  .sectiontabs{padding:16px 16px 0}
+  .bottomtabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:45;
+    display:grid;grid-template-columns:repeat(5,1fr);
+    background:#fff;border-top:1px solid var(--line);
+    box-shadow:0 -6px 20px rgba(24,52,92,.08);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .bottomtabs a{
+    min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    color:var(--muted);text-decoration:none;font-size:12px;font-weight:700;
+  }
+  .bottomtabs a.active{color:var(--primary)}
+  .bottomtabs a.active svg{background:var(--soft);border-radius:999px;padding:3px 14px;box-sizing:content-box}
+  .bottomtabs a:active{background:var(--soft)}
+  /* Keep content, footer, toasts and sticky action bars clear of the tab bar */
+  .shell.hasbottomtabs .sitefooter{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  .shell.hasbottomtabs .toast{bottom:calc(72px + env(safe-area-inset-bottom))}
+  .shell.hasbottomtabs .mcqsubmitbar{bottom:calc(68px + env(safe-area-inset-bottom))}
+  .shell.hasbottomtabs .datashowcontrols{bottom:calc(64px + env(safe-area-inset-bottom))}
+}
