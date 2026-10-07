@@ -167,11 +167,15 @@ export function ModuleAccessGate({
       <div className="moduleprice"><strong>{price || (productType === 'cases' ? 200 : 100)} EGP</strong><span>{tr('one-time payment', 'دفع مرة واحدة')}</span></div>
       <div className="modulepaywallbenefit"><ShieldCheck size={18}/>{tr('Permanent module access after successful payment', 'فتح الموديول بشكل دائم بعد نجاح الدفع')}</div>
       {message && <div className="authmessage">{message}</div>}
-      <button className="primary" onClick={() => void start()} disabled={busy}>
-        <CreditCard size={18}/>{busy ? tr('Opening payment…', 'جارٍ فتح الدفع…') : tr('Unlock module', 'افتح الموديول')}
-      </button>
+      <div className="manualcheckoutnotice compact">
+        <ShieldCheck size={18}/>
+        <div>
+          <strong>{tr('Manual payment is currently available', 'الدفع اليدوي هو المتاح حاليًا')}</strong>
+          <span>{tr('InstaPay / mobile wallet · verified before access opens', 'InstaPay / محفظة موبايل · يتم التحقق قبل فتح الوصول')}</span>
+        </div>
+      </div>
       <button
-        className="secondary"
+        className="primary"
         onClick={() => nav(
           '/manual-payment?target=module&module=' + encodeURIComponent(moduleCode)
           + '&product=' + encodeURIComponent(productType)
@@ -179,9 +183,9 @@ export function ModuleAccessGate({
           + '&amount=' + encodeURIComponent(String(price || (productType === 'cases' ? 200 : 100)))
         )}
       >
-        <CreditCard size={18}/>{tr('Pay manually by InstaPay / Wallet', 'ادفع يدويًا عن طريق InstaPay / المحفظة')}
+        <CreditCard size={18}/>{tr('Continue to manual payment', 'كمّل للدفع اليدوي')}
       </button>
-      <small>{tr('Manual payments are verified before access is opened.', 'الدفع اليدوي يتم التحقق منه قبل فتح الوصول.')}</small>
+      <small>{tr('Card and automated gateway payments are hidden until they are enabled.', 'الدفع بالبطاقات وبوابة الدفع مخفيين مؤقتًا لحد تفعيلهم.')}</small>
     </section>
   )
 }
