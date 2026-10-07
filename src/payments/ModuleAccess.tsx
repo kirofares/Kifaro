@@ -22,6 +22,7 @@ type ModuleEntitlement = {
   product_type: ModuleProductType
   academic_year: number
   revoked_at: string | null
+  price_paid_egp: number
 }
 
 export function useModuleAccess() {
@@ -49,7 +50,7 @@ export function useModuleAccess() {
         .eq('enabled', true),
       supabase
         .from('module_entitlements')
-        .select('module_code, product_type, academic_year, revoked_at')
+        .select('module_code, product_type, academic_year, revoked_at, price_paid_egp')
         .eq('user_id', user.id)
         .eq('academic_year', year),
     ])
@@ -74,13 +75,24 @@ export function useModuleAccess() {
   )
 
   const priceFor = useCallback(
-    (moduleCode: string, productType: ModuleProductType) =>
-      Number(products.find((item) =>
+    (moduleCode: string, productType: ModuleProductType) => {
+      const base = Number(products.find((item) =>
         item.academic_year === year
         && item.module_code === moduleCode
         && item.product_type === productType
-      )?.price_egp || 0),
-    [products, year],
+      )?.price_egp || 0)
+      if (productType !== 'assessment_bundle') return base
+      const alreadyPaid = entitlements
+        .filter((item) =>
+          !item.revoked_at
+          && item.academic_year === year
+          && item.module_code === moduleCode
+          && ['mcq', 'cases', 'osce'].includes(item.product_type)
+        )
+        .reduce((sum, item) => sum + Number(item.price_paid_egp || 0), 0)
+      return Math.max(0, base - alreadyPaid)
+    },
+    [products, entitlements, year],
   )
 
   const buy = useCallback(async (moduleCode: string, productType: ModuleProductType) => {
