@@ -4,7 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { anatomateYears, getLectureBySlug } from '../data/anatomate'
 import { useLang, useTr } from '../i18n'
 import { useMCQBank, type BankQuestion } from './useMCQBank'
-import { ModuleAccessGate } from '../payments/ModuleAccess'
+import { ModuleAccessGate, ModuleProductSummary } from '../payments/ModuleAccess'
 import { useStudentYear } from '../hooks/useStudentYear'
 import { useAdmin } from '../hooks/useAdmin'
 import { useAuth } from '../auth/AuthContext'
@@ -69,7 +69,11 @@ export function MCQBankPage() {
                         <h3>{module.title}</h3>
                         <p>{module.description}</p>
                       </div>
-                      <div className="mcqmodulemeta"><span>{count} MCQ</span><ChevronRight /></div>
+                      <div className="mcqmodulemeta">
+                        <span>{count} MCQ</span>
+                        <ModuleProductSummary moduleCode={module.code} productType="mcq" />
+                        <ChevronRight />
+                      </div>
                     </button>
                   )
                 })}
