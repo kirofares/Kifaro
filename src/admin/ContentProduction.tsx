@@ -11,13 +11,13 @@ import {
   RotateCcw,
   Search,
   Sparkles,
-  ThumbsUp,
+  UploadCloud,
   Workflow,
-  X,
 } from 'lucide-react'
 import { anatomateLectures } from '../data/anatomate'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
+import LectureDraftReview, { type ReviewDraft } from './LectureDraftReview'
 
 type StageKey = 'outline' | 'slides' | 'images' | 'clinical' | 'mcq' | 'cases' | 'osce' | 'recall' | 'final_qa' | 'publish'
 type StageState = 'pending' | 'in_progress' | 'needs_review' | 'complete' | 'blocked'
@@ -98,6 +98,9 @@ type DraftRow = {
   created_at: string
   updated_at: string
   approved_at: string | null
+  pptx_path: string | null
+  pdf_path: string | null
+  artifacts_built_at: string | null
 }
 
 type GenerationJob = {
@@ -207,7 +210,7 @@ export default function ContentProduction() {
         .select('lecture_id, mcq_total, mcq_ready, mcq_image_issues, case_total, case_ready, case_image_issues, osce_total, osce_ready, osce_image_issues, spotter_total, spotter_ready'),
       supabase
         .from('lecture_drafts')
-        .select('id, lecture_id, revision, status, model, content, feedback, created_at, updated_at, approved_at')
+        .select('id, lecture_id, revision, status, model, content, feedback, created_at, updated_at, approved_at, pptx_path, pdf_path, artifacts_built_at')
         .order('revision', { ascending: false }),
       supabase
         .from('lecture_generation_jobs')
@@ -363,7 +366,7 @@ export default function ContentProduction() {
         await load()
         const { data: draftData } = await supabase
           .from('lecture_drafts')
-          .select('id, lecture_id, revision, status, model, content, feedback, created_at, updated_at, approved_at')
+          .select('id, lecture_id, revision, status, model, content, feedback, created_at, updated_at, approved_at, pptx_path, pdf_path, artifacts_built_at')
           .eq('lecture_id', lectureId)
           .order('revision', { ascending: false })
           .limit(1)
