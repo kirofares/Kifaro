@@ -866,3 +866,7 @@ html[dir="rtl"] .casecard{text-align:right}
 
 
 .modulepaywall{border:1px solid var(--line);border-radius:16px;background:#fff;padding:22px;box-shadow:var(--shadow);text-align:center;display:grid;justify-items:center;gap:10px;margin:12px 0}.modulepaywall.loading{color:var(--muted);min-height:120px;place-items:center}.modulepaywallicon{width:52px;height:52px;border-radius:15px;background:var(--soft);color:var(--primary);display:grid;place-items:center}.modulepaywall h2{margin:0}.modulepaywall p{margin:0;max-width:620px;color:var(--muted);line-height:1.6}.moduleprice{display:flex;align-items:baseline;gap:8px}.moduleprice strong{font-size:28px;color:var(--primary)}.moduleprice span{font-size:12px;color:var(--muted)}.modulepaywallbenefit{display:flex;align-items:center;gap:7px;color:#2b7358;font-size:12px;font-weight:700}.modulepaywall .primary{min-width:180px;justify-content:center}
+
+
+.stationresultactions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.stationresultactions .primary,.stationresultactions .secondary{justify-content:center}
+@media(max-width:640px){.stationresultactions{width:100%;display:grid;grid-template-columns:1fr}.stationresultactions button{width:100%}}
