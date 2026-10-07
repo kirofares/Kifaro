@@ -283,7 +283,7 @@ export default function App() {
 
   const lectures = useMemo(
     () => anatomateLectures
-      .filter((lecture) => isAdmin || !user || !studentYear || lecture.year === studentYear)
+      .filter((lecture) => isAdmin || !user || (studentYear != null && lecture.year === studentYear))
       .filter((lecture) => lectureSettings.get(lecture.id)?.published ?? true)
       .map((lecture) => ({
         ...applyLectureSetting(lecture, lectureSettings.get(lecture.id)),
@@ -752,7 +752,7 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
-  const visibleYears = isAdmin || !user || !studentYear ? anatomateYears : anatomateYears.filter((item) => item.year === studentYear)
+  const visibleYears = isAdmin || !user ? anatomateYears : studentYear ? anatomateYears.filter((item) => item.year === studentYear) : []
   return (
     <div className="page">
       <section className="hero compact">
