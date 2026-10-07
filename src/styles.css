@@ -828,3 +828,11 @@ html[dir="rtl"] .casecard{text-align:right}
 .flashfilters .active{outline:2px solid var(--accent)}
 @media(max-width:850px){.flashstats{grid-template-columns:repeat(2,1fr)}.flashfilters{grid-template-columns:1fr 1fr}.flashsearch{grid-column:1/-1}.flashcard{min-height:330px;padding:22px}.flashactions{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.flashfilters{grid-template-columns:1fr}.flashsearch{grid-column:auto}.flashstats strong{font-size:24px}.flashcard{min-height:300px;border-radius:20px}.flashcard h2{font-size:25px}.flashactions{grid-template-columns:1fr}.flashnav{gap:10px}.flashnav button{flex:1}}
+
+
+.difficulty.d4{background:#fdecef;color:#b7193f}
+.caselevellegend{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 18px}
+.caselevellegend>div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.caselevellegend strong{display:block;font-size:12px}.caselevellegend span{display:block;margin-top:3px;color:var(--muted);font-size:11px}
+.caselevellegend>div:nth-child(1){border-color:#9ee3bd}.caselevellegend>div:nth-child(2){border-color:#a6ccff}.caselevellegend>div:nth-child(3){border-color:#ffc47f}.caselevellegend>div:nth-child(4){border-color:#f1a3b0}
+@media(max-width:780px){.caselevellegend{grid-template-columns:1fr 1fr}}
