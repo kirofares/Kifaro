@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1000">
+<rect width="900" height="1000" fill="#f8fbfd"/><text x="45" y="60" font-family="Arial" font-size="34" font-weight="700" fill="#0b2a3d">Humerus — Clinical Landmarks</text>
+<g transform="translate(250,110)" fill="#efd19a" stroke="#b58a52" stroke-width="8">
+<ellipse cx="180" cy="100" rx="105" ry="85"/><path d="M120 140 Q150 215 160 310 L155 650 Q150 745 95 820 L265 820 Q205 745 205 650 L200 310 Q210 215 240 140Z"/>
+<path d="M145 210 Q80 200 70 250 Q115 285 165 270Z"/><path d="M175 820 Q120 875 110 930 L250 930 Q240 875 190 820Z"/>
+</g>
+<g font-family="Arial" font-size="22" font-weight="700">
+<circle cx="680" cy="200" r="29" fill="#0ea5e9"/><text x="670" y="208" fill="white">1</text><line x1="651" y1="200" x2="530" y2="205" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="680" cy="320" r="29" fill="#0ea5e9"/><text x="670" y="328" fill="white">2</text><line x1="651" y1="320" x2="435" y2="355" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="680" cy="540" r="29" fill="#0ea5e9"/><text x="670" y="548" fill="white">3</text><line x1="651" y1="540" x2="455" y2="560" stroke="#0ea5e9" stroke-width="4"/>
+<circle cx="680" cy="820" r="29" fill="#0ea5e9"/><text x="670" y="828" fill="white">4</text><line x1="651" y1="820" x2="495" y2="890" stroke="#0ea5e9" stroke-width="4"/>
+</g>
+<text x="45" y="955" font-family="Arial" font-size="18" fill="#6b7f8c">Numbered illustration for spotter-style questions • AnatoMate by KIFARO</text>
+</svg>
