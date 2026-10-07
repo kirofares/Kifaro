@@ -532,6 +532,8 @@ Deno.serve(async (req: Request) => {
           prompt,
           size: '1536x1024',
           quality: imageQuality,
+          output_format: 'jpeg',
+          output_compression: 86,
           n: 1,
         }),
       })
@@ -552,11 +554,11 @@ Deno.serve(async (req: Request) => {
       }
 
       const bytes = Uint8Array.from(atob(String(imageBase64)), (char) => char.charCodeAt(0))
-      const storagePath = `drafts/${draft.id}/visuals/slide-${String(slideNumber).padStart(2, '0')}.png`
+      const storagePath = `drafts/${draft.id}/visuals/slide-${String(slideNumber).padStart(2, '0')}.jpg`
       const { error: uploadError } = await adminClient.storage
         .from('kifaro-content')
         .upload(storagePath, bytes, {
-          contentType: 'image/png',
+          contentType: 'image/jpeg',
           cacheControl: '3600',
           upsert: true,
         })
