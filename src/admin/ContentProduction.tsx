@@ -74,7 +74,7 @@ function deriveOverall(stages: Record<StageKey, StageState>): OverallState {
   if (values.includes('blocked')) return 'blocked'
   if (values.includes('needs_review')) return 'needs_review'
   if (stages.publish === 'complete') return 'published'
-  if (STAGES.every(({ key }) => stages[key] === 'complete')) return 'ready'
+  if (STAGES.filter(({ key }) => key !== 'publish').every(({ key }) => stages[key] === 'complete') && stages.publish === 'pending') return 'ready'
   if (values.some((value) => value !== 'pending')) return 'in_progress'
   return 'not_started'
 }
@@ -88,7 +88,7 @@ function progressPercent(stages: Record<StageKey, StageState>) {
 }
 
 function badgeLabel(value: string) {
-  return value.replaceAll('_', ' ')
+  return value.replace(/_/g, ' ')
 }
 
 export default function ContentProduction() {
