@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Brain, Check, RotateCcw, Search, Shuffle, X } from 'lucide-react'
+import { Brain, Check, RotateCcw, Search, Shuffle, X, AlertTriangle } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 type Flashcard = {
@@ -13,6 +14,7 @@ type Flashcard = {
 }
 
 type ReviewMap = Record<string, 'know' | 'review'>
+type WeaknessRow = { learning_point_id: string; wrong_count: number }
 
 function getArabic() {
   return document.documentElement.dir === 'rtl' || localStorage.getItem('kifaro-lang') === 'ar'
@@ -29,6 +31,10 @@ export default function FlashcardsPage() {
   const [reviewOnly,setReviewOnly]=useState(false)
   const [loading,setLoading]=useState(true)
   const [message,setMessage]=useState('')
+  const [weaknesses,setWeaknesses]=useState<WeaknessRow[]>([])
+  const [params]=useSearchParams()
+  const [weakOnly,setWeakOnly]=useState(params.get('weak')==='1')
+  const requestedLearningPoint=params.get('lp')
   const ar=getArabic()
 
   useEffect(() => {
@@ -43,37 +49,51 @@ export default function FlashcardsPage() {
     ])
     setCards((cardData || []) as Flashcard[])
     if (user) {
-      const {data:history}=await supabase
-        .from('flashcard_reviews')
-        .select('flashcard_id,rating,reviewed_at')
-        .eq('user_id',user.id)
-        .order('reviewed_at',{ascending:false})
+      const [{data:history},{data:weakData}]=await Promise.all([
+        supabase
+          .from('flashcard_reviews')
+          .select('flashcard_id,rating,reviewed_at')
+          .eq('user_id',user.id)
+          .order('reviewed_at',{ascending:false}),
+        supabase.rpc('get_my_active_weaknesses'),
+      ])
       const latest: ReviewMap={}
       for (const item of history || []) {
         if (!latest[item.flashcard_id]) latest[item.flashcard_id]=item.rating as 'know'|'review'
       }
       setReviews(latest)
+      setWeaknesses((weakData || []).map((w:any)=>({learning_point_id:w.learning_point_id,wrong_count:Number(w.wrong_count||1)})))
     }
     setLoading(false)
   }
 
   const lectures=useMemo(()=>Array.from(new Set(cards.map(c=>c.lecture_id))).sort(),[cards])
   const topics=useMemo(()=>Array.from(new Set(cards.filter(c=>lecture==='all'||c.lecture_id===lecture).map(c=>c.topic))).sort(),[cards,lecture])
+  const weakIds=useMemo(()=>new Set(weaknesses.map(w=>w.learning_point_id)),[weaknesses])
+  const weakCounts=useMemo(()=>new Map(weaknesses.map(w=>[w.learning_point_id,w.wrong_count])),[weaknesses])
   const filtered=useMemo(()=>cards.filter(card=>{
     if (lecture!=='all'&&card.lecture_id!==lecture) return false
     if (topic!=='all'&&card.topic!==topic) return false
     if (reviewOnly&&reviews[card.id]!=='review') return false
+    if (weakOnly&&!weakIds.has(card.learning_point_id)) return false
     if (query) {
       const hay=(card.front+' '+card.back+' '+card.topic+' '+(card.subtopic||'')).toLowerCase()
       if (!hay.includes(query.toLowerCase())) return false
     }
     return true
-  }),[cards,lecture,topic,query,reviewOnly,reviews])
+  }).sort((a,b)=>{
+    if (requestedLearningPoint) {
+      if (a.learning_point_id===requestedLearningPoint) return -1
+      if (b.learning_point_id===requestedLearningPoint) return 1
+    }
+    return Number(weakIds.has(b.learning_point_id))-Number(weakIds.has(a.learning_point_id))
+  }),[cards,lecture,topic,query,reviewOnly,reviews,weakOnly,weakIds,requestedLearningPoint])
 
-  useEffect(()=>{ setIndex(0); setFlipped(false) },[lecture,topic,query,reviewOnly])
+  useEffect(()=>{ setIndex(0); setFlipped(false) },[lecture,topic,query,reviewOnly,weakOnly,requestedLearningPoint])
   const card=filtered[index]
   const knownCount=Object.values(reviews).filter(v=>v==='know').length
   const reviewCount=Object.values(reviews).filter(v=>v==='review').length
+  const activeWeaknessCount=weaknesses.length
 
   async function rate(rating:'know'|'review') {
     if (!card) return
@@ -82,7 +102,12 @@ export default function FlashcardsPage() {
       const {data:{user}}=await supabase.auth.getUser()
       if (user) await supabase.from('flashcard_reviews').insert({user_id:user.id,flashcard_id:card.id,rating})
     }
-    setMessage(rating==='know' ? (ar?'تم تسجيلها كمعلومة متقنة':'Marked as known') : (ar?'اتضافت لقائمة المراجعة':'Added to review queue'))
+    const isWeak=weakIds.has(card.learning_point_id)
+    setMessage(rating==='know'
+      ? (isWeak
+          ? (ar?'راجعتها، لكن نقطة الضعف لن تُغلق إلا بعد إعادة الاختبار والإجابة الصحيحة.':'Reviewed. This weakness stays active until you retest it correctly.')
+          : (ar?'تم تسجيلها كمراجعة معروفة':'Marked as known for flashcard review'))
+      : (ar?'اتضافت لقائمة المراجعة':'Added to review queue'))
     setTimeout(()=>setMessage(''),1500)
     if (index<filtered.length-1) setIndex(i=>i+1)
     else setIndex(0)
@@ -106,15 +131,16 @@ export default function FlashcardsPage() {
       <div className="flashstats">
         <div><strong>{cards.length}</strong><span>{ar?'إجمالي الكروت':'Total cards'}</span></div>
         <div><strong>{knownCount}</strong><span>{ar?'متقن':'Known'}</span></div>
+        <div><strong>{activeWeaknessCount}</strong><span>{ar?'نقاط ضعف نشطة':'Active weaknesses'}</span></div>
         <div><strong>{reviewCount}</strong><span>{ar?'راجع تاني':'Review again'}</span></div>
-        <div><strong>{cards.length ? Math.round((knownCount/cards.length)*100) : 0}%</strong><span>{ar?'تقدمك':'Mastery'}</span></div>
       </div>
 
       <div className="flashfilters">
         <label><span>{ar?'المحاضرة':'Lecture'}</span><select value={lecture} onChange={e=>{setLecture(e.target.value);setTopic('all')}}><option value="all">{ar?'كل المحاضرات':'All lectures'}</option>{lectures.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
         <label><span>{ar?'الموضوع':'Topic'}</span><select value={topic} onChange={e=>setTopic(e.target.value)}><option value="all">{ar?'كل الموضوعات':'All topics'}</option>{topics.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
         <label className="flashsearch"><span>{ar?'بحث':'Search'}</span><div><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={ar?'ابحث في الكروت':'Search cards'}/></div></label>
-        <button className={reviewOnly?'secondary active':'secondary'} onClick={()=>setReviewOnly(v=>!v)}><RotateCcw size={17}/>{ar?'راجع الضعيف':'Review weak'}</button>
+        <button className={weakOnly?'secondary active':'secondary'} onClick={()=>setWeakOnly(v=>!v)}><AlertTriangle size={17}/>{ar?'Weakness فقط':'Weakness only'}</button>
+        <button className={reviewOnly?'secondary active':'secondary'} onClick={()=>setReviewOnly(v=>!v)}><RotateCcw size={17}/>{ar?'راجع تاني':'Review again'}</button>
         <button className="secondary" onClick={shuffle}><Shuffle size={17}/>{ar?'عشوائي':'Shuffle'}</button>
       </div>
 
@@ -122,6 +148,7 @@ export default function FlashcardsPage() {
         <div className="flashprogress"><span>{index+1} / {filtered.length}</span><div><i style={{width:`${((index+1)/filtered.length)*100}%`}}/></div></div>
         <button className={flipped?'flashcard flipped':'flashcard'} onClick={()=>setFlipped(v=>!v)} aria-label={ar?'اقلب الكارت':'Flip card'}>
           <div className="flashmeta"><span>{card.lecture_id}</span><span>{card.topic}</span></div>
+          {weakIds.has(card.learning_point_id) && <div className="flashweakbadge"><AlertTriangle size={16}/>{ar?'Weakness نشطة':'Active weakness'} · {weakCounts.get(card.learning_point_id) || 1}</div>}
           <div className="flashicon"><Brain/></div>
           {!flipped ? <>
             <small>{ar?'السؤال':'QUESTION'}</small>
@@ -138,13 +165,13 @@ export default function FlashcardsPage() {
 
         <div className="flashactions">
           <button className="reviewbtn" onClick={()=>void rate('review')}><X size={20}/>{ar?'راجع تاني':'Review again'}</button>
-          <button className="knowbtn" onClick={()=>void rate('know')}><Check size={20}/>{ar?'عارفها':'Know it'}</button>
+          <button className="knowbtn" onClick={()=>void rate('know')}><Check size={20}/>{ar?'راجعتها':'Reviewed'}</button>
         </div>
         <div className="flashnav">
           <button className="secondary" disabled={index===0} onClick={()=>{setIndex(i=>Math.max(0,i-1));setFlipped(false)}}>{ar?'السابق':'Previous'}</button>
           <button className="secondary" disabled={index>=filtered.length-1} onClick={()=>{setIndex(i=>Math.min(filtered.length-1,i+1));setFlipped(false)}}>{ar?'التالي':'Next'}</button>
         </div>
-      </> : <div className="empty"><h3>{ar?'مفيش كروت مطابقة':'No matching cards'}</h3><p>{ar?'غيّر الفلاتر أو أوقف Review weak.':'Change the filters or turn off Review weak.'}</p></div>}
+      </> : <div className="empty"><h3>{ar?'مفيش كروت مطابقة':'No matching cards'}</h3><p>{ar?'غيّر الفلاتر أو أوقف فلاتر المراجعة.':'Change the filters or turn off review filters.'}</p></div>}
 
       {message && <div className="toast">{message}</div>}
     </div>
