@@ -315,7 +315,8 @@ export function SpottersPage() {
 export function VivaBankPage() {
   const nav = useNavigate()
   const tr = useTr()
-  const lectures = anatomateLectures.filter((lecture) => Boolean(getVivaDeck(lecture.id)))
+  const { year: studentYear } = useStudentYear()
+  const lectures = anatomateLectures.filter((lecture) => (!studentYear || lecture.year === studentYear) && Boolean(getVivaDeck(lecture.id)))
 
   return (
     <div className="page assessmentpage">
