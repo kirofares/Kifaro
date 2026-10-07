@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CircleHelp, CreditCard, GraduationCap, KeyRound, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, XCircle } from 'lucide-react'
+import { Check, CircleHelp, CreditCard, GraduationCap, KeyRound, LayoutDashboard, LockOpen, Pencil, Save, Search, ShieldCheck, Users, Workflow, XCircle } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import * as tus from 'tus-js-client'
 import { anatomateLectures } from '../data/anatomate'
@@ -10,6 +10,7 @@ import { useLectureSettings } from '../hooks/useLectureSettings'
 import { usePricingRules, type PricingRule } from '../hooks/usePricingRules'
 import { useAssetReadiness } from '../hooks/useAssetReadiness'
 import MCQManager from './MCQManager'
+import ContentProduction from './ContentProduction'
 
 type Profile = {
   id: string
@@ -73,7 +74,7 @@ type PaymentTransaction = {
   created_at: string
 }
 
-type Tab = 'overview' | 'students' | 'purchases' | 'lectures' | 'mcq' | 'errors'
+type Tab = 'overview' | 'students' | 'purchases' | 'lectures' | 'production' | 'mcq' | 'errors'
 
 function pricingRuleScore(rule: PricingRule) {
   const yearScore = rule.academic_year == null ? 0 : 20
@@ -688,6 +689,7 @@ export default function AdminPage() {
         <button className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}><Users size={17}/>Students</button>
         <button className={tab === 'purchases' ? 'active' : ''} onClick={() => setTab('purchases')}><CreditCard size={17}/>Purchases</button>
         <button className={tab === 'lectures' ? 'active' : ''} onClick={() => setTab('lectures')}><GraduationCap size={17}/>Lectures</button>
+        <button className={tab === 'production' ? 'active' : ''} onClick={() => setTab('production')}><Workflow size={17}/>Production</button>
         <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}><CircleHelp size={17}/>MCQ Bank</button>
         <button className={tab === 'errors' ? 'active' : ''} onClick={() => setTab('errors')}><XCircle size={17}/>Errors</button>
       </div>
@@ -709,6 +711,7 @@ export default function AdminPage() {
               <button onClick={() => setTab('students')}><Users/>Manage students</button>
               <button onClick={() => setTab('purchases')}><LockOpen/>Grant lecture access</button>
               <button onClick={() => setTab('lectures')}><GraduationCap/>Review lecture pricing</button>
+              <button onClick={() => setTab('production')}><Workflow/>Continue content production</button>
             </div>
           </div>
         </>
@@ -922,6 +925,8 @@ export default function AdminPage() {
           </div>
         </>
       )}
+
+      {tab === 'production' && <ContentProduction />}
 
       {tab === 'mcq' && <MCQManager />}
 
