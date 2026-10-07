@@ -59,6 +59,7 @@ function useAssessmentItems(types?: AssessmentType[]) {
       .from('assessment_items')
       .select('id, assessment_type, year, module_code, lecture_id, title, stem, instructions, media_url, media_alt, difficulty, time_limit_seconds, content')
       .eq('published', true)
+      .eq('quality_status', 'ready')
       .order('year')
       .order('module_code')
       .order('created_at')
@@ -370,6 +371,7 @@ export function AssessmentItemPage() {
       .select('id, assessment_type, year, module_code, lecture_id, title, stem, instructions, media_url, media_alt, difficulty, time_limit_seconds, content')
       .eq('id', id)
       .eq('published', true)
+      .eq('quality_status', 'ready')
       .maybeSingle()
       .then(({ data }) => {
         const next = (data || null) as AssessmentItem | null
@@ -392,6 +394,8 @@ export function AssessmentItemPage() {
 
   const questions = item.content?.questions || []
   const checklist = item.content?.checklist || []
+  const mediaContext = [item.title, item.stem, item.instructions || '', ...questions.map((q) => q.prompt)].join(' ').toLowerCase()
+  const shouldShowMedia = Boolean(item.media_url) && /\b(image|figure|shown|specimen|radiograph|x-ray|xray|ct|mri|scan|ultrasound|diagram|photo|photograph|label|arrow|section|micrograph|karyotype)\b/.test(mediaContext)
   const autoScore = questions.reduce((sum, q, index) => sum + (answers[index] === q.answer ? 1 : 0), 0)
   const checklistScore = checklist.reduce((sum, row, index) => sum + (checked[index] ? Number(row.marks || 0) : 0), 0)
   const maxScore = questions.length + checklist.reduce((sum, row) => sum + Number(row.marks || 0), 0)
@@ -426,7 +430,7 @@ export function AssessmentItemPage() {
         <>
           <section className="stationstem">
             <p>{item.stem}</p>
-            {item.media_url && <figure><img src={item.media_url} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
+            {shouldShowMedia && <figure><img src={item.media_url!} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
           </section>
 
           {questions.length > 0 && <div className="stationquestions">
