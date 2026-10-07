@@ -38,6 +38,7 @@ export default function ManualPaymentPage() {
   const lectureId = params.get('lecture') || ''
   const moduleCode = (params.get('module') || '').toUpperCase()
   const productType = params.get('product') || ''
+  const requestedYear = Number(params.get('year') || 0) || null
   const requestedAmount = Number(params.get('amount') || 0)
   const requestedViewLimit = Number(params.get('viewLimit') || 0) || null
 
@@ -58,7 +59,10 @@ export default function ManualPaymentPage() {
 
   const title = target === 'lecture'
     ? lecture?.title || lectureId
-    : tr('Module ' + moduleCode, 'موديول ' + moduleCode)
+    : tr(
+        (requestedYear ? 'Year ' + requestedYear + ' · ' : '') + 'Module ' + moduleCode,
+        (requestedYear ? 'السنة ' + requestedYear + ' · ' : '') + 'موديول ' + moduleCode
+      )
 
   const amount = existing?.amount_egp || requestedAmount
   const selectedChannel = channels.find((item) => item.id === channelId)
@@ -80,7 +84,10 @@ export default function ManualPaymentPage() {
       .limit(1)
 
     if (target === 'lecture') requestQuery.eq('lecture_id', lectureId)
-    else requestQuery.eq('module_code', moduleCode)
+    else {
+      requestQuery.eq('module_code', moduleCode)
+      if (requestedYear) requestQuery.eq('academic_year', requestedYear)
+    }
 
     const [channelResult, requestResult] = await Promise.all([
       supabase
@@ -100,7 +107,7 @@ export default function ManualPaymentPage() {
 
   useEffect(() => {
     void load()
-  }, [user?.id, target, lectureId, moduleCode, productType])
+  }, [user?.id, target, lectureId, moduleCode, productType, requestedYear])
 
   const copyDestination = async () => {
     if (!selectedChannel?.destination) return
@@ -153,6 +160,7 @@ export default function ManualPaymentPage() {
       target_type: target,
       lecture_id: target === 'lecture' ? lectureId : null,
       module_code: target === 'module' ? moduleCode : null,
+      academic_year: target === 'module' ? requestedYear : null,
       product_type: productType,
       amount_egp: requestedAmount,
       view_limit: requestedViewLimit,
