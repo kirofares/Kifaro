@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { CreditCard, LockKeyhole, ShieldCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
+import { useAdmin } from '../hooks/useAdmin'
 import { useStudentYear } from '../hooks/useStudentYear'
 import { useTr } from '../i18n'
 
@@ -24,6 +25,7 @@ type ModuleEntitlement = {
 
 export function useModuleAccess() {
   const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
   const { year } = useStudentYear()
   const [products, setProducts] = useState<ModuleProduct[]>([])
   const [entitlements, setEntitlements] = useState<ModuleEntitlement[]>([])
@@ -66,8 +68,8 @@ export function useModuleAccess() {
 
   const hasAccess = useCallback(
     (moduleCode: string, productType: ModuleProductType) =>
-      owned.has(moduleCode + '::' + productType),
-    [owned],
+      isAdmin || owned.has(moduleCode + '::' + productType),
+    [owned, isAdmin],
   )
 
   const priceFor = useCallback(
