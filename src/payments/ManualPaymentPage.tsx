@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Copy, FileCheck2, Landmark, Phone, ReceiptText, Upload } from 'lucide-react'
+import { CheckCircle2, Copy, ExternalLink, FileCheck2, Landmark, Phone, ReceiptText, Upload } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { anatomateLectures } from '../data/anatomate'
@@ -66,6 +66,7 @@ export default function ManualPaymentPage() {
 
   const amount = existing?.amount_egp || requestedAmount
   const selectedChannel = channels.find((item) => item.id === channelId)
+  const paymentAppUrl = selectedChannel ? 'https://www.instapay.eg/?lang=ar' : ''
 
   const load = async () => {
     if (!supabase || !user) {
@@ -259,7 +260,15 @@ export default function ManualPaymentPage() {
                     <strong><bdi>{selectedChannel.destination}</bdi></strong>
                     {selectedChannel.account_name && <span>{selectedChannel.account_name}</span>}
                     {selectedChannel.instructions && <p>{selectedChannel.instructions}</p>}
-                    <button className="secondary" onClick={() => void copyDestination()}><Copy size={16}/>{tr('Copy', 'نسخ')}</button>
+                    <div className="manualdestinationactions">
+                      <button className="secondary" onClick={() => void copyDestination()}><Copy size={16}/>{tr('Copy', 'نسخ')}</button>
+                      <a className="primary" href={paymentAppUrl} target="_blank" rel="noreferrer">
+                        <ExternalLink size={16}/>
+                        {selectedChannel.id === 'wallet'
+                          ? tr('Open InstaPay to wallet', 'افتح InstaPay للتحويل للمحفظة')
+                          : tr('Open InstaPay', 'افتح InstaPay')}
+                      </a>
+                    </div>
                   </div>
                 )}
 

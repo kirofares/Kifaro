@@ -69,6 +69,7 @@ export default function ManualPaymentsAdmin({ onChanged }: { onChanged?: () => v
 
   const profileMap = useMemo(() => new Map(profiles.map((item) => [item.id, item])), [profiles])
   const visible = filter === 'all' ? requests : requests.filter((item) => item.status === filter)
+  const pendingCount = requests.filter((item) => item.status === 'pending').length
 
   const review = async (id: string, action: 'approve'|'reject') => {
     if (!supabase || busy) return
@@ -122,18 +123,106 @@ export default function ManualPaymentsAdmin({ onChanged }: { onChanged?: () => v
 
   return (
     <div className="manualadmin">
-      <div className="adminpanel">
+      <section className="adminpanel manualrequestpanel">
         <div className="adminpanelhead">
           <div>
-            <h2>Manual payment channels</h2>
-            <p>Enter your real InstaPay address or wallet number here. Students only see channels marked Active.</p>
+            <h2>Manual payment requests</h2>
+            <p>Confirm the transfer in your InstaPay/wallet app before approving. Pending requests: <strong>{pendingCount}</strong>.</p>
           </div>
+          <button className="secondary" onClick={() => void load()}><RefreshCw size={16}/>Refresh</button>
         </div>
+
+        <div className="manualfilters" role="tablist" aria-label="Payment status filter">
+          {(['pending','all','approved','rejected'] as const).map((item) => (
+            <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>
+              {item === 'pending' ? 'Pending' : item === 'all' ? 'All' : item === 'approved' ? 'Approved' : 'Rejected'}
+            </button>
+          ))}
+        </div>
+
+        {message && <div className="adminmessage">{message}</div>}
+
+        <div className="manualrequestlist">
+          {visible.length ? visible.map((item) => {
+            const profile = profileMap.get(item.user_id)
+            const accessName = item.target_type === 'module' ? item.module_code : item.lecture_id
+            return (
+              <article className="manualrequestcard" key={item.id}>
+                <div className="manualrequesttop">
+                  <div>
+                    <small>ORDER</small>
+                    <strong>{item.reference_code}</strong>
+                    <span>{new Date(item.created_at).toLocaleString()}</span>
+                  </div>
+                  <span className={'adminbadge manual-' + item.status}>{item.status}</span>
+                </div>
+
+                <div className="manualrequestgrid">
+                  <div>
+                    <small>STUDENT</small>
+                    <strong>{profile?.full_name || 'Student'}</strong>
+                    <span>{profile?.email || item.user_id}</span>
+                    {profile?.phone_no && <span>{profile.phone_no}</span>}
+                  </div>
+                  <div>
+                    <small>ACCESS</small>
+                    <strong>{accessName || '—'}</strong>
+                    <span>{item.product_type} · Year {item.academic_year || '—'}</span>
+                  </div>
+                  <div>
+                    <small>AMOUNT</small>
+                    <strong>{Number(item.amount_egp)} EGP</strong>
+                    <span>{item.payment_method}</span>
+                  </div>
+                  <div>
+                    <small>TRANSACTION REFERENCE</small>
+                    <strong>{item.transfer_reference}</strong>
+                    {item.student_note && <span>{item.student_note}</span>}
+                  </div>
+                </div>
+
+                <div className="manualrequestactions">
+                  <button className="secondary" disabled={!item.receipt_path} onClick={() => void openReceipt(item.receipt_path)}>
+                    <ExternalLink size={15}/>Open receipt
+                  </button>
+
+                  {item.status === 'pending' ? (
+                    <div className="manualreview">
+                      <input
+                        value={notes[item.id] || ''}
+                        onChange={(e) => setNotes((current) => ({...current,[item.id]:e.target.value}))}
+                        placeholder="Admin note (optional)"
+                      />
+                      <button className="primary" disabled={busy === item.id} onClick={() => void review(item.id,'approve')}>
+                        <Check size={15}/>Approve & unlock
+                      </button>
+                      <button className="secondary danger" disabled={busy === item.id} onClick={() => void review(item.id,'reject')}>
+                        <X size={15}/>Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="manualreviewed">
+                      {item.admin_note && <span>{item.admin_note}</span>}
+                      <small>{item.reviewed_at ? new Date(item.reviewed_at).toLocaleString() : '—'}</small>
+                    </div>
+                  )}
+                </div>
+              </article>
+            )
+          }) : (
+            <div className="manualempty">No manual payment requests in this view.</div>
+          )}
+        </div>
+      </section>
+
+      <details className="adminpanel manualchannelsettings">
+        <summary>Payment channel settings</summary>
+        <p>Students only see channels marked Active. Keep these settings collapsed during normal payment review.</p>
         <div className="manualchanneladmin">
           {channels.map((channel) => (
             <div className="manualchannelrow" key={channel.id}>
               <div><strong>{channel.label}</strong><small>{channel.id}</small></div>
-              <label>Destination<input value={channel.destination} onChange={(e) => patchChannel(channel.id,{destination:e.target.value})} placeholder={channel.id === 'instapay' ? 'InstaPay address / mobile' : 'Wallet mobile number'} /></label>
+              <label>Destination<input value={channel.destination} onChange={(e) => patchChannel(channel.id,{destination:e.target.value})} placeholder={channel.id.startsWith('instapay') ? 'InstaPay address / mobile' : 'Wallet mobile number'} /></label>
               <label>Account name<input value={channel.account_name || ''} onChange={(e) => patchChannel(channel.id,{account_name:e.target.value})} placeholder="Recipient name" /></label>
               <label>Instructions<input value={channel.instructions || ''} onChange={(e) => patchChannel(channel.id,{instructions:e.target.value})} /></label>
               <label className="manualtoggle"><input type="checkbox" checked={channel.active} onChange={(e) => patchChannel(channel.id,{active:e.target.checked})}/>Active</label>
@@ -141,53 +230,7 @@ export default function ManualPaymentsAdmin({ onChanged }: { onChanged?: () => v
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="adminpanel">
-        <div className="adminpanelhead">
-          <div><h2>Manual payment requests</h2><p>Verify the transfer in your InstaPay/wallet app before approving. A receipt screenshot alone is not proof of payment.</p></div>
-          <button className="secondary" onClick={() => void load()}><RefreshCw size={16}/>Refresh</button>
-        </div>
-
-        <div className="adminquick manualfilters">
-          {(['pending','all','approved','rejected'] as const).map((item) => (
-            <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>
-          ))}
-        </div>
-
-        {message && <div className="adminmessage">{message}</div>}
-
-        <div className="admintablewrap">
-          <table className="admintable manualpaymenttable">
-            <thead><tr><th>Order</th><th>Student</th><th>Access</th><th>Amount</th><th>Transfer</th><th>Receipt</th><th>Status</th><th>Review</th></tr></thead>
-            <tbody>
-              {visible.length ? visible.map((item) => {
-                const profile = profileMap.get(item.user_id)
-                return (
-                  <tr key={item.id}>
-                    <td><strong>{item.reference_code}</strong><small>{new Date(item.created_at).toLocaleString()}</small></td>
-                    <td><strong>{profile?.full_name || 'Student'}</strong><small>{profile?.email || item.user_id}</small><small>{profile?.phone_no || ''}</small></td>
-                    <td><strong>{item.target_type === 'module' ? item.module_code : item.lecture_id}</strong><small>{item.product_type} · Year {item.academic_year || '—'}</small></td>
-                    <td><strong>{Number(item.amount_egp)} EGP</strong><small>{item.payment_method}</small></td>
-                    <td><strong>{item.transfer_reference}</strong>{item.student_note && <small>{item.student_note}</small>}</td>
-                    <td><button className="secondary" disabled={!item.receipt_path} onClick={() => void openReceipt(item.receipt_path)}><ExternalLink size={15}/>Open</button></td>
-                    <td><span className={'adminbadge manual-' + item.status}>{item.status}</span>{item.admin_note && <small>{item.admin_note}</small>}</td>
-                    <td>
-                      {item.status === 'pending' ? (
-                        <div className="manualreview">
-                          <input value={notes[item.id] || ''} onChange={(e) => setNotes((current) => ({...current,[item.id]:e.target.value}))} placeholder="Admin note (optional)" />
-                          <button className="primary" disabled={busy === item.id} onClick={() => void review(item.id,'approve')}><Check size={15}/>Approve</button>
-                          <button className="secondary danger" disabled={busy === item.id} onClick={() => void review(item.id,'reject')}><X size={15}/>Reject</button>
-                        </div>
-                      ) : <small>{item.reviewed_at ? new Date(item.reviewed_at).toLocaleString() : '—'}</small>}
-                    </td>
-                  </tr>
-                )
-              }) : <tr><td colSpan={8}>No manual payment requests in this view.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </details>
     </div>
   )
 }

@@ -1320,31 +1320,15 @@ function CheckoutPage() {
           </>
         ) : (
           <>
-            <small className="assetnote">{tr('Your price is matched to your academic year and nationality. Paymob confirms payment server-to-server before KIFARO unlocks access.', 'السعر محسوب حسب سنتك الدراسية وجنسيتك. Paymob بيأكد الدفع مع السيرفر قبل ما KIFARO يفتح المحتوى.')}</small>
-
-            <div className="paymentmethodchooser" role="group" aria-label={tr('Payment method', 'طريقة الدفع')}>
-              <button className={paymentMethod === 'card' ? 'selected' : ''} onClick={() => setPaymentMethod('card')}>
-                <CreditCard size={20} />
-                <div><strong>{tr('Bank card', 'بطاقة بنكية')}</strong><span>{tr('Visa / Mastercard', 'فيزا / ماستركارد')}</span></div>
-              </button>
-              <button className={paymentMethod === 'wallet' ? 'selected' : ''} onClick={() => setPaymentMethod('wallet')}>
-                <Phone size={20} />
-                <div><strong>{tr('Mobile Wallet', 'محفظة موبايل')}</strong><span>{tr('Vodafone Cash and supported wallets', 'فودافون كاش والمحافظ المدعومة')}</span></div>
-              </button>
+            <div className="manualcheckoutnotice">
+              <ShieldCheck size={20} />
+              <div>
+                <strong>{tr('Manual payment is currently available', 'الدفع اليدوي هو المتاح حاليًا')}</strong>
+                <span>{tr('Pay by InstaPay or mobile wallet, then submit the transaction reference and receipt for verification.', 'ادفع عن طريق InstaPay أو المحفظة، ثم ابعت رقم العملية والإيصال للمراجعة.')}</span>
+              </div>
             </div>
-
-            <button className="primary full" disabled={paymentBusy || entitlementsLoading || offerLoading} onClick={() => void startPayment()}>
-              {paymentMethod === 'wallet' ? <Phone size={17} /> : <CreditCard size={17} />}
-              {paymentBusy
-                ? tr('Opening Paymob…', 'جارٍ فتح Paymob…')
-                : entitlementsLoading || offerLoading
-                  ? tr('Checking account…', 'جارٍ التحقق من الحساب…')
-                  : paymentMethod === 'wallet'
-                    ? tr('Pay with Mobile Wallet', 'ادفع بمحفظة الموبايل')
-                    : tr('Pay securely with Paymob', 'ادفع بأمان عبر Paymob')}
-            </button>
             <button
-              className="secondary full"
+              className="primary full"
               disabled={entitlementsLoading || offerLoading}
               onClick={() => nav(
                 '/manual-payment?target=lecture&lecture=' + encodeURIComponent(lecture.id)
@@ -1353,11 +1337,9 @@ function CheckoutPage() {
                 + (offer.viewLimit == null ? '' : '&viewLimit=' + encodeURIComponent(String(offer.viewLimit)))
               )}
             >
-              <Phone size={17} /> {tr('Pay manually by InstaPay / Wallet', 'ادفع يدويًا عن طريق InstaPay / المحفظة')}
+              <Phone size={17} /> {tr('Continue to manual payment', 'كمّل للدفع اليدوي')}
             </button>
-            <small className="assetnote">{tr('Temporary option: submit your transfer reference and receipt. Access opens only after admin verification.', 'خيار مؤقت: ابعت رقم العملية والإيصال، والمحتوى يفتح فقط بعد مراجعة الإدارة.')}</small>
-            {PAYMOB_TEST_MODE && <small className="paymenttestnote">{tr('Paymob is currently in TEST MODE — no real money is charged during testing.', 'بوابة Paymob حاليًا في وضع التجربة — مفيش فلوس حقيقية بتتخصم.')}</small>}
-            {paymentMessage && <div className="authmessage">{paymentMessage}</div>}
+            <small className="assetnote">{tr('Card and automated gateway payments are hidden until they are officially enabled. Access opens only after KIFARO verifies your transfer.', 'الدفع بالبطاقات وبوابة الدفع مخفيين مؤقتًا لحد تفعيلهم رسميًا. المحتوى يفتح فقط بعد مراجعة التحويل من KIFARO.')}</small>
           </>
         )}
 
