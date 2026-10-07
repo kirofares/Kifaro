@@ -194,6 +194,8 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = Deno.env.get('OPENAI_API_KEY')
     const model = Deno.env.get('OPENAI_LECTURE_MODEL') || 'gpt-5.6-sol'
+    const imageModel = Deno.env.get('OPENAI_IMAGE_MODEL') || 'gpt-image-2'
+    const imageQuality = Deno.env.get('OPENAI_IMAGE_QUALITY') || 'medium'
     const configured = Boolean(apiKey)
 
     const body = await req.json().catch(() => ({}))
@@ -203,8 +205,10 @@ Deno.serve(async (req: Request) => {
       return json({
         configured,
         model,
+        imageModel,
+        imageQuality,
         requiredSecrets: configured ? [] : ['OPENAI_API_KEY'],
-        optionalSecrets: ['OPENAI_LECTURE_MODEL'],
+        optionalSecrets: ['OPENAI_LECTURE_MODEL', 'OPENAI_IMAGE_MODEL', 'OPENAI_IMAGE_QUALITY'],
       })
     }
 
@@ -280,6 +284,15 @@ Deno.serve(async (req: Request) => {
         updated_by: userData.user.id,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'lecture_id' })
+
+      // New curriculum slots enter production hidden. Existing published lectures keep their current state
+      // so a revision never removes the live version while a new draft is being prepared.
+      await adminClient.from('lecture_settings').upsert({
+        lecture_id: lectureId,
+        published: false,
+        updated_by: userData.user.id,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'lecture_id', ignoreDuplicates: true })
 
       const createResponse = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
@@ -448,17 +461,211 @@ Deno.serve(async (req: Request) => {
       return json({ status: 'completed', jobId, draft })
     }
 
+    if (action === 'generate_visual') {
+      const draftId = String(body?.draftId || '').trim()
+      const slideNumber = Number(body?.slideNumber || 0)
+      if (!draftId || !Number.isInteger(slideNumber) || slideNumber < 1) {
+        return json({ error: 'draftId and a valid slideNumber are required' }, 400)
+      }
+
+      const { data: draft, error: draftError } = await adminClient
+        .from('lecture_drafts')
+        .select('id, lecture_id, revision, content')
+        .eq('id', draftId)
+        .maybeSingle()
+      if (draftError) return json({ error: draftError.message }, 500)
+      if (!draft) return json({ error: 'Draft not found' }, 404)
+
+      const slides = Array.isArray(draft.content?.slides) ? draft.content.slides : []
+      const slide = slides.find((item: any, index: number) => Number(item?.slide_number || index + 1) === slideNumber)
+      if (!slide) return json({ error: 'Slide not found in this draft' }, 404)
+      if (!slide.visual_required) return json({ error: 'This slide is not marked as requiring a visual' }, 400)
+
+      const visibleStructures = Array.isArray(slide.visual_labels) ? slide.visual_labels.filter(Boolean) : []
+      const prompt = [
+        'Create a medically accurate educational anatomy illustration for a university medical lecture.',
+        'This image will be reviewed by an anatomy lecturer before use.',
+        'Do NOT include any text, letters, arrows, labels, captions, logos, watermarks, legends, or numbering inside the image. Text labels will be overlaid separately in PowerPoint.',
+        'Use a clean atlas-like digital medical illustration, realistic proportions, clear tissue differentiation, uncluttered composition, neutral light background, and no decorative elements.',
+        'Do not invent structures. Do not add pathology unless the brief explicitly asks for it.',
+        `Lecture: ${String(draft.content?.lecture_title || draft.lecture_id)}.`,
+        `Slide: ${String(slide.title || slideNumber)}.`,
+        `Visual brief: ${String(slide.visual_brief || '')}`,
+        visibleStructures.length ? `Structures that must be anatomically visible: ${visibleStructures.join(', ')}.` : '',
+        slide.clinical_application ? `Clinical context, only if relevant to the requested view: ${String(slide.clinical_application)}` : '',
+      ].filter(Boolean).join('\n')
+
+      const now = new Date().toISOString()
+      const { data: visual, error: visualStartError } = await adminClient
+        .from('lecture_draft_visuals')
+        .upsert({
+          draft_id: draft.id,
+          lecture_id: draft.lecture_id,
+          slide_number: slideNumber,
+          status: 'generating',
+          prompt,
+          storage_path: null,
+          model: imageModel,
+          quality: imageQuality,
+          error_message: null,
+          created_by: userData.user.id,
+          approved_by: null,
+          approved_at: null,
+          generated_at: null,
+          updated_at: now,
+        }, { onConflict: 'draft_id,slide_number' })
+        .select('id, draft_id, lecture_id, slide_number, status, prompt, storage_path, model, quality, error_message, generated_at, approved_at, updated_at')
+        .single()
+
+      if (visualStartError || !visual) {
+        return json({ error: visualStartError?.message || 'Could not start visual generation' }, 500)
+      }
+
+      const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: imageModel,
+          prompt,
+          size: '1536x1024',
+          quality: imageQuality,
+          output_format: 'jpeg',
+          output_compression: 86,
+          n: 1,
+        }),
+      })
+
+      const imageText = await imageResponse.text()
+      let imageResult: any = null
+      try { imageResult = JSON.parse(imageText) } catch {}
+      const imageBase64 = imageResult?.data?.[0]?.b64_json
+
+      if (!imageResponse.ok || !imageBase64) {
+        const errorMessage = imageResult?.error?.message || imageText || 'Image generation failed.'
+        await adminClient.from('lecture_draft_visuals').update({
+          status: 'failed',
+          error_message: errorMessage,
+          updated_at: new Date().toISOString(),
+        }).eq('id', visual.id)
+        return json({ error: errorMessage }, 502)
+      }
+
+      const bytes = Uint8Array.from(atob(String(imageBase64)), (char) => char.charCodeAt(0))
+      const storagePath = `drafts/${draft.id}/visuals/slide-${String(slideNumber).padStart(2, '0')}.jpg`
+      const { error: uploadError } = await adminClient.storage
+        .from('kifaro-content')
+        .upload(storagePath, bytes, {
+          contentType: 'image/jpeg',
+          cacheControl: '3600',
+          upsert: true,
+        })
+
+      if (uploadError) {
+        await adminClient.from('lecture_draft_visuals').update({
+          status: 'failed',
+          error_message: uploadError.message,
+          updated_at: new Date().toISOString(),
+        }).eq('id', visual.id)
+        return json({ error: uploadError.message }, 500)
+      }
+
+      const generatedAt = new Date().toISOString()
+      const { data: savedVisual, error: saveVisualError } = await adminClient
+        .from('lecture_draft_visuals')
+        .update({
+          status: 'needs_review',
+          storage_path: storagePath,
+          error_message: null,
+          generated_at: generatedAt,
+          updated_at: generatedAt,
+        })
+        .eq('id', visual.id)
+        .select('id, draft_id, lecture_id, slide_number, status, prompt, storage_path, model, quality, error_message, generated_at, approved_at, updated_at')
+        .single()
+
+      if (saveVisualError || !savedVisual) return json({ error: saveVisualError?.message || 'Could not save visual metadata' }, 500)
+
+      // Any regenerated visual invalidates previously rendered preview files.
+      await adminClient.from('lecture_drafts').update({
+        pptx_path: null,
+        pdf_path: null,
+        artifacts_built_at: null,
+        updated_at: generatedAt,
+      }).eq('id', draft.id)
+
+      return json({ visual: savedVisual })
+    }
+
+    if (action === 'approve_visual') {
+      const visualId = String(body?.visualId || '').trim()
+      if (!visualId) return json({ error: 'visualId is required' }, 400)
+
+      const now = new Date().toISOString()
+      const { data: visual, error } = await adminClient
+        .from('lecture_draft_visuals')
+        .update({
+          status: 'approved',
+          approved_by: userData.user.id,
+          approved_at: now,
+          updated_at: now,
+        })
+        .eq('id', visualId)
+        .eq('status', 'needs_review')
+        .select('id, draft_id, lecture_id, slide_number, status, storage_path, model, quality, generated_at, approved_at, updated_at')
+        .maybeSingle()
+
+      if (error) return json({ error: error.message }, 500)
+      if (!visual) return json({ error: 'Visual is not ready for approval' }, 409)
+      return json({ visual })
+    }
+
     if (action === 'approve') {
       const draftId = String(body?.draftId || '').trim()
       if (!draftId) return json({ error: 'draftId is required' }, 400)
 
       const { data: draft, error: draftError } = await adminClient
         .from('lecture_drafts')
-        .select('id, lecture_id, revision, status')
+        .select('id, lecture_id, revision, status, content, pptx_path, pdf_path, artifacts_built_at')
         .eq('id', draftId)
         .maybeSingle()
       if (draftError) return json({ error: draftError.message }, 500)
       if (!draft) return json({ error: 'Draft not found' }, 404)
+
+      const requiredVisualSlides = (Array.isArray(draft.content?.slides) ? draft.content.slides : [])
+        .map((slide: any, index: number) => ({
+          slideNumber: Number(slide?.slide_number || index + 1),
+          required: Boolean(slide?.visual_required),
+        }))
+        .filter((item: any) => item.required)
+        .map((item: any) => item.slideNumber)
+
+      if (requiredVisualSlides.length) {
+        const { data: approvedVisuals, error: visualError } = await adminClient
+          .from('lecture_draft_visuals')
+          .select('slide_number, status')
+          .eq('draft_id', draft.id)
+          .eq('status', 'approved')
+
+        if (visualError) return json({ error: visualError.message }, 500)
+        const approvedNumbers = new Set((approvedVisuals || []).map((item: any) => Number(item.slide_number)))
+        const missingVisualSlides = requiredVisualSlides.filter((slideNumber: number) => !approvedNumbers.has(slideNumber))
+        if (missingVisualSlides.length) {
+          return json({
+            error: 'Approve every required visual before approving the lecture.',
+            missingVisualSlides,
+          }, 409)
+        }
+      }
+
+      if (!draft.pptx_path || !draft.pdf_path) {
+        return json({
+          error: 'Build the PPTX and PDF preview before approving this lecture.',
+          artifactsRequired: true,
+        }, 409)
+      }
 
       await adminClient
         .from('lecture_drafts')
@@ -498,6 +705,15 @@ Deno.serve(async (req: Request) => {
         updated_by: userData.user.id,
       }).eq('lecture_id', draft.lecture_id)
       if (productionError) return json({ error: productionError.message }, 500)
+
+      const { error: assetError } = await adminClient.from('lecture_assets').upsert({
+        lecture_id: draft.lecture_id,
+        pptx_path: draft.pptx_path,
+        pdf_path: draft.pdf_path,
+        updated_at: now,
+        updated_by: userData.user.id,
+      }, { onConflict: 'lecture_id' })
+      if (assetError) return json({ error: assetError.message }, 500)
 
       return json({
         approved: true,

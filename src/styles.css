@@ -963,3 +963,19 @@ html[dir="rtl"] .casecard{text-align:right}
   .draftsummary{grid-template-columns:repeat(2,minmax(0,1fr))}
   .draftmodalbackdrop{padding:8px}.draftmodal{padding:14px;border-radius:14px}
 }
+
+
+/* Generated lecture visual QA */
+.draftvisualreview{margin-top:10px;border:1px solid #d9eaf2;background:#fbfdfe;border-radius:14px;padding:10px;display:grid;gap:10px}
+.draftvisualbrief{display:grid;gap:5px}.draftvisualbrief>strong{display:flex;align-items:center;gap:6px;font-size:11px;color:#0d70b8}.draftvisualbrief p{margin:0;font-size:11px;line-height:1.5;color:#425b70}.draftvisualbrief span{font-size:9px;color:#71879a}
+.draftvisualpreview{position:relative;border-radius:12px;overflow:hidden;background:#eef5f8;border:1px solid #d7e8f1;max-width:720px}.draftvisualpreview img{display:block;width:100%;height:auto;max-height:430px;object-fit:contain;background:#fff}
+.visualreviewbadge{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,.94);border:1px solid #d7e8f1;font-size:10px;font-weight:800;text-transform:capitalize;color:#5c7589}
+.visualreviewbadge.approved{color:#13733b;border-color:#bee2ca;background:rgba(240,251,244,.96)}.visualreviewbadge.needs_review{color:#8b5b00;border-color:#efd69c;background:rgba(255,249,234,.97)}.visualreviewbadge.failed{color:#a83232;border-color:#edc5c5;background:rgba(255,243,243,.97)}
+.draftvisualactions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.visualapproved{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#13733b}.visualerror{border:1px solid #efcaca;background:#fff3f3;color:#983434;border-radius:9px;padding:8px;font-size:10px;line-height:1.45}
+.artifactreview{display:grid;grid-template-columns:minmax(230px,1fr) auto auto;gap:12px;align-items:center;border:1px solid #cfe4ed;background:#f7fbfd;border-radius:14px;padding:14px}.artifactreview>div:first-child{display:flex;gap:10px;align-items:center}.artifactreview>div:first-child span{display:grid;gap:2px}.artifactreview strong{font-size:12px;color:#123658}.artifactreview small{font-size:10px;color:#5c7589}
+.artifactstatus{display:flex;gap:6px;flex-wrap:wrap}.artifactstatus span,.artifactstatus button{display:inline-flex;align-items:center;gap:5px;border:1px solid #d7e8f1;border-radius:999px;padding:6px 8px;font-size:9px;font-weight:800;color:#71879a;background:#fff}.artifactstatus button{cursor:pointer}.artifactstatus .ready{color:#13733b;border-color:#c8e7d2;background:#f1faf4}
+.spin{animation:kifaro-spin 1s linear infinite}@keyframes kifaro-spin{to{transform:rotate(360deg)}}
+@media(max-width:800px){.artifactreview{grid-template-columns:1fr}.artifactstatus{justify-content:flex-start}.draftvisualactions{display:grid;grid-template-columns:1fr}.draftvisualactions button{width:100%}}
+
+.draftbatchvisuals{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #cfe4ed;background:#f3faff;border-radius:14px;padding:12px 14px}.draftbatchvisuals>div{display:flex;align-items:center;gap:9px}.draftbatchvisuals span{display:grid;gap:2px}.draftbatchvisuals strong{font-size:11px;color:#123658}.draftbatchvisuals small{font-size:9px;color:#5c7589}
+@media(max-width:800px){.draftbatchvisuals{align-items:stretch;flex-direction:column}.draftbatchvisuals button{width:100%}}
