@@ -587,6 +587,15 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (saveVisualError || !savedVisual) return json({ error: saveVisualError?.message || 'Could not save visual metadata' }, 500)
+
+      // Any regenerated visual invalidates previously rendered preview files.
+      await adminClient.from('lecture_drafts').update({
+        pptx_path: null,
+        pdf_path: null,
+        artifacts_built_at: null,
+        updated_at: generatedAt,
+      }).eq('id', draft.id)
+
       return json({ visual: savedVisual })
     }
 
