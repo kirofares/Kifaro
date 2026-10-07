@@ -1380,6 +1380,14 @@ function PaymentReturnPage() {
   )
 }
 
+// Arabic count agreement: 1 صورة واحدة, 2 صورتان, 3–10 صور, 11+ صورة.
+function arabicImageCount(count: number) {
+  if (count === 1) return 'صورة واحدة'
+  if (count === 2) return 'صورتان'
+  if (count >= 3 && count <= 10) return count + ' صور'
+  return count + ' صورة'
+}
+
 function StudyResourcePanel({
   title,
   resources,
@@ -1405,7 +1413,7 @@ function StudyResourcePanel({
           <small>{tr('END-OF-LECTURE STUDY IMAGES', 'صور المراجعة في نهاية المحاضرة')}</small>
           <h2>{title}</h2>
         </div>
-        <span>{resources.length} {resources.length === 1 ? tr('visual', 'صورة') : tr('visuals', 'صور')}</span>
+        <span>{tr(resources.length + (resources.length === 1 ? ' visual' : ' visuals'), arabicImageCount(resources.length))}</span>
       </div>
       <p className="studyresourcesnote">
         {tr(

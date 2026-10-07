@@ -979,3 +979,7 @@ html[dir="rtl"] .casecard{text-align:right}
 
 .draftbatchvisuals{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #cfe4ed;background:#f3faff;border-radius:14px;padding:12px 14px}.draftbatchvisuals>div{display:flex;align-items:center;gap:9px}.draftbatchvisuals span{display:grid;gap:2px}.draftbatchvisuals strong{font-size:11px;color:#123658}.draftbatchvisuals small{font-size:9px;color:#5c7589}
 @media(max-width:800px){.draftbatchvisuals{align-items:stretch;flex-direction:column}.draftbatchvisuals button{width:100%}}
+
+/* RTL: MCQs are English content, so lay the whole question and its options out left-to-right */
+html[dir="rtl"] .quiz{direction:ltr}
+html[dir="rtl"] .quiz button{text-align:left}
