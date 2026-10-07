@@ -52,6 +52,7 @@ const AdminPage = lazyPage(() => import('./admin/AdminPage'))
 const DatashowViewer = lazyPage(() => import('./components/DatashowViewer'))
 const ProtectedVideoPlayer = lazyPage(() => import('./components/ProtectedVideoPlayer'))
 const VivaPage = lazyPage(() => import('./viva/VivaPage'))
+const FlashcardsPage = lazyPage(() => import('./flashcards/FlashcardsPage'))
 
 const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
 // Set VITE_PAYMOB_TEST_MODE=true in the build env while Paymob runs against its sandbox.
@@ -427,6 +428,7 @@ export default function App() {
           <Route path="/viva-bank" element={<VivaBankPage />} />
           <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
           <Route path="/studio" element={<Studio />} />
+          <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
           <Route path="*" element={<NotFound go={nav} />} />
@@ -1440,18 +1442,19 @@ function Topics({ lectures, go }: { lectures: any[]; go: (path: string) => void 
 
 function Studio() {
   const tr = useTr()
+  const go = useNavigate()
   const tools = [
-    [tr('Flashcards', 'بطاقات المراجعة'), tr('Rapid active-recall decks from your modules.', 'بطاقات استرجاع سريعة من موديولاتك.')],
-    [tr('Revision Builder', 'منشئ المراجعة'), tr('Build a focused revision session.', 'جهّز جلسة مراجعة مركزة.')],
-    [tr('Exam Preparation', 'التحضير للامتحان'), tr('Practice clinically oriented MCQs.', 'تدرب على أسئلة MCQ إكلينيكية.')],
-    [tr('Saved Notes', 'الملاحظات المحفوظة'), tr('Keep important concepts in one place.', 'احتفظ بالمفاهيم المهمة في مكان واحد.')],
+    { title: tr('Flashcards', 'بطاقات المراجعة'), body: tr('666 active-recall cards from your learning points.', '666 بطاقة استرجاع من نقاط التعلم.'), action: () => go('/flashcards'), ready: true },
+    { title: tr('Revision Builder', 'منشئ المراجعة'), body: tr('Build a focused revision session.', 'جهّز جلسة مراجعة مركزة.'), ready: false },
+    { title: tr('Exam Preparation', 'التحضير للامتحان'), body: tr('Practice clinically oriented MCQs.', 'تدرب على أسئلة MCQ إكلينيكية.'), ready: false },
+    { title: tr('Saved Notes', 'الملاحظات المحفوظة'), body: tr('Keep important concepts in one place.', 'احتفظ بالمفاهيم المهمة في مكان واحد.'), ready: false },
   ]
   return (
     <div className="page">
       <PageHead eyebrow={tr('TOOLS', 'الأدوات')} title="KIFARO Studio" body={tr('Study tools that turn content into active revision.', 'أدوات مذاكرة بتحوّل المحتوى لمراجعة نشطة.')} />
       <div className="toolgrid">
-        {tools.map(([title, body]) => (
-          <div className="toolcard" key={title}><div className="softicon"><Sparkles /></div><h3>{title}</h3><p>{body}</p><button className="secondary" disabled>{tr('Coming soon', 'قريبًا')}</button></div>
+        {tools.map((tool) => (
+          <div className="toolcard" key={tool.title}><div className="softicon"><Sparkles /></div><h3>{tool.title}</h3><p>{tool.body}</p><button className="secondary" disabled={!tool.ready} onClick={tool.action}>{tool.ready ? tr('Open flashcards', 'افتح البطاقات') : tr('Coming soon', 'قريبًا')}</button></div>
         ))}
       </div>
     </div>
