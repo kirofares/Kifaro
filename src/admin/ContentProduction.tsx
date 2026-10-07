@@ -450,20 +450,46 @@ export default function ContentProduction() {
     await pollGeneration(job.id, job.lecture_id)
   }
 
-  const approveDraft = async (draft: DraftRow) => {
-    if (!supabase) return
-    setSaving(draft.lecture_id)
-    setMessage('Approving this revision…')
-    const { data, error } = await supabase.functions.invoke('lecture-content-generator', {
-      body: { action: 'approve', draftId: draft.id },
-    })
-    setSaving('')
-    if (error || data?.error) {
-      setMessage(data?.error || error?.message || 'Could not approve this draft.')
+  const publishLecture = async (lecture: (typeof anatomateLectures)[number]) => {
+    if (!supabase || !user) return
+    const state = lectureState(lecture)
+    if (state.review !== 'approved') {
+      setMessage('Final approval is required before publishing.')
       return
     }
-    setMessage('Revision approved. Publishing is now unlocked, but nothing has been published automatically.')
-    setSelectedDraft(null)
+
+    setSaving(lecture.id)
+    setMessage('Publishing lecture…')
+    const now = new Date().toISOString()
+    const { error: publishError } = await supabase.from('lecture_settings').upsert({
+      lecture_id: lecture.id,
+      published: true,
+      updated_at: now,
+      updated_by: user.id,
+    }, { onConflict: 'lecture_id' })
+
+    if (publishError) {
+      setSaving('')
+      setMessage(publishError.message)
+      return
+    }
+
+    const stages = { ...state.stages, publish: 'complete' as StageState }
+    const { error: productionError } = await supabase.from('content_production').update({
+      overall_status: 'published',
+      current_stage: 'publish',
+      stage_status: stages,
+      updated_at: now,
+      updated_by: user.id,
+    }).eq('lecture_id', lecture.id)
+
+    setSaving('')
+    if (productionError) {
+      setMessage(productionError.message)
+      return
+    }
+
+    setMessage('Lecture published after final approval.')
     await load()
   }
 
