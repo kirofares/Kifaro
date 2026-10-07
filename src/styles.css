@@ -1025,3 +1025,45 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
   .shell.hasbottomtabs .mcqsubmitbar{bottom:calc(68px + env(safe-area-inset-bottom))}
   .shell.hasbottomtabs .datashowcontrols{bottom:calc(64px + env(safe-area-inset-bottom))}
 }
+
+
+/* Temporary manual payments */
+.manualpaymentbox{max-width:820px;margin:0 auto;display:grid;gap:18px}
+.manualpaymenthero{display:flex;align-items:center;gap:16px}
+.manualpaymenthero h1{margin:4px 0 6px}
+.manualpaymenticon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:var(--soft);color:var(--primary);flex:0 0 auto}
+.manualchannels{margin:0}
+.manualdestination{border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:7px;background:var(--soft)}
+.manualdestination>strong{font-size:1.3rem;word-break:break-all}
+.manualdestination .secondary{justify-self:start}
+.manualsteps{display:grid;gap:10px}
+.manualsteps>div{display:flex;align-items:flex-start;gap:10px}
+.manualsteps>div>span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--primary);color:#fff;font-weight:800;flex:0 0 auto}
+.manualsteps p{margin:3px 0 0}
+.manualform{display:grid;gap:14px}
+.manualform label{display:grid;gap:7px;font-weight:700}
+.manualform input,.manualform textarea,.manualchannelrow input,.manualreview input{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel);color:var(--text);font:inherit}
+.manualupload{border:1px dashed var(--line);border-radius:14px;padding:14px;display:flex;gap:10px;align-items:center;cursor:pointer}
+.manualupload input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.manualstatus{border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px}
+.manualstatus>div{display:grid;gap:3px}
+.manualstatus.pending{background:var(--soft);border:1px solid var(--line)}
+.manualstatus.approved{background:rgba(22,163,74,.09);border:1px solid rgba(22,163,74,.25)}
+.manualchanneladmin{display:grid;gap:14px}
+.manualchannelrow{display:grid;grid-template-columns:minmax(120px,.7fr) repeat(3,minmax(150px,1fr)) auto auto;gap:10px;align-items:end;border:1px solid var(--line);border-radius:16px;padding:14px}
+.manualchannelrow>div,.manualchannelrow label{display:grid;gap:5px}
+.manualchannelrow small{color:var(--muted)}
+.manualtoggle{display:flex!important;align-items:center;gap:7px;padding-bottom:10px;white-space:nowrap}
+.manualtoggle input{width:auto!important}
+.manualfilters{margin:12px 0}
+.manualfilters button.active{background:var(--primary);color:#fff}
+.manualpaymenttable small{display:block;margin-top:4px}
+.manualreview{display:grid;gap:7px;min-width:180px}
+.adminbadge.manual-pending{background:rgba(245,158,11,.12)}
+.adminbadge.manual-approved{background:rgba(22,163,74,.12)}
+.adminbadge.manual-rejected{background:rgba(220,38,38,.1)}
+.danger{color:#b42318}
+@media(max-width:900px){
+  .manualchannelrow{grid-template-columns:1fr}
+  .manualpaymenthero{align-items:flex-start}
+}

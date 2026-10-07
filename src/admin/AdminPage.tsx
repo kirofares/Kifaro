@@ -11,6 +11,7 @@ import { usePricingRules, type PricingRule } from '../hooks/usePricingRules'
 import { useAssetReadiness } from '../hooks/useAssetReadiness'
 import MCQManager from './MCQManager'
 import ContentProduction from './ContentProduction'
+import ManualPaymentsAdmin from './ManualPaymentsAdmin'
 
 type Profile = {
   id: string
@@ -74,7 +75,7 @@ type PaymentTransaction = {
   created_at: string
 }
 
-type Tab = 'overview' | 'students' | 'purchases' | 'lectures' | 'production' | 'mcq' | 'errors'
+type Tab = 'overview' | 'students' | 'purchases' | 'manual' | 'lectures' | 'production' | 'mcq' | 'errors'
 
 function pricingRuleScore(rule: PricingRule) {
   const yearScore = rule.academic_year == null ? 0 : 20
@@ -687,7 +688,7 @@ export default function AdminPage() {
       <div className="admintabs">
         <button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}><LayoutDashboard size={17}/>Overview</button>
         <button className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}><Users size={17}/>Students</button>
-        <button className={tab === 'purchases' ? 'active' : ''} onClick={() => setTab('purchases')}><CreditCard size={17}/>Purchases</button>
+        <button className={tab === 'purchases' ? 'active' : ''} onClick={() => setTab('purchases')}><CreditCard size={17}/>Purchases</button>\n        <button className={tab === 'manual' ? 'active' : ''} onClick={() => setTab('manual')}><CreditCard size={17}/>Manual Payments</button>
         <button className={tab === 'lectures' ? 'active' : ''} onClick={() => setTab('lectures')}><GraduationCap size={17}/>Lectures</button>
         <button className={tab === 'production' ? 'active' : ''} onClick={() => setTab('production')}><Workflow size={17}/>Production</button>
         <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}><CircleHelp size={17}/>MCQ Bank</button>
@@ -709,7 +710,7 @@ export default function AdminPage() {
             <h2>Quick access</h2>
             <div className="adminquick">
               <button onClick={() => setTab('students')}><Users/>Manage students</button>
-              <button onClick={() => setTab('purchases')}><LockOpen/>Grant lecture access</button>
+              <button onClick={() => setTab('purchases')}><LockOpen/>Grant lecture access</button>\n              <button onClick={() => setTab('manual')}><CreditCard/>Review manual payments</button>
               <button onClick={() => setTab('lectures')}><GraduationCap/>Review lecture pricing</button>
               <button onClick={() => setTab('production')}><Workflow/>Continue content production</button>
             </div>
@@ -717,7 +718,7 @@ export default function AdminPage() {
         </>
       )}
 
-      {tab === 'errors' && (
+      {tab === 'manual' && <ManualPaymentsAdmin onChanged={() => void load()} />}\n\n      {tab === 'errors' && (
         <div className="adminpanel">
           <div className="adminpanelhead">
             <div><h2>App errors</h2><p>Latest technical errors reported by signed-in students and app sessions.</p></div>

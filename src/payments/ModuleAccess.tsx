@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { CreditCard, LockKeyhole, ShieldCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -101,6 +102,7 @@ export function ModuleAccessGate({
   children: ReactNode
 }) {
   const tr = useTr()
+  const nav = useNavigate()
   const { user } = useAuth()
   const { loading, hasAccess, priceFor, buy } = useModuleAccess()
   const [busy, setBusy] = useState(false)
@@ -146,6 +148,17 @@ export function ModuleAccessGate({
       <button className="primary" onClick={() => void start()} disabled={busy}>
         <CreditCard size={18}/>{busy ? tr('Opening payment…', 'جارٍ فتح الدفع…') : tr('Unlock module', 'افتح الموديول')}
       </button>
+      <button
+        className="secondary"
+        onClick={() => nav(
+          '/manual-payment?target=module&module=' + encodeURIComponent(moduleCode)
+          + '&product=' + encodeURIComponent(productType)
+          + '&amount=' + encodeURIComponent(String(price || (productType === 'cases' ? 200 : 100)))
+        )}
+      >
+        <CreditCard size={18}/>{tr('Pay manually by InstaPay / Wallet', 'ادفع يدويًا عن طريق InstaPay / المحفظة')}
+      </button>
+      <small>{tr('Manual payments are verified before access is opened.', 'الدفع اليدوي يتم التحقق منه قبل فتح الوصول.')}</small>
     </section>
   )
 }
