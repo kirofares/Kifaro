@@ -864,6 +864,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const nav = useNavigate()
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
+  const { year: studentYear } = useStudentYear()
   const { entitlementByLecture, refresh: refreshEntitlements, loading: entitlementsLoading } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
   const { offerFor } = usePricingRules()
@@ -881,7 +882,6 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
     return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Lecture not found', 'المحاضرة غير موجودة')} body={tr('This lecture is not available.', 'هذه المحاضرة غير متاحة.')} /></div>
   }
 
-  const { year: studentYear } = useStudentYear()
   if (user && !isAdmin && studentYear && lecture.year !== studentYear) {
     return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Not available for your year', 'غير متاح لسنتك الدراسية')} body={tr('Your account only has access to your registered academic year.', 'حسابك متاح له السنة الدراسية المسجلة فقط.')} /></div>
   }
