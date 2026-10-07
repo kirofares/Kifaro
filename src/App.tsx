@@ -134,7 +134,7 @@ const copy = {
   },
   ar: {
     overview: 'الرئيسية', curriculum: 'المنهج', anatomate: 'AnatoMate',
-    topics: 'الموضوعات', mcq: 'بنك MCQ', flashcards: 'البطاقات', review: 'المراجعة', cases: 'Cases', assessments: 'التقييمات', progressPage: 'التقدم', studio: 'KIFARO Studio', library: 'مكتبتي',
+    topics: 'الموضوعات', mcq: 'بنك MCQ', flashcards: 'البطاقات', review: 'المراجعة', cases: 'الحالات', assessments: 'التقييمات', progressPage: 'التقدم', studio: 'KIFARO Studio', library: 'مكتبتي',
     preferences: 'التفضيلات', search: 'ابحث في المحاضرات أو الموديولات أو الأجهزة',
     morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير', nameSep: '، ',
     subtitle: 'كمّل رحلتك الطبية بخطوة مركزة كل مرة.',
@@ -199,6 +199,8 @@ export default function App() {
   const [latestReleasePage, setLatestReleasePage] = useState(FALLBACK_RELEASE_PAGE)
   const t = copy[lang]
   const nav = useNavigate()
+  const location = useLocation()
+  const showContactChannels = location.pathname === '/' || location.pathname === '/profile'
   const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
   const studentName = (profileName || metadataName).split(' ')[0] || ''
 
@@ -459,9 +461,11 @@ export default function App() {
         </>
       )}
 
-      <ContactChannels />
+      {/* The full contact block competes with each page's own call to action, so keep it to Home and Profile. */}
+      {showContactChannels && <ContactChannels />}
 
       <footer className="sitefooter">
+        {!showContactChannels && <a href="https://wa.me/201055552867" target="_blank" rel="noreferrer">{lang === 'ar' ? 'تواصل معنا' : 'Contact us'}</a>}
         <button onClick={() => nav('/privacy')}>{t.privacy}</button>
         <button onClick={() => nav('/terms')}>{t.terms}</button>
         <button onClick={() => nav('/refund')}>{t.refunds}</button>
