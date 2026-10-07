@@ -95,6 +95,7 @@ export default function LectureDraftReview({
   const [visuals, setVisuals] = useState<Map<number, VisualRow>>(new Map())
   const [visualData, setVisualData] = useState<VisualDataMap>(new Map())
   const [visualBusy, setVisualBusy] = useState<number | null>(null)
+  const [batchVisualBusy, setBatchVisualBusy] = useState(false)
   const [artifactBusy, setArtifactBusy] = useState(false)
   const [approveBusy, setApproveBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -175,6 +176,42 @@ export default function LectureDraftReview({
     setArtifactsBuiltAt('')
     setMessage('Visual generated. Review it before approval.')
     await loadVisuals()
+  }
+
+  const generateAllVisuals = async () => {
+    if (!supabase || !requiredVisualSlides.length) return
+    const pending = requiredVisualSlides.filter(({ slideNumber }) => visuals.get(slideNumber)?.status !== 'approved')
+    if (!pending.length) {
+      setMessage('All required visuals are already approved.')
+      return
+    }
+
+    setBatchVisualBusy(true)
+    setMessage('Generating ' + pending.length + ' required anatomy visuals…')
+
+    try {
+      for (let index = 0; index < pending.length; index += 1) {
+        const slideNumber = pending[index].slideNumber
+        setVisualBusy(slideNumber)
+        setMessage('Generating visual ' + (index + 1) + ' of ' + pending.length + ' · slide ' + slideNumber + '…')
+        const { data, error } = await supabase.functions.invoke('lecture-content-generator', {
+          body: { action: 'generate_visual', draftId: draft.id, slideNumber },
+        })
+        if (error || data?.error) throw new Error(data?.error || error?.message || 'Could not generate slide ' + slideNumber + ' visual.')
+      }
+
+      setPptxPath('')
+      setPdfPath('')
+      setArtifactsBuiltAt('')
+      setMessage('All requested visuals were generated. Review and approve each image.')
+      await loadVisuals()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Visual generation stopped because of an error.')
+      await loadVisuals()
+    } finally {
+      setVisualBusy(null)
+      setBatchVisualBusy(false)
+    }
   }
 
   const approveVisual = async (visual: VisualRow) => {
@@ -326,6 +363,16 @@ export default function LectureDraftReview({
           <div><small>OSCE</small><strong>{draft.content?.osce?.length || 0}</strong></div>
         </div>
 
+        {requiredVisualSlides.length > 0 && (
+          <div className="draftbatchvisuals">
+            <div><Sparkles size={18}/><span><strong>Visual production</strong><small>Generate all required images now, then approve them one by one.</small></span></div>
+            <button className="secondary" disabled={batchVisualBusy || visualBusy !== null || saving} onClick={() => void generateAllVisuals()}>
+              {batchVisualBusy ? <LoaderCircle className="spin" size={16}/> : <Sparkles size={16}/>}
+              {batchVisualBusy ? 'Generating visuals…' : 'Generate all missing visuals'}
+            </button>
+          </div>
+        )}
+
         {message && <div className="adminmessage"><Sparkles size={16}/>{message}</div>}
 
         <div className="draftobjectives">
@@ -372,18 +419,18 @@ export default function LectureDraftReview({
 
                       <div className="draftvisualactions">
                         {!visual || visual.status === 'failed' || visual.status === 'pending' ? (
-                          <button className="secondary" disabled={busy || saving} onClick={() => void generateVisual(slideNumber)}>
+                          <button className="secondary" disabled={busy || batchVisualBusy || saving} onClick={() => void generateVisual(slideNumber)}>
                             {busy ? <LoaderCircle className="spin" size={16}/> : <Sparkles size={16}/>}
                             {busy ? 'Generating…' : 'Generate visual'}
                           </button>
                         ) : (
                           <>
-                            <button className="secondary" disabled={busy || saving} onClick={() => void generateVisual(slideNumber)}>
+                            <button className="secondary" disabled={busy || batchVisualBusy || saving} onClick={() => void generateVisual(slideNumber)}>
                               {busy ? <LoaderCircle className="spin" size={16}/> : <RotateCcw size={16}/>}
                               {busy ? 'Generating…' : 'Regenerate'}
                             </button>
                             {visual.status === 'needs_review' && (
-                              <button className="primary" disabled={busy || saving} onClick={() => void approveVisual(visual)}>
+                              <button className="primary" disabled={busy || batchVisualBusy || saving} onClick={() => void approveVisual(visual)}>
                                 <CheckCircle2 size={16}/>Approve visual
                               </button>
                             )}
@@ -434,10 +481,10 @@ export default function LectureDraftReview({
             />
           </label>
           <div>
-            <button className="secondary" disabled={!lecture || !feedback.trim() || saving || visualBusy !== null || artifactBusy || approveBusy} onClick={onRevise}>
+            <button className="secondary" disabled={!lecture || !feedback.trim() || saving || visualBusy !== null || batchVisualBusy || artifactBusy || approveBusy} onClick={onRevise}>
               <RotateCcw size={17}/>Generate revised version
             </button>
-            <button className="primary" disabled={!allVisualsApproved || !artifactsReady || saving || visualBusy !== null || artifactBusy || approveBusy || draft.status === 'approved'} onClick={() => void approveDraft()}>
+            <button className="primary" disabled={!allVisualsApproved || !artifactsReady || saving || visualBusy !== null || batchVisualBusy || artifactBusy || approveBusy || draft.status === 'approved'} onClick={() => void approveDraft()}>
               {approveBusy ? <LoaderCircle className="spin" size={17}/> : <ThumbsUp size={17}/>}
               {draft.status === 'approved' ? 'Approved' : approveBusy ? 'Approving…' : 'Final approval'}
             </button>
