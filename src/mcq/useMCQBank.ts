@@ -83,6 +83,7 @@ export function useMCQBank() {
       .from('mcq_questions')
       .select('id, lecture_id, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, question_type, difficulty, source_scope, learning_objective, image_url, image_alt, distractor_explanations')
       .eq('published', true)
+      .eq('quality_status', 'ready')
       .order('created_at', { ascending: true })
     setQuestions((data || []) as BankQuestion[])
     setLoading(false)
