@@ -174,13 +174,6 @@ export function CasesPage() {
         </div>
       </div>
 
-      <div className="caselevellegend">
-        <div><strong>Level 1 · {caseLevelName(1, lang === 'ar')}</strong><span>{tr('Identify the key structure or lesion.', 'حدد التركيب أو الإصابة الأساسية.')}</span></div>
-        <div><strong>Level 2 · {caseLevelName(2, lang === 'ar')}</strong><span>{tr('Explain the anatomical relationship.', 'فسّر العلاقة التشريحية.')}</span></div>
-        <div><strong>Level 3 · {caseLevelName(3, lang === 'ar')}</strong><span>{tr('Apply anatomy to findings or imaging.', 'طبّق التشريح على الفحص أو الصور.')}</span></div>
-        <div><strong>Level 4 · {caseLevelName(4, lang === 'ar')}</strong><span>{tr('Integrate localization and clinical reasoning.', 'ادمج التحديد والتفكير السريري.')}</span></div>
-      </div>
-
       {loading ? (
         <div className="assessmentempty">{tr('Loading cases…', 'جارٍ تحميل الحالات…')}</div>
       ) : (
@@ -220,7 +213,7 @@ export function CasesPage() {
                                     {lectureCases.map((item) => (
                                       <button key={item.id} className="casecard" onClick={() => nav('/assessments/item/' + item.id)}>
                                         <div className="casecardtop">
-                                          <span className={'difficulty d' + item.difficulty}>{tr('Level', 'مستوى')} {item.difficulty} · {caseLevelName(item.difficulty, lang === 'ar')}</span>
+                                          <span className={'difficulty d' + item.difficulty}>{tr('Level', 'مستوى')} {item.difficulty}</span>
                                           {item.time_limit_seconds && <span><Clock3 size={14}/>{Math.ceil(item.time_limit_seconds/60)} min</span>}
                                         </div>
                                         <h5>{item.title}</h5>
@@ -343,7 +336,7 @@ export function AssessmentItemPage() {
   return (
     <div className="page assessmentpage">
       <div className="assessmentstationhead">
-        <div><span className="eyebrow">YEAR {item.year} · {item.module_code} · {item.assessment_type.toUpperCase()}{item.assessment_type === 'case' ? ' · LEVEL ' + item.difficulty + ' ' + caseLevelName(item.difficulty, lang === 'ar') : ''}</span><h1>{item.title}</h1></div>
+        <div><span className="eyebrow">YEAR {item.year} · {item.module_code} · {item.assessment_type.toUpperCase()}{item.assessment_type === 'case' ? '' : ''}</span><h1>{item.title}</h1></div>
         {secondsLeft !== null && <div className={secondsLeft < 60 ? 'stationtimer urgent' : 'stationtimer'}><Clock3/><strong>{minutes}:{String(seconds).padStart(2,'0')}</strong></div>}
       </div>
 
