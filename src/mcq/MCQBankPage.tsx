@@ -78,12 +78,17 @@ export function MCQModulePage() {
   const { year, module } = useParams()
   const nav = useNavigate()
   const tr = useTr()
+  const { year: studentYear } = useStudentYear()
   const { countsByLecture, mastery } = useMCQBank()
   const yearData = anatomateYears.find((item) => String(item.year) === year)
   const moduleData = yearData?.modules.find((item) => item.slug === module)
 
   if (!yearData || !moduleData) {
     return <div className="page"><div className="pagehead"><div><span className="eyebrow">MCQ BANK</span><h1>{tr('Module not found', 'الموديول غير موجود')}</h1></div></div></div>
+  }
+
+  if (studentYear && yearData.year !== studentYear) {
+    return <div className="page"><div className="assessmentempty">{tr('This module is not available for your academic year.', 'هذا الموديول غير متاح لسنتك الدراسية.')}</div></div>
   }
 
   const total = moduleData.lectures.reduce((sum, lecture) => sum + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0)
@@ -123,6 +128,7 @@ export function MCQLecturePage() {
   const [searchParams] = useSearchParams()
   const tr = useTr()
   const lang = useLang()
+  const { year: studentYear } = useStudentYear()
   const lecture = getLectureBySlug(slug)
   const { questions: bankQuestions, levels, levelPerformance, reviewTargets, recordAttempt, refreshMastery } = useMCQBank()
   const [answers, setAnswers] = useState<Record<number, number>>({})
@@ -237,6 +243,10 @@ export function MCQLecturePage() {
 
   if (!lecture) {
     return <div className="page"><div className="pagehead"><div><span className="eyebrow">MCQ BANK</span><h1>{tr('Lecture not found', 'المحاضرة غير موجودة')}</h1></div></div></div>
+  }
+
+  if (studentYear && lecture.year !== studentYear) {
+    return <div className="page"><div className="assessmentempty">{tr('This lecture is not available for your academic year.', 'هذه المحاضرة غير متاحة لسنتك الدراسية.')}</div></div>
   }
 
   const submit = async () => {
