@@ -354,6 +354,7 @@ export function VivaBankPage() {
 
 export function AssessmentItemPage() {
   const { id } = useParams()
+  const nav = useNavigate()
   const tr = useTr()
   const lang = useLang()
   const { user } = useAuth()
@@ -363,6 +364,7 @@ export function AssessmentItemPage() {
   const [submitted, setSubmitted] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [timerStarted, setTimerStarted] = useState(false)
+  const [nextItemId, setNextItemId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!supabase || !id) return
@@ -373,10 +375,29 @@ export function AssessmentItemPage() {
       .eq('published', true)
       .eq('quality_status', 'ready')
       .maybeSingle()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const next = (data || null) as AssessmentItem | null
         setItem(next)
         setSecondsLeft(next?.time_limit_seconds ?? null)
+        setNextItemId(null)
+
+        if (!next || !supabase) return
+        const { data: siblings } = await supabase
+          .from('assessment_items')
+          .select('id, assessment_type, year, module_code, created_at')
+          .eq('published', true)
+          .eq('quality_status', 'ready')
+          .eq('assessment_type', next.assessment_type)
+          .eq('year', next.year)
+          .eq('module_code', next.module_code)
+          .order('created_at', { ascending: true })
+
+        const list = siblings || []
+        const currentIndex = list.findIndex((row) => row.id === next.id)
+        if (currentIndex >= 0 && list.length > 1) {
+          const following = list[(currentIndex + 1) % list.length]
+          setNextItemId(following?.id || null)
+        }
       })
   }, [id])
 
@@ -439,7 +460,7 @@ export function AssessmentItemPage() {
 
           {checklist.length > 0 && <section className="stationchecklist"><h2>{tr('Station checklist', 'قائمة تقييم المحطة')}</h2><p>{tr('For practice mode, tick each step you completed correctly.', 'في وضع التدريب علّم على كل خطوة نفذتها بصورة صحيحة.')}</p>{checklist.map((row,index)=><label key={index}><input type="checkbox" disabled={submitted} checked={Boolean(checked[index])} onChange={(e)=>setChecked((state)=>({...state,[index]:e.target.checked}))}/><span>{row.label}</span><strong>{row.marks}</strong></label>)}</section>}
 
-          {!submitted ? <div className="stationactions"><button className="primary" onClick={() => void finish()}>{tr('Finish assessment', 'إنهاء التقييم')}</button></div> : <section className="stationresult"><CheckCircle2/><div><small>{tr('Result', 'النتيجة')}</small><strong>{score}/{maxScore}</strong><p>{item.content?.key_points?.length ? tr('Key points to review:', 'نقاط للمراجعة:') + ' ' + item.content.key_points.join(' · ') : tr('Attempt saved to your progress.', 'تم حفظ المحاولة في تقدمك.')}</p></div><button className="secondary" onClick={()=>{setAnswers({});setChecked({});setSubmitted(false);setSecondsLeft(item.time_limit_seconds);setTimerStarted(!item.time_limit_seconds)}}><RotateCcw size={17}/>{tr('Try again', 'إعادة المحاولة')}</button></section>}
+          {!submitted ? <div className="stationactions"><button className="primary" onClick={() => void finish()}>{tr('Finish assessment', 'إنهاء التقييم')}</button></div> : <section className="stationresult"><CheckCircle2/><div><small>{tr('Result', 'النتيجة')}</small><strong>{score}/{maxScore}</strong><p>{item.content?.key_points?.length ? tr('Key points to review:', 'نقاط للمراجعة:') + ' ' + item.content.key_points.join(' · ') : tr('Attempt saved to your progress.', 'تم حفظ المحاولة في تقدمك.')}</p></div><div className="stationresultactions"><button className="secondary" onClick={()=>{setAnswers({});setChecked({});setSubmitted(false);setSecondsLeft(item.time_limit_seconds);setTimerStarted(!item.time_limit_seconds)}}><RotateCcw size={17}/>{tr('Try again', 'إعادة المحاولة')}</button>{nextItemId && <button className="primary" onClick={()=>nav('/assessments/item/' + nextItemId)}>{item.assessment_type === 'case' ? tr('Next Case', 'الحالة التالية') : tr('Next Station', 'المحطة التالية')}<ChevronRight size={17}/></button>}</div></section>}
         </>
       )}
     </div>
