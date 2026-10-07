@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BookOpenCheck, CheckCircle2, ChevronRight, CircleHelp, RotateCcw, Target, TrendingUp } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { anatomateYears, getLectureBySlug } from '../data/anatomate'
 import { useLang, useTr } from '../i18n'
 import { useMCQBank, type BankQuestion } from './useMCQBank'
@@ -114,14 +114,31 @@ export function MCQModulePage() {
 
 export function MCQLecturePage() {
   const { slug } = useParams()
+  const [searchParams] = useSearchParams()
   const tr = useTr()
   const lang = useLang()
   const lecture = getLectureBySlug(slug)
-  const { questions: bankQuestions, levels, levelPerformance, reviewTargets, mastery, recordAttempt, refreshMastery } = useMCQBank()
+  const { questions: bankQuestions, levels, levelPerformance, reviewTargets, recordAttempt, refreshMastery } = useMCQBank()
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [submitted, setSubmitted] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
 
-  const dbQuestions = useMemo(() => lecture ? bankQuestions.filter((q) => q.lecture_id === lecture.id) : [], [bankQuestions, lecture])
+  const reviewFocus = (searchParams.get('review') || '').trim()
+
+  const dbQuestions = useMemo(() => {
+    if (!lecture) return []
+    const lectureQuestions = bankQuestions.filter((q) => q.lecture_id === lecture.id)
+    if (!reviewFocus) return lectureQuestions
+
+    const needle = reviewFocus.toLowerCase()
+    const focused = lectureQuestions.filter((q) =>
+      [q.topic, q.subtopic, q.learning_objective]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle) || needle.includes(String(value).toLowerCase()))
+    )
+    return focused.length ? focused : lectureQuestions
+  }, [bankQuestions, lecture, reviewFocus])
+
   const questions = useMemo(() => {
     if (!lecture) return []
     if (dbQuestions.length) return dbQuestions.map((q) => ({
@@ -139,10 +156,30 @@ export function MCQLecturePage() {
       distractorExplanations: (q.distractor_explanations || {}) as Record<string,string>,
       source: q,
     }))
-    return lecture.mcqs.map((q) => ({ ...q, id: '', topic: lecture.title, subtopic: null, difficulty: 1, learningObjective: null, imageUrl: null, imageAlt: null, distractorExplanations: {} as Record<string,string>, source: null as BankQuestion | null }))
+    return lecture.mcqs.map((q) => ({
+      ...q,
+      id: '',
+      topic: lecture.title,
+      subtopic: null,
+      difficulty: 1,
+      learningObjective: null,
+      imageUrl: null,
+      imageAlt: null,
+      distractorExplanations: {} as Record<string,string>,
+      source: null as BankQuestion | null,
+    }))
   }, [lecture, dbQuestions])
 
-  const score = useMemo(() => questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0), [questions, answers])
+  useEffect(() => {
+    setAnswers({})
+    setSubmitted(false)
+    setCurrentIndex(0)
+  }, [lecture?.id, reviewFocus])
+
+  const score = useMemo(
+    () => questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0),
+    [questions, answers],
+  )
   const percent = questions.length ? Math.round((score / questions.length) * 100) : 0
 
   const currentLevelStats = useMemo(() => [1,2,3,4].map((level) => {
@@ -199,7 +236,7 @@ export function MCQLecturePage() {
   const submit = async () => {
     setSubmitted(true)
     await Promise.all(questions.map((question, index) => {
-      if (!question.source) return Promise.resolve()
+      if (!question.source || answers[index] === undefined) return Promise.resolve()
       const option = String.fromCharCode(65 + answers[index]) as 'A'|'B'|'C'|'D'
       return recordAttempt(question.source, option)
     }))
@@ -209,14 +246,36 @@ export function MCQLecturePage() {
   const reset = () => {
     setAnswers({})
     setSubmitted(false)
+    setCurrentIndex(0)
   }
+
+  const visibleEntries = submitted
+    ? questions.map((question, index) => ({ question, index }))
+    : questions[currentIndex]
+      ? [{ question: questions[currentIndex], index: currentIndex }]
+      : []
 
   return (
     <div className="page mcqpage">
       <div className="pagehead mcqlecturehead">
-        <div><span className="eyebrow">YEAR {lecture.year} · {lecture.module}</span><h1>{lecture.title}</h1><p>{tr('Lecture MCQ practice', 'تدريب MCQ للمحاضرة')} · {questions.length} {questions.length === 1 ? 'question' : 'questions'}</p></div>
-        {submitted && <div className="mcqscore"><strong>{score}/{questions.length}</strong><span>{tr('Score', 'النتيجة')}</span></div>}
+        <div>
+          <span className="eyebrow">YEAR {lecture.year} · {lecture.module}</span>
+          <h1>{lecture.title}</h1>
+          <p>{tr('Lecture MCQ practice', 'تدريب MCQ للمحاضرة')} · {questions.length} {questions.length === 1 ? 'question' : 'questions'}</p>
+          {reviewFocus && <div className="mcqfocus">{tr('Focused review:', 'مراجعة مركزة:')} <strong>{reviewFocus}</strong></div>}
+        </div>
+        {submitted ? (
+          <div className="mcqscore"><strong>{score}/{questions.length}</strong><span>{tr('Score', 'النتيجة')}</span></div>
+        ) : questions.length > 0 ? (
+          <div className="mcqposition"><strong>{currentIndex + 1}/{questions.length}</strong><span>{tr('Question', 'سؤال')}</span></div>
+        ) : null}
       </div>
+
+      {!submitted && questions.length > 0 && (
+        <div className="mcqstepbar" aria-label={tr('Question progress', 'تقدم الأسئلة')}>
+          <i style={{ width: ((currentIndex + 1) / questions.length * 100) + '%' }} />
+        </div>
+      )}
 
       {submitted && demonstratedLevel && (
         <section className="mcqprogressreport">
@@ -242,7 +301,7 @@ export function MCQLecturePage() {
       )}
 
       <div className="mcqquestions">
-        {questions.map((question, qIndex) => {
+        {visibleEntries.map(({ question, index: qIndex }) => {
           const selected = answers[qIndex]
           const isCorrect = selected === question.answer
           return (
@@ -260,7 +319,11 @@ export function MCQLecturePage() {
                   const revealCorrect = submitted && optionIndex === question.answer
                   const revealWrong = submitted && selectedOption && optionIndex !== question.answer
                   return (
-                    <button key={option} className={['mcqoption',selectedOption?'selected':'',revealCorrect?'correct':'',revealWrong?'wrong':''].filter(Boolean).join(' ')} onClick={() => !submitted && setAnswers((state) => ({ ...state, [qIndex]: optionIndex }))}>
+                    <button
+                      key={option}
+                      className={['mcqoption',selectedOption?'selected':'',revealCorrect?'correct':'',revealWrong?'wrong':''].filter(Boolean).join(' ')}
+                      onClick={() => !submitted && setAnswers((state) => ({ ...state, [qIndex]: optionIndex }))}
+                    >
                       <span>{String.fromCharCode(65 + optionIndex)}</span><strong>{option}</strong>{revealCorrect && <CheckCircle2 size={18} />}
                     </button>
                   )
@@ -274,7 +337,23 @@ export function MCQLecturePage() {
 
       <div className="mcqsubmitbar">
         {!submitted ? (
-          <button className="primary" disabled={!questions.length || Object.keys(answers).length !== questions.length} onClick={() => void submit()}><CircleHelp size={18}/> {tr('Submit answers', 'إرسال الإجابات')}</button>
+          currentIndex < questions.length - 1 ? (
+            <button
+              className="primary"
+              disabled={answers[currentIndex] === undefined}
+              onClick={() => setCurrentIndex((index) => Math.min(index + 1, questions.length - 1))}
+            >
+              {tr('Next question', 'السؤال التالي')} <ChevronRight size={18}/>
+            </button>
+          ) : (
+            <button
+              className="primary"
+              disabled={!questions.length || answers[currentIndex] === undefined}
+              onClick={() => void submit()}
+            >
+              <CircleHelp size={18}/> {tr('Finish & see result', 'إنهاء وعرض النتيجة')}
+            </button>
+          )
         ) : (
           <button className="secondary" onClick={reset}><RotateCcw size={18}/> {tr('Try again', 'إعادة المحاولة')}</button>
         )}
