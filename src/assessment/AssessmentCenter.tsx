@@ -260,7 +260,52 @@ export function CasesPage() {
 }
 
 export function OSCEPage() {
-  return <AssessmentListPage types={['osce','ospe']} productType="osce" titleEn="OSCE / OSPE Stations" titleAr="محطات OSCE / OSPE" bodyEn="Timed structured stations with practical checklists and key points." bodyAr="محطات منظمة بوقت مع قوائم تقييم عملية ونقاط أساسية." />
+  const nav = useNavigate()
+  const tr = useTr()
+  const { year: studentYear } = useStudentYear()
+  const { items, loading } = useAssessmentItems(['osce','ospe'])
+  const visibleYears = studentYear ? anatomateYears.filter((item) => item.year === studentYear) : anatomateYears
+
+  return (
+    <div className="page assessmentpage">
+      <div className="pagehead">
+        <div>
+          <span className="eyebrow">KIFARO PRACTICAL ASSESSMENT</span>
+          <h1>{tr('OSCE / OSPE Stations', 'محطات OSCE / OSPE')}</h1>
+          <p>{tr('Unlock practical stations once per module.', 'افتح المحطات العملية مرة واحدة لكل موديول.')}</p>
+        </div>
+      </div>
+
+      {loading ? <div className="assessmentempty">{tr('Loading stations…', 'جارٍ تحميل المحطات…')}</div> : (
+        <div className="assessmentgroups">
+          {visibleYears.flatMap((year) => year.modules.map((module) => {
+            const moduleItems = items.filter((item) => item.year === year.year && item.module_code === module.code)
+            return (
+              <section className="assessmentgroup" key={year.year + '-' + module.code}>
+                <div className="assessmentgrouphead"><h2>Year {year.year} · {module.code}</h2><span>{moduleItems.length}</span></div>
+                <ModuleAccessGate moduleCode={module.code} productType="osce">
+                  {moduleItems.length ? (
+                    <div className="assessmentcards">
+                      {moduleItems.map((item) => (
+                        <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
+                          <div className="assessmenticon"><Stethoscope /></div>
+                          <div className="grow">
+                            <small>{item.assessment_type.toUpperCase()} · {item.time_limit_seconds ? Math.ceil(item.time_limit_seconds / 60) + ' min' : tr('Untimed', 'بدون وقت')}</small>
+                            <h3>{item.title}</h3><p>{item.stem}</p>
+                          </div>
+                          <ChevronRight />
+                        </button>
+                      ))}
+                    </div>
+                  ) : <div className="caseempty">{tr('Stations coming soon for this module.', 'سيتم إضافة محطات لهذا الموديول قريبًا.')}</div>}
+                </ModuleAccessGate>
+              </section>
+            )
+          }))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function SpottersPage() {
