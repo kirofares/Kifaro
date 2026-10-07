@@ -1146,3 +1146,5 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
   .manualrequestgrid{grid-template-columns:1fr}
   .admintabs{grid-template-columns:1fr 1fr}
 }
+
+.manualdestinationactions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.manualdestinationactions a{text-decoration:none}
