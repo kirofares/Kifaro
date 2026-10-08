@@ -13,6 +13,17 @@ function questionCount(lectureId: string, fallback: number, counts: Map<string, 
   return counts.get(lectureId) || fallback
 }
 
+function resolvePublicAssetUrl(value: string | null) {
+  if (!value) return null
+  if (/^(https?:|data:|blob:)/i.test(value)) return value
+  const clean = value.replace(/^\.\//, '').replace(/^\//, '')
+  try {
+    return new URL(clean, document.baseURI).toString()
+  } catch {
+    return value
+  }
+}
+
 export function MCQBankPage() {
   const nav = useNavigate()
   const tr = useTr()
@@ -179,7 +190,7 @@ export function MCQLecturePage() {
       explanation: q.explanation,
       difficulty: q.difficulty || 1,
       learningObjective: q.learning_objective,
-      imageUrl: q.image_url,
+      imageUrl: resolvePublicAssetUrl(q.image_url),
       imageAlt: q.image_alt,
       distractorExplanations: (q.distractor_explanations || {}) as Record<string,string>,
       source: q,
