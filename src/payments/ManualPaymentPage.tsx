@@ -34,13 +34,15 @@ export default function ManualPaymentPage() {
   const tr = useTr()
   const { user } = useAuth()
   const [params] = useSearchParams()
-  const target = params.get('target') === 'module' ? 'module' : 'lecture'
+  const targetParam = params.get('target')
+  const target = targetParam === 'module' ? 'module' : targetParam === 'chat' ? 'chat' : 'lecture'
   const lectureId = params.get('lecture') || ''
   const moduleCode = (params.get('module') || '').toUpperCase()
   const productType = params.get('product') || ''
   const requestedYear = Number(params.get('year') || 0) || null
   const requestedAmount = Number(params.get('amount') || 0)
   const requestedViewLimit = Number(params.get('viewLimit') || 0) || null
+  const chatSessionId = params.get('chat') || ''
 
   const [channels, setChannels] = useState<Channel[]>([])
   const [channelId, setChannelId] = useState('')
@@ -59,10 +61,12 @@ export default function ManualPaymentPage() {
 
   const title = target === 'lecture'
     ? lecture?.title || lectureId
-    : tr(
-        (requestedYear ? 'Year ' + requestedYear + ' · ' : '') + 'Module ' + moduleCode,
-        (requestedYear ? 'السنة ' + requestedYear + ' · ' : '') + 'موديول ' + moduleCode
-      )
+    : target === 'chat'
+      ? tr('Ask AnatoMate · 24-hour chat', 'Ask AnatoMate · شات لمدة 24 ساعة')
+      : tr(
+          (requestedYear ? 'Year ' + requestedYear + ' · ' : '') + 'Module ' + moduleCode,
+          (requestedYear ? 'السنة ' + requestedYear + ' · ' : '') + 'موديول ' + moduleCode
+        )
 
   const amount = existing?.amount_egp || requestedAmount
   const selectedChannel = channels.find((item) => item.id === channelId)
@@ -89,6 +93,7 @@ export default function ManualPaymentPage() {
       .limit(1)
 
     if (target === 'lecture') requestQuery.eq('lecture_id', lectureId)
+    else if (target === 'chat') requestQuery.eq('chat_session_id', chatSessionId)
     else {
       requestQuery.eq('module_code', moduleCode)
       if (requestedYear) requestQuery.eq('academic_year', requestedYear)
@@ -112,7 +117,7 @@ export default function ManualPaymentPage() {
 
   useEffect(() => {
     void load()
-  }, [user?.id, target, lectureId, moduleCode, productType, requestedYear])
+  }, [user?.id, target, lectureId, moduleCode, productType, requestedYear, chatSessionId])
 
   const copyDestination = async () => {
     if (!selectedChannel?.destination) return
@@ -136,6 +141,10 @@ export default function ManualPaymentPage() {
     }
     if (receipt.size > 5 * 1024 * 1024) {
       setMessage(tr('Receipt must be 5 MB or smaller.', 'حجم الإيصال لازم يكون 5 ميجا أو أقل.'))
+      return
+    }
+    if (target === 'chat' && !chatSessionId) {
+      setMessage(tr('Chat session is missing. Start again from Ask AnatoMate.', 'جلسة الشات غير موجودة. ابدأ من صفحة Ask AnatoMate.'))
       return
     }
     if (!requestedAmount || requestedAmount <= 0) {
@@ -165,6 +174,7 @@ export default function ManualPaymentPage() {
       target_type: target,
       lecture_id: target === 'lecture' ? lectureId : null,
       module_code: target === 'module' ? moduleCode : null,
+      chat_session_id: target === 'chat' ? chatSessionId : null,
       academic_year: target === 'module' ? requestedYear : null,
       product_type: productType,
       amount_egp: requestedAmount,
