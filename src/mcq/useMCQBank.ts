@@ -12,15 +12,12 @@ export type BankQuestion = {
   option_b: string
   option_c: string
   option_d: string
-  correct_option: 'A' | 'B' | 'C' | 'D'
-  explanation: string
   question_type: string | null
   difficulty: number
   source_scope: string | null
   learning_objective: string | null
   image_url: string | null
   image_alt: string | null
-  distractor_explanations: Record<string,string>
 }
 
 export type MCQLevel = {
@@ -106,7 +103,7 @@ export function useMCQBank(lectureId?: string) {
     if (lectureId) {
       const { data } = await supabase
         .from('mcq_questions')
-        .select('id, lecture_id, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, question_type, difficulty, source_scope, learning_objective, image_url, image_alt, distractor_explanations')
+        .select('id, lecture_id, topic, subtopic, question_text, option_a, option_b, option_c, option_d, question_type, difficulty, source_scope, learning_objective, image_url, image_alt')
         .eq('published', true)
         .eq('quality_status', 'ready')
         .eq('lecture_id', lectureId)
@@ -155,20 +152,23 @@ export function useMCQBank(lectureId?: string) {
     return map
   }, [countLectureIds])
 
-  const recordAttempt = useCallback(async (
-    question: BankQuestion,
-    selectedOption: 'A' | 'B' | 'C' | 'D',
-    responseMs?: number,
+  const submitAnswers = useCallback(async (
+    answers: { question_id: string; selected_option: 'A' | 'B' | 'C' | 'D'; response_ms?: number | null }[],
   ) => {
-    if (!supabase || !user) return
-    await supabase.from('mcq_attempts').insert({
-      user_id: user.id,
-      question_id: question.id,
-      lecture_id: question.lecture_id,
-      selected_option: selectedOption,
-      is_correct: selectedOption === question.correct_option,
-      response_ms: responseMs ?? null,
-    })
+    if (!supabase || !user) return []
+    const { data, error } = await supabase.rpc('submit_my_mcq_answers', { p_answers: answers })
+    if (error) throw error
+    return (data || []) as {
+      question_id: string
+      is_correct: boolean
+      correct_option: 'A' | 'B' | 'C' | 'D'
+      explanation: string
+      distractor_explanations: Record<string,string>
+      learning_objective: string | null
+      topic: string
+      subtopic: string | null
+      difficulty: number
+    }[]
   }, [user])
 
   return {
@@ -179,7 +179,7 @@ export function useMCQBank(lectureId?: string) {
     mastery,
     loading,
     countsByLecture,
-    recordAttempt,
+    submitAnswers,
     refreshQuestions,
     refreshMastery,
   }
