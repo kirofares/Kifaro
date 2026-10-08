@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const { data: identity, error: identityError } = await userClient.auth.getUser(auth.slice(7))
     if (identityError || !identity.user) return json('Invalid session', 401)
     const { lectureId, page = 1 } = await req.json()
-    if (typeof lectureId !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(lectureId) || !Number.isInteger(page) || page < 1) {
+    if (typeof lectureId !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(lectureId) || !Number.isInteger(page) || page < 0) {
       return json('Invalid request', 400)
     }
     // Permission enforcement happens on the server, not in the React UI.
@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
 
     const source = await PDFDocument.load(await original.arrayBuffer())
     const count = source.getPageCount()
+    if (page === 0) return new Response(JSON.stringify({ pageCount: count }), { status: 200, headers: { ...headers, 'Content-Type': 'application/json' } })
     if (page > count) return json('Page out of range', 404)
     const output = await PDFDocument.create()
     const [selected] = await output.copyPages(source, [page - 1])
