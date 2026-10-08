@@ -1247,7 +1247,8 @@ function CheckoutPage() {
   const offers = { video: videoOffer, datashow: datashowOffer, bundle: bundleOffer }
   const offer = offers[product]
   const readiness = assetReadiness.get(lecture.id)
-  const videoAvailable = Boolean(readiness?.has_video || (lecture.status === 'free' && lecture.videoUrl))
+  // Free lectures returned above, so only an uploaded video makes this product available here.
+  const videoAvailable = Boolean(readiness?.has_video)
   const datashowAvailable = Boolean(readiness?.has_datashow)
   const availability = { video: videoAvailable, datashow: datashowAvailable, bundle: videoAvailable && datashowAvailable }
   const selectedAvailable = availability[product]
