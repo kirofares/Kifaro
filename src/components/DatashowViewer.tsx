@@ -137,103 +137,84 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
   }, [])
 
   useEffect(() => {
+    if (!lecture || !user || !hasAccess || !supabase) return
     let active = true
-    let loadingTask: any
-
-    const load = async () => {
-      if (!lecture || !user || !hasAccess || !supabase) return
-
+    const getCount = async () => {
       setLoading(true)
       setMessage('')
-
-      const functionName = mode === 'pdf' ? 'lecture-watermarked-pdf' : 'lecture-watermarked-pdf'
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: { lectureId: lecture.id },
+      const { data, error } = await supabase.functions.invoke('lecture-slide', {
+        body: { lectureId: lecture.id, page: 0 },
       })
-
       if (!active) return
-
-      if (error || !data) {
-        setMessage(error?.message || documentLabel + ' is not available yet.')
+      if (error || !Number.isInteger(data?.pageCount) || data.pageCount < 1) {
+        setMessage(error?.message || 'Unable to load lecture page count.')
         setLoading(false)
         return
       }
+      setPageCount(data.pageCount)
+      setPageNumber(Math.min(Math.max(1, requestedPage), data.pageCount))
+      setLoading(false)
+    }
+    void getCount()
+    return () => { active = false }
+  }, [lecture?.id, user?.id, hasAccess, requestedPage])
 
+  useEffect(() => {
+    if (!lecture || !user || !hasAccess || !supabase || !pageCount) return
+    let active = true
+    let task: any
+    const load = async () => {
+      setLoading(true)
+      setMessage('')
+      setDocumentProxy(null)
       try {
-        let bytes: ArrayBuffer
-        if (data instanceof Blob) {
-          bytes = await data.arrayBuffer()
-        } else if (data instanceof ArrayBuffer) {
-          bytes = data
-        } else if (ArrayBuffer.isView(data)) {
-          bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice().buffer
-        } else {
-          throw new Error('Could not load the protected ' + documentLabel + '.')
-        }
-
-        loadingTask = pdfjsLib.getDocument({ data: bytes })
-        const pdf = await loadingTask.promise
+        const { data, error } = await supabase.functions.invoke('lecture-slide', {
+          body: { lectureId: lecture.id, page: pageNumber },
+        })
         if (!active) return
-        setDocumentProxy(pdf)
-        setPageCount(pdf.numPages)
-        setPageNumber(Math.min(requestedPage, pdf.numPages))
+        if (error || !(data instanceof Blob)) throw new Error(error?.message || 'Unable to load protected slide.')
+        task = pdfjsLib.getDocument({ data: await data.arrayBuffer() })
+        const pdf = await task.promise
+        if (active) setDocumentProxy(pdf)
       } catch (err) {
-        if (active) setMessage(err instanceof Error ? err.message : 'Could not load the protected document.')
+        if (active) setMessage(err instanceof Error ? err.message : 'Unable to load protected slide.')
       } finally {
         if (active) setLoading(false)
       }
     }
-
     void load()
-
-    return () => {
-      active = false
-      try { loadingTask?.destroy?.() } catch {}
-    }
-  }, [lecture?.id, user?.id, hasAccess, mode, requestedPage])
+    return () => { active = false; try { task?.destroy?.() } catch {} }
+  }, [lecture?.id, user?.id, hasAccess, pageNumber, pageCount])
 
   useEffect(() => {
+    if (!documentProxy || !canvasRef.current) return
     let cancelled = false
-
-    const renderPage = async () => {
-      if (!documentProxy || !canvasRef.current) return
+    const render = async () => {
       setRendering(true)
       try {
-        const page = await documentProxy.getPage(pageNumber)
-        if (cancelled || !canvasRef.current) return
-
-        const baseViewport = page.getViewport({ scale: 1 })
-        const availableWidth = Math.min(1280, Math.max(320, (stageRef.current?.clientWidth || 900) - 32))
-        const scale = Math.max(0.7, availableWidth / baseViewport.width)
-        const viewport = page.getViewport({ scale })
+        const page = await documentProxy.getPage(1)
+        const base = page.getViewport({ scale: 1 })
+        const available = Math.min(1280, Math.max(320, (stageRef.current?.clientWidth || 900) - 32))
+        const viewport = page.getViewport({ scale: Math.max(0.7, available / base.width) })
         const canvas = canvasRef.current
         const context = canvas.getContext('2d')
         if (!context) return
-
         canvas.width = Math.floor(viewport.width)
         canvas.height = Math.floor(viewport.height)
         canvas.style.width = '100%'
         canvas.style.height = 'auto'
-
         await page.render({ canvasContext: context, viewport }).promise
-        if (!cancelled) {
-          paintWatermark(canvas, {
-            studentName: displayName,
-            email,
-            studentId,
-            viewedAt,
-          })
-        }
+        if (!cancelled) paintWatermark(canvas, { studentName: displayName, email, studentId, viewedAt })
       } catch (err) {
-        if (!cancelled) setMessage(err instanceof Error ? err.message : 'Could not render this page.')
+        if (!cancelled) setMessage(err instanceof Error ? err.message : 'Unable to render slide.')
       } finally {
         if (!cancelled) setRendering(false)
       }
     }
-
-    void renderPage()
+    void render()
     return () => { cancelled = true }
-  }, [documentProxy, pageNumber, watermarkTick, displayName, email, studentId])
+  }, [documentProxy, watermarkTick, displayName, email, studentId])
+
 
   const toggleFullscreen = async () => {
     const target = stageRef.current
@@ -332,8 +313,8 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
 
       <p className="datashownote">
         {tr(
-          `Viewer-only access. The original file is not delivered to the student. Every displayed ${mode === 'pdf' ? 'page' : 'slide'} carries “${OWNER_WATERMARK}”, the signed-in student identity, a trace ID and viewing time.`,
-          `عرض فقط. الملف الأصلي لا يُسلَّم للطالب. كل ${mode === 'pdf' ? 'صفحة' : 'شريحة'} معروضة تحمل “${OWNER_WATERMARK}” وبيانات الطالب المسجّل ورقم تتبع ووقت المشاهدة.`,
+          `Viewer-only access. Each requested page is delivered individually with a personal watermark; screen capture is still possible. Every displayed ${mode === 'pdf' ? 'page' : 'slide'} carries “${OWNER_WATERMARK}”, the signed-in student identity, a trace ID and viewing time.`,
+          `عرض فقط. كل صفحة تُرسل منفصلة بعلامة مائية شخصية، مع بقاء إمكانية تصوير الشاشة. كل ${mode === 'pdf' ? 'صفحة' : 'شريحة'} معروضة تحمل “${OWNER_WATERMARK}” وبيانات الطالب المسجّل ورقم تتبع ووقت المشاهدة.`,
         )}
       </p>
     </div>
