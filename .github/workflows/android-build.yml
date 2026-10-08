@@ -27,7 +27,7 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
       # Shows the Paymob sandbox notice at checkout; set to 'false' when live payments are enabled.
       VITE_PAYMOB_TEST_MODE: 'true'
-      VITE_APP_VERSION: '1.0.1'
+      VITE_APP_VERSION: '1.0.2'
 
     steps:
       - name: Checkout
@@ -93,13 +93,24 @@ jobs:
           }
           EOF
 
+      - name: Set Android version for secure test build
+        shell: bash
+        run: |
+          sed -i 's/versionCode [0-9][0-9]*/versionCode 102/' android/app/build.gradle
+          sed -i 's/versionName "[^"]*"/versionName "1.0.2"/' android/app/build.gradle
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
 
+      - name: Rename secure APK
+        shell: bash
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/AnatoMate-Secure-v1.0.2.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AnatoMate-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: AnatoMate-Secure-v1.0.2
+          path: android/app/build/outputs/apk/debug/AnatoMate-Secure-v1.0.2.apk
           if-no-files-found: error
