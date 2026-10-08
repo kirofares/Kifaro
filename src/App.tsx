@@ -900,7 +900,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p><bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi> · {lecture.status === 'free' ? tr('Free preview', 'معاينة مجانية') : entitlements.has(lecture.id) ? tr('Purchased', 'تم الشراء') : <><bdi>{offerFor(lecture.id, getLecturePrice(lecture, lectureSettings.get(lecture.id))).price} {tr('EGP', 'ج.م')}</bdi> · {tr('Locked', 'مقفلة')}</>}</p>
+                <p><bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi> · {lecture.status === 'free' ? tr('Free lecture', 'محاضرة مجانية') : entitlements.has(lecture.id) ? tr('Purchased', 'تم الشراء') : <><bdi>{offerFor(lecture.id, getLecturePrice(lecture, lectureSettings.get(lecture.id))).price} {tr('EGP', 'ج.م')}</bdi> · {tr('Locked', 'مقفلة')}</>}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
@@ -955,18 +955,18 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const mcqResources = getStudyResources(lecture.id, 'mcq')
   const entitlement = entitlementByLecture.get(lecture.id)
   const videoUnlocked = lecture.status === 'free' || Boolean(entitlement?.video_access) || isAdmin
-  const datashowUnlocked = Boolean(entitlement?.datashow_access) || isAdmin
+  const datashowUnlocked = lecture.status === 'free' || Boolean(entitlement?.datashow_access) || isAdmin
   const readiness = assetReadiness.get(lecture.id)
   const videoAvailable = Boolean(readiness?.has_video || (lecture.status === 'free' && lecture.videoUrl))
   const datashowAvailable = Boolean(readiness?.has_datashow)
   const bundleAvailable = videoAvailable && datashowAvailable
   const videoBasePrice = getLecturePrice(lecture, lectureSetting)
-  const datashowBasePrice = Math.max(30, videoBasePrice)
+  const datashowBasePrice = lecture.status === 'free' ? 0 : Math.max(30, videoBasePrice)
   const bundleBasePrice = videoBasePrice + datashowBasePrice
   const videoOffer = offerFor(lecture.id, videoBasePrice, 'video')
   const datashowOffer = offerFor(lecture.id, datashowBasePrice, 'datashow')
   const bundleOffer = offerFor(lecture.id, bundleBasePrice, 'bundle')
-  const remainingViews = entitlement?.view_limit == null
+  const remainingViews = lecture.status === 'free' || entitlement?.view_limit == null
     ? null
     : Math.max(0, entitlement.view_limit - entitlement.views_used)
 
@@ -1227,6 +1227,16 @@ function CheckoutPage() {
 
   if (!lecture) {
     return <div className="page"><PageHead eyebrow={tr('KIFARO CHECKOUT', 'الدفع في KIFARO')} title={tr('Lecture not found', 'المحاضرة غير موجودة')} body={tr('This lecture is not available.', 'هذه المحاضرة غير متاحة.')} /></div>
+  }
+
+  // Free lectures include their video and protected Datashow/PDF: never send them to payment.
+  if (lecture.status === 'free') {
+    return (
+      <div className="page">
+        <PageHead eyebrow={tr('FREE LECTURE', 'محاضرة مجانية')} title={lecture.title} body={tr('This lecture is free. Video and protected slides open without payment.', 'المحاضرة مجانية، والفيديو والشرائح المحمية متاحين بدون دفع.')} />
+        <button className="primary" onClick={() => nav('/anatomate/lecture/' + lecture.slug)}><BookOpen size={17}/>{tr('Open free lecture', 'افتح المحاضرة المجانية')}</button>
+      </div>
+    )
   }
 
   const basePrice = getLecturePrice(lecture, lectureSetting)
