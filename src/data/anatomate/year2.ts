@@ -8,7 +8,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Neural tube defects','Aqueductal stenosis','Developmental basis of ventricular anatomy'],
     pearls:['Alar plate is sensory; basal plate is motor','Marginal layer becomes white matter'],
     activeRecall:['What does the alar plate become?','Which embryonic layer becomes white matter?'],
-    mcqs:[{question:'Which embryonic plate is primarily sensory?',options:['Basal plate','Alar plate','Floor plate','Roof plate'],answer:1,explanation:'The alar plate gives rise mainly to sensory regions.'}],
+    mcqs:[],
     slidesUrl:'/assets/anatomate/year2/cns/Y2_30_Development_of_CNS.pptx',pdfUrl:'/assets/anatomate/year2/cns/Y2_30_Development_of_CNS.pdf'
   },
   {
@@ -18,7 +18,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Lumbar puncture','Epidural hematoma','Subdural hematoma','Subarachnoid hemorrhage'],
     pearls:['Lumbar puncture is performed below the end of the spinal cord','Epidural, subdural and subarachnoid bleeding have different anatomical compartments'],
     activeRecall:['Where is the lumbar cistern?','Which meningeal space contains CSF?'],
-    mcqs:[{question:'CSF normally occupies which space?',options:['Epidural','Subdural','Subarachnoid','Intradural'],answer:2,explanation:'CSF circulates in the subarachnoid space.'}],
+    mcqs:[],
     slidesUrl:'/assets/anatomate/year2/cns/Y2_31_Meninges.pptx',pdfUrl:'/assets/anatomate/year2/cns/Y2_31_Meninges.pdf'
   },
   {
@@ -28,7 +28,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Communicating hydrocephalus','Non-communicating hydrocephalus','Aqueductal stenosis'],
     pearls:['CSF is produced mainly by choroid plexus','Aqueductal stenosis enlarges ventricles proximal to the aqueduct'],
     activeRecall:['Name the median aperture','Where is CSF reabsorbed?'],
-    mcqs:[{question:'Aqueductal stenosis most directly obstructs flow between:',options:['Lateral and third ventricles','Third and fourth ventricles','Fourth ventricle and central canal','Subarachnoid space and venous sinuses'],answer:1,explanation:'The cerebral aqueduct connects the third and fourth ventricles.'}],
+    mcqs:[],
     slidesUrl:'/assets/anatomate/year2/cns/Y2_32_Ventricular_System_CSF.pptx',pdfUrl:'/assets/anatomate/year2/cns/Y2_32_Ventricular_System_CSF.pdf'
   },
   {
@@ -38,7 +38,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Cauda equina syndrome','Lumbar puncture'],
     pearls:['Conus medullaris is the tapered end of the cord','Cauda equina is a bundle of roots below the cord'],
     activeRecall:['What is the cauda equina?','Where does the cord end in adults?'],
-    mcqs:[{question:'The cauda equina is best described as:',options:['The tapered end of the cord','A bundle of lumbar and sacral roots','A meningeal layer','A dural septum'],answer:1,explanation:'It consists of nerve roots descending below the conus medullaris.'}],
+    mcqs:[],
     slidesUrl:'/assets/anatomate/year2/cns/Y2_33_Spinal_Cord_External.pptx',pdfUrl:'/assets/anatomate/year2/cns/Y2_33_Spinal_Cord_External.pdf'
   },
   {
@@ -48,7 +48,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Cord level localization'],
     pearls:['White matter increases toward cervical levels','Thoracic cord has a characteristic lateral horn'],
     activeRecall:['Which level has the most white matter?','Where is the lateral horn best developed?'],
-    mcqs:[{question:'Which spinal cord region typically has the greatest proportion of white matter?',options:['Sacral','Lumbar','Thoracic','Cervical'],answer:3,explanation:'Ascending and descending fibers accumulate toward cervical levels.'}],
+    mcqs:[],
     slidesUrl:'/assets/anatomate/year2/cns/Y2_34_Spinal_Cord_Internal.pptx',pdfUrl:'/assets/anatomate/year2/cns/Y2_34_Spinal_Cord_Internal.pdf'
   },
   {
