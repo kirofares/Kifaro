@@ -1007,7 +1007,7 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
   .sectiontabs{padding:16px 16px 0}
   .bottomtabs{
     position:fixed;left:0;right:0;bottom:0;z-index:45;
-    display:grid;grid-template-columns:repeat(5,1fr);
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
     background:#fff;border-top:1px solid var(--line);
     box-shadow:0 -6px 20px rgba(24,52,92,.08);
     padding-bottom:env(safe-area-inset-bottom);
