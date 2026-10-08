@@ -56,6 +56,42 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Apply KIFARO launcher icon
+        shell: bash
+        run: |
+          mkdir -p android/app/src/main/res/drawable android/app/src/main/res/mipmap-anydpi-v26 android/app/src/main/res/values
+          cat > android/app/src/main/res/drawable/kifaro_launcher_foreground.xml <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="512"
+              android:viewportHeight="512">
+            <path android:fillColor="#0A3C72" android:pathData="M132,137 L180,151 L180,365 L132,350 Z"/>
+            <path android:fillColor="#168DE4" android:pathData="M154,113 L213,140 L213,372 L154,345 Z"/>
+            <path android:fillColor="#24B7EF" android:pathData="M188,91 C232,112 249,153 249,193 L249,366 L188,343 Z"/>
+            <path android:fillColor="#1AA6EB" android:pathData="M223,320 C217,260 226,226 253,194 L335,91 L405,91 L302,221 C286,242 271,260 260,282 Z"/>
+            <path android:fillColor="#082D5C" android:pathData="M260,226 C290,205 317,210 342,231 L414,308 C430,325 446,343 461,361 L369,361 L272,265 C253,247 250,237 260,226 Z"/>
+            <path android:fillColor="#28B8EE" android:pathData="M205,336 C205,294 208,254 223,223 C232,204 243,190 257,176 C250,223 251,269 260,307 L230,365 Z"/>
+          </vector>
+          EOF
+          cat > android/app/src/main/res/values/kifaro_icon_colors.xml <<'EOF'
+          <resources>
+            <color name="kifaro_launcher_background">#FBF8F5</color>
+          </resources>
+          EOF
+          cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@color/kifaro_launcher_background"/>
+            <foreground android:drawable="@drawable/kifaro_launcher_foreground"/>
+          </adaptive-icon>
+          EOF
+          cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@color/kifaro_launcher_background"/>
+            <foreground android:drawable="@drawable/kifaro_launcher_foreground"/>
+          </adaptive-icon>
+          EOF
+
       - name: Apply Android system-bar insets
         shell: bash
         run: |
