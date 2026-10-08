@@ -30,6 +30,7 @@ import { useMCQBank } from './mcq/useMCQBank'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
 import ProgressPage from './progress/ProgressPage'
 import ManualPaymentPage from './payments/ManualPaymentPage'
+import AskAnatoMatePage from './chat/AskAnatoMatePage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
@@ -192,7 +193,7 @@ type NavSection = {
   tabs?: { to: string; label: [string, string] }[]
 }
 
-const PRACTICE_ROUTES = ['/assessments', '/mcq', '/cases', '/osce', '/spotters', '/viva-bank', '/flashcards', '/studio']
+const PRACTICE_ROUTES = ['/assessments', '/mcq', '/cases', '/osce', '/spotters', '/viva-bank', '/flashcards', '/studio', '/ask']
 
 const NAV_SECTIONS: NavSection[] = [
   { key: 'home', to: '/', label: ['Home', 'الرئيسية'], icon: Home, match: (path) => path === '/' },
@@ -216,6 +217,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/spotters', label: ['Spotters', 'السبوتر'] },
       { to: '/viva-bank', label: ['Viva', 'الفايفا'] },
       { to: '/flashcards', label: ['Flashcards', 'البطاقات'] },
+      { to: '/ask', label: ['Ask', 'اسأل'] },
     ],
   },
   {
@@ -486,7 +488,8 @@ export default function App() {
           <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
           <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
-          <Route path="/manual-payment" element={<ManualPaymentPage />} />\n          <Route path="/payment/return" element={<PaymentReturnPage />} />
+          <Route path="/manual-payment" element={<ManualPaymentPage />} />
+          <Route path="/ask" element={<AskAnatoMatePage />} />\n          <Route path="/payment/return" element={<PaymentReturnPage />} />
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/refund" element={<LegalPage kind="refund" />} />
