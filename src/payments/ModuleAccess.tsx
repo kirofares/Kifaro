@@ -165,7 +165,7 @@ export function ModuleAccessGate({
         'Pay once and get access to this assessment section for 6 months.',
         'ادفع مرة واحدة وخد وصول لهذا القسم من التقييمات لمدة 6 شهور.'
       )}</p>
-      <div className="moduleprice"><strong>{price || (productType === 'cases' ? 200 : 100)} EGP</strong><span>{tr('one-time payment', 'دفع مرة واحدة')}</span></div>
+      <div className="moduleprice"><strong>{price || (productType === 'cases' ? 200 : 100)} EGP</strong><span>{tr('6-month access', 'وصول لمدة 6 شهور')}</span></div>
       <div className="modulepaywallbenefit"><ShieldCheck size={18}/>{tr('6 months of module access after successful payment', 'فتح الموديول لمدة 6 شهور بعد نجاح الدفع')}</div>
       {message && <div className="authmessage">{message}</div>}
       <div className="manualcheckoutnotice compact">
