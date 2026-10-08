@@ -10,7 +10,7 @@ export const year1OrientationLectures: Lecture[] = [
     clinical:['How anatomical knowledge supports clinical thinking from the first year'],
     pearls:['See it, understand it, connect it, remember it'],
     activeRecall:['What is the AnatoMate learning sequence?'],
-    mcqs:[{question:'What is the main goal of AnatoMate?',options:['Memorize isolated lists','Build visual connected understanding','Skip clinical applications','Study without recall'],answer:1,explanation:'AnatoMate is built around visual, connected understanding with clinical relevance.'}],
+    mcqs:[],
     slidesUrl:base+'/orientation/Y1_M0_AnatoMate_Intro_Talk.pptx',pdfUrl:base+'/orientation/Y1_M0_AnatoMate_Intro_Talk.pdf'
   },
   {
@@ -20,7 +20,7 @@ export const year1OrientationLectures: Lecture[] = [
     clinical:['Build habits that improve later clinical localization'],
     pearls:['Active recall beats passive rereading','Study relationships before isolated details'],
     activeRecall:['What should you do after first understanding a structure?'],
-    mcqs:[{question:'Which method best supports long-term anatomy retention?',options:['Passive rereading','Active recall','Highlighting only','Skipping revision'],answer:1,explanation:'Active recall strengthens retrieval and long-term retention.'}],
+    mcqs:[],
     slidesUrl:base+'/orientation/Y1_M0_How_to_Study_Anatomy.pptx',pdfUrl:base+'/orientation/Y1_M0_How_to_Study_Anatomy.pdf'
   }
 ]
@@ -33,7 +33,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Use anatomical language to describe examination findings and procedures'],
     pearls:['Anatomical descriptions assume the standard anatomical position','Median and sagittal planes are not interchangeable terms'],
     activeRecall:['Define anatomical position','Name the three main anatomical planes'],
-    mcqs:[{question:'Which plane divides the body into anterior and posterior parts?',options:['Sagittal','Coronal','Transverse','Median'],answer:1,explanation:'The coronal plane divides the body into anterior and posterior portions.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_01_Introduction_to_Anatomy.pptx',pdfUrl:base+'/foundations/Y1_01_Introduction_to_Anatomy.pdf'
   },
   {
@@ -43,7 +43,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Fracture description and interpretation of skeletal landmarks'],
     pearls:['Bone shape reflects function','Surface markings often indicate attachment or passage'],
     activeRecall:['Name the main bone shape classes','Differentiate axial and appendicular skeleton'],
-    mcqs:[{question:'Which structure belongs to the axial skeleton?',options:['Humerus','Femur','Vertebral column','Scapula'],answer:2,explanation:'The vertebral column is part of the axial skeleton.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_02_Introduction_to_Skeleton.pptx',pdfUrl:base+'/foundations/Y1_02_Introduction_to_Skeleton.pdf'
   },
   {
@@ -53,7 +53,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Joint stability and dislocation','Basic principles of arthritis'],
     pearls:['Synovial joints contain a true joint cavity','Joint shape strongly influences available movement'],
     activeRecall:['What are the three structural classes of joints?','List the essential features of a synovial joint'],
-    mcqs:[{question:'Which feature is characteristic of a synovial joint?',options:['No joint cavity','Fibrocartilage only','A joint cavity','Complete bony fusion'],answer:2,explanation:'A synovial joint has a true joint cavity.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_03_Joints_Arthrology.pptx',pdfUrl:base+'/foundations/Y1_03_Joints_Arthrology.pdf'
   },
   {
@@ -63,7 +63,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Muscle weakness and nerve injury','Functional testing of muscle groups'],
     pearls:['Muscle action depends on line of pull and joint position','A muscle can have different functional roles in different movements'],
     activeRecall:['Define agonist and antagonist','How does pennate architecture affect force?'],
-    mcqs:[{question:'A muscle that opposes the action of a prime mover is called:',options:['Synergist','Antagonist','Fixator','Tensor'],answer:1,explanation:'An antagonist opposes or controls the action of the prime mover.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_04_Muscles_Myology.pptx',pdfUrl:base+'/foundations/Y1_04_Muscles_Myology.pdf'
   },
   {
@@ -73,7 +73,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Compartment syndrome','Spread of infection through fascial planes'],
     pearls:['Deep fascia can form intermuscular septa','Closed fascial compartments can develop dangerous pressure'],
     activeRecall:['What forms an anatomical compartment?','Why can raised compartment pressure impair perfusion?'],
-    mcqs:[{question:'Compartment syndrome is dangerous mainly because rising pressure can:',options:['Increase venous return','Compromise tissue perfusion','Strengthen fascia','Prevent edema'],answer:1,explanation:'Raised pressure within a closed compartment can compromise blood flow and tissue viability.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_05_Fascia_Spaces_Compartments.pptx',pdfUrl:base+'/foundations/Y1_05_Fascia_Spaces_Compartments.pdf'
   },
   {
@@ -83,7 +83,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['End-artery ischemia','Collateral circulation'],
     pearls:['Functional end arteries have limited effective collateral supply'],
     activeRecall:['What is an anastomosis?','Why can end-artery occlusion cause infarction?'],
-    mcqs:[{question:'A vessel with little or no effective collateral supply is termed:',options:['Portal vein','End artery','Sinusoid','Venule'],answer:1,explanation:'An end artery has insufficient collateral circulation to maintain perfusion after occlusion.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_06_Blood_Vessels.pptx',pdfUrl:base+'/foundations/Y1_06_Blood_Vessels.pdf'
   },
   {
@@ -93,7 +93,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Lymphedema','Lymph node enlargement and metastatic spread'],
     pearls:['Lymphatic drainage often follows regional vascular anatomy'],
     activeRecall:['What is the role of a lymph node?','Where does lymph ultimately return to the circulation?'],
-    mcqs:[{question:'Lymph from most of the body ultimately drains into:',options:['Right lymphatic duct only','Thoracic duct','Portal vein','Aorta'],answer:1,explanation:'The thoracic duct drains most of the body.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_07_Lymphatic_System.pptx',pdfUrl:base+'/foundations/Y1_07_Lymphatic_System.pdf'
   },
   {
@@ -103,7 +103,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Peripheral nerve lesion terminology','Basic neurological localization'],
     pearls:['Nucleus is a CNS term; ganglion is usually a PNS term','Tracts are CNS bundles; nerves are PNS bundles'],
     activeRecall:['Differentiate a nucleus from a ganglion','Differentiate a tract from a nerve'],
-    mcqs:[{question:'A collection of neuronal cell bodies in the PNS is usually called a:',options:['Nucleus','Ganglion','Tract','Fasciculus'],answer:1,explanation:'Ganglion is the usual term for a collection of neuronal cell bodies in the peripheral nervous system.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_08_Introduction_to_Nervous_System.pptx',pdfUrl:base+'/foundations/Y1_08_Introduction_to_Nervous_System.pdf'
   },
   {
@@ -113,7 +113,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Burn depth','Dermatomal sensory examination'],
     pearls:['The epidermis is avascular','Dermatomes overlap and are not sharply isolated bands'],
     activeRecall:['Which skin layer is avascular?','What is a dermatome?'],
-    mcqs:[{question:'Which layer of skin is avascular?',options:['Dermis','Epidermis','Hypodermis','Deep fascia'],answer:1,explanation:'The epidermis has no blood vessels and receives nutrients by diffusion from the dermis.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_09_Skin_Integumentary_System.pptx',pdfUrl:base+'/foundations/Y1_09_Skin_Integumentary_System.pdf'
   },
   {
@@ -123,7 +123,7 @@ export const year1FoundationLectures: Lecture[] = [
     clinical:['Integrated clinical anatomy reasoning'],
     pearls:['Integration is the goal: structure, relationship, function and clinical meaning'],
     activeRecall:['Build a structure-to-clinical chain for one region'],
-    mcqs:[{question:'The best integrated anatomy approach is to connect:',options:['Names only','Structure, relationship, function and clinical meaning','Images without labels','Clinical facts without anatomy'],answer:1,explanation:'Integrated anatomy connects structure to relationships, function and clinical meaning.'}],
+    mcqs:[],
     slidesUrl:base+'/foundations/Y1_10_General_Anatomy_Integration.pptx',pdfUrl:base+'/foundations/Y1_10_General_Anatomy_Integration.pdf'
   }
 ]
@@ -136,7 +136,7 @@ export const year1PracticalLectures: Lecture[] = [
     clinical:['Scapular fractures and shoulder mechanics'],
     pearls:['Orientation comes before memorizing attachments'],
     activeRecall:['Name the three borders of the scapula','Which process articulates with the clavicle?'],
-    mcqs:[{question:'The glenoid cavity articulates with the:',options:['Clavicle','Head of humerus','Radius','Sternum'],answer:1,explanation:'The glenoid cavity receives the head of the humerus.'}],
+    mcqs:[],
     slidesUrl:base+'/practical/Y1_Practical_Scapula.pptx',pdfUrl:base+'/practical/Y1_Practical_Scapula.pdf'
   }
 ]
