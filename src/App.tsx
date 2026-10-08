@@ -28,6 +28,7 @@ import { LangProvider, useLang, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
 import { useMCQBank } from './mcq/useMCQBank'
 import { useDueToday } from './flashcards/useDueToday'
+import ExamCountdown from './exam/ExamCountdown'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
 import ProgressPage from './progress/ProgressPage'
 import ManualPaymentPage from './payments/ManualPaymentPage'
@@ -57,6 +58,8 @@ function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ default: T
 const AdminPage = lazyPage(() => import('./admin/AdminPage'))
 const DatashowViewer = lazyPage(() => import('./components/DatashowViewer'))
 const ProtectedVideoPlayer = lazyPage(() => import('./components/ProtectedVideoPlayer'))
+const ModuleExamPage = lazyPage(() => import('./exam/ModuleExamPage'))
+const SpotterDrillPage = lazyPage(() => import('./exam/SpotterDrillPage'))
 const VivaPage = lazyPage(() => import('./viva/VivaPage'))
 const FlashcardsPage = lazyPage(() => import('./flashcards/FlashcardsPage'))
 const ReviewPage = lazyPage(() => import('./review/ReviewPage'))
@@ -499,6 +502,8 @@ export default function App() {
           <Route path="/assessments" element={<AssessmentCenterPage />} />
           <Route path="/cases" element={<CasesPage />} />
           <Route path="/osce" element={<OSCEPage />} />
+          <Route path="/mcq/exam/:year/:module" element={<ModuleExamPage />} />
+          <Route path="/spotters/drill" element={<SpotterDrillPage />} />
           <Route path="/spotters" element={<SpottersPage />} />
           <Route path="/viva-bank" element={<VivaBankPage />} />
           <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
@@ -842,6 +847,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
         </div>
 
         <aside className="rightcol">
+          <ExamCountdown />
           <DueTodayCard go={go} />
           <Mini icon={<BookOpen />} title={t.activeNow} body={active.length ? titles(active) : t.noneActive} />
           <Mini icon={<Star />} title={t.favorites} body={favorites.length ? titles(favorites) : t.noFavorites} />

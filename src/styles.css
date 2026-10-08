@@ -1181,3 +1181,36 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
   .pearlsection{break-inside:avoid;box-shadow:none}
   .recallblock{display:block}
 }
+
+/* Exam mode, spotter drill and exam countdown */
+.examlaunch{margin:0 0 16px}
+.examsizes{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.examgrid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.examgrid button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:700;color:var(--muted)}
+.examgrid button.answered{background:var(--soft);color:var(--primary);border-color:var(--soft)}
+.examgrid button.current{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 25%,transparent)}
+.examimage{max-width:100%;border-radius:12px;margin:8px 0}
+.examactions{gap:8px}
+.exambreakdown{display:grid;gap:8px}
+.exambreakdown div{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.exambreakdown div.weak{border-color:#f0c9c6;background:#fff6f5}
+.examreview{padding:12px 0;border-bottom:1px solid var(--line)}
+.examreview p{margin:4px 0;line-height:1.6}
+.examreview.correct p:first-child{color:#166a4e}
+.examreview .muted,.muted{color:var(--muted)}
+.drillprogress{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-weight:700;color:var(--muted)}
+.drillprogress div{flex:1;height:7px;border-radius:99px;background:#edf1f6;overflow:hidden}
+.drillprogress i{display:block;height:100%;background:var(--primary)}
+.examcountdown{border-color:color-mix(in srgb,var(--primary) 35%,var(--line))}
+.countdowndays{font-size:22px!important;font-weight:800;color:var(--primary)!important;margin:8px 0 0}
+.progresspage .examcountdown{margin-bottom:16px}
+.examactions{flex-wrap:wrap}
+.examactions button{flex:1 1 auto;justify-content:center}
+.examgrid{max-width:100%}
+/* Phones: show Today (exam countdown, due reviews) right after "Continue learning", before the rest of Home */
+@media(max-width:780px){
+  .dashgrid>div:first-child{display:contents}
+  .dashgrid>div:first-child>*{order:3}
+  .dashgrid>div:first-child>section:first-child{order:1}
+  .dashgrid>.rightcol{order:2}
+}
