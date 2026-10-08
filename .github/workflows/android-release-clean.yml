@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.release/android-1.0.3'
+      - '.release/android-1.0.4'
 
 permissions:
   contents: write
@@ -18,9 +18,9 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
       # Shows the Paymob sandbox notice at checkout; set to 'false' when live payments are enabled.
       VITE_PAYMOB_TEST_MODE: 'true'
-      VITE_APP_VERSION: 1.0.3
-      ANATOMATE_VERSION_NAME: 1.0.3
-      ANATOMATE_VERSION_CODE: 4
+      VITE_APP_VERSION: 1.0.4
+      ANATOMATE_VERSION_NAME: 1.0.4
+      ANATOMATE_VERSION_CODE: 5
       ANATOMATE_KEY_ALIAS: anatomate
 
     steps:
@@ -178,23 +178,23 @@ jobs:
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: AnatoMate-1.0.3-release-apk
+          name: AnatoMate-1.0.4-release-apk
           path: AnatoMate.apk
 
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         with:
-          name: AnatoMate-1.0.3-release-aab
+          name: AnatoMate-1.0.4-release-aab
           path: AnatoMate.aab
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.3
-          name: AnatoMate 1.0.3
+          tag_name: v1.0.4
+          name: AnatoMate 1.0.4
           body: |
-            AnatoMate by KIFARO — Android release 1.0.3.
-            Adds academic-year separation plus one-time paid module access for MCQ, Cases, and OSCE/OSPE.
+            AnatoMate by KIFARO — Android release 1.0.4.
+            Security hardening: server-side MCQ grading, protected rate limits, refund-aware access, audit logging, screenshot blocking, no cleartext traffic, and disabled app backups.
           files: |
             AnatoMate.apk
             AnatoMate.aab
