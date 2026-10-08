@@ -231,7 +231,7 @@ Deno.serve(async (req: Request) => {
           price_paid_egp: amountCents / 100,
           source: 'paymob:' + transactionId,
           granted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 183 * 24 * 60 * 60 * 1000).toISOString(),
+          expires_at: (() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() + 6); return d.toISOString() })(),
           revoked_at: null,
         }, { onConflict: 'user_id,module_code,product_type' })
 
