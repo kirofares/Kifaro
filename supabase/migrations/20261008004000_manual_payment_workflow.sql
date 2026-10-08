@@ -280,22 +280,24 @@ begin
         and module_code = r.module_code
         and product_type = r.product_type
         and revoked_at is null
+        and expires_at > now()
     ) then
       raise exception 'This module access is already active';
     end if;
 
     insert into public.module_entitlements (
       user_id, module_code, product_type, academic_year,
-      price_paid_egp, source, granted_at, revoked_at
+      price_paid_egp, source, granted_at, expires_at, revoked_at
     ) values (
       r.user_id, r.module_code, r.product_type, r.academic_year,
-      r.amount_egp, 'manual:' || r.reference_code, now(), null
+      r.amount_egp, 'manual:' || r.reference_code, now(), now() + interval '6 months', null
     )
     on conflict (user_id, module_code, product_type) do update
     set academic_year = excluded.academic_year,
         price_paid_egp = excluded.price_paid_egp,
         source = excluded.source,
         granted_at = now(),
+        expires_at = now() + interval '6 months',
         revoked_at = null;
   else
     select * into e
