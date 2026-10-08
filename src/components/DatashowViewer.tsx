@@ -7,6 +7,7 @@ import { getLectureBySlug } from '../data/anatomate'
 import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
 import { useEntitlements } from '../hooks/useEntitlements'
+import { useLectureSettings } from '../hooks/useLectureSettings'
 import { supabase } from '../lib/supabase'
 import { useTr } from '../i18n'
 
@@ -89,9 +90,13 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
   const tr = useTr()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
   const { entitlementByLecture, loading: entitlementLoading } = useEntitlements(user?.id)
+  const { settings: lectureSettings, loading: lectureSettingsLoading } = useLectureSettings()
   const lecture = getLectureBySlug(slug)
+  const setting = lecture ? lectureSettings.get(lecture.id) : undefined
   const entitlement = lecture ? entitlementByLecture.get(lecture.id) : undefined
-  const hasAccess = Boolean(isAdmin || entitlement?.datashow_access)
+  const isFree = Boolean(lecture && setting?.published !== false &&
+    (setting?.access_mode === 'free' || (lecture.status === 'free' && setting?.access_mode !== 'paid')))
+  const hasAccess = Boolean(isAdmin || isFree || entitlement?.datashow_access)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const stageRef = useRef<HTMLDivElement | null>(null)
   const [documentProxy, setDocumentProxy] = useState<any>(null)
