@@ -156,9 +156,10 @@ export function useMCQBank(lectureId?: string) {
     answers: { question_id: string; selected_option: 'A' | 'B' | 'C' | 'D'; response_ms?: number | null }[],
   ) => {
     if (!supabase || !user) return []
-    const { data, error } = await supabase.rpc('submit_my_mcq_answers', { p_answers: answers })
+    const { data, error } = await supabase.functions.invoke('mcq-submit', { body: { answers } })
     if (error) throw error
-    return (data || []) as {
+    if (data?.error) throw new Error(String(data.error))
+    return (data?.results || []) as {
       question_id: string
       is_correct: boolean
       correct_option: 'A' | 'B' | 'C' | 'D'
