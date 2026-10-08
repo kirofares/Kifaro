@@ -56,6 +56,34 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Harden Android WebView and app window
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          s = manifest.read_text()
+          s = re.sub(r'<application\\b', '<application android:usesCleartextTraffic="false" android:allowBackup="false"', s, count=1)
+          manifest.write_text(s)
+          PY
+          cat > android/app/src/main/java/com/kifaro/anatomate/MainActivity.java <<'EOF'
+          package com.kifaro.anatomate;
+
+          import android.os.Bundle;
+          import android.view.WindowManager;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            }
+          }
+          EOF
+
       - name: Apply KIFARO launcher icon
         shell: bash
         run: |
