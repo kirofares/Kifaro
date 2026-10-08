@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Activity, CheckCircle2, ChevronRight, Clock3, Eye, FileQuestion, RotateCcw, Stethoscope } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -29,7 +29,7 @@ type AssessmentContent = {
   checklist?: ChecklistItem[]
   key_points?: string[]
 }
-type AssessmentItem = {
+export type AssessmentItem = {
   id: string
   assessment_type: AssessmentType
   year: number
@@ -45,7 +45,7 @@ type AssessmentItem = {
   content: AssessmentContent
 }
 
-function useAssessmentItems(types?: AssessmentType[]) {
+export function useAssessmentItems(types?: AssessmentType[]) {
   const [items, setItems] = useState<AssessmentItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -75,7 +75,8 @@ function useAssessmentItems(types?: AssessmentType[]) {
   return { items, loading }
 }
 
-function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productType }: {
+function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productType, headerAction }: {
+  headerAction?: ReactNode
   types: AssessmentType[]
   titleEn: string
   titleAr: string
@@ -110,6 +111,7 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
           <p>{tr(bodyEn, bodyAr)}</p>
         </div>
       </div>
+      {headerAction}
 
       {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : grouped.length ? (
         <div className="assessmentgroups">
@@ -328,7 +330,9 @@ export function OSCEPage() {
 }
 
 export function SpottersPage() {
-  return <AssessmentListPage types={['spotter']} titleEn="Image Spotters" titleAr="السبوتر والصور" bodyEn="Practice recognition of structures from images, specimens and labeled views." bodyAr="تدرب على التعرف على التراكيب من الصور والعينات والمناظر التشريحية." />
+  const nav = useNavigate()
+  const tr = useTr()
+  return <AssessmentListPage headerAction={<button className="primary examlaunch" onClick={() => nav('/spotters/drill')}>{tr('Start timed spotter drill', 'ابدأ تدريب السبوتر بالوقت')}</button>} types={['spotter']} titleEn="Image Spotters" titleAr="السبوتر والصور" bodyEn="Practice recognition of structures from images, specimens and labeled views." bodyAr="تدرب على التعرف على التراكيب من الصور والعينات والمناظر التشريحية." />
 }
 
 export function VivaBankPage() {

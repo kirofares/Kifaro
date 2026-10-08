@@ -5,6 +5,7 @@ import { anatomateLectures, anatomateYears } from '../data/anatomate'
 import { useProgress } from '../hooks/useProgress'
 import { useAssetReadiness } from '../hooks/useAssetReadiness'
 import { isLectureAvailable } from '../data/anatomate/availability'
+import ExamCountdown from '../exam/ExamCountdown'
 import { useMCQBank } from '../mcq/useMCQBank'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
@@ -149,6 +150,7 @@ export default function ProgressPage() {
         </div>
       </div>
 
+      <ExamCountdown />
       <div className="progressmetrics">
         <div className="progressmetric"><BookOpen/><div><strong>{overallLectureProgress}%</strong><span>{tr('Lecture progress', 'تقدم المحاضرات')}</span></div></div>
         <div className="progressmetric"><Brain/><div><strong>{mcqSummary.score}%</strong><span>{tr('MCQ mastery', 'إتقان MCQ')}</span></div></div>

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type 
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
-  ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
+  ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, Brain, CalendarClock, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
   Home, Library, Menu, Microscope, Palette,
   CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserRound, X,
 } from 'lucide-react'
@@ -27,6 +27,8 @@ import { supabase } from './lib/supabase'
 import { LangProvider, useLang, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
 import { useMCQBank } from './mcq/useMCQBank'
+import { useDueToday } from './flashcards/useDueToday'
+import ExamCountdown from './exam/ExamCountdown'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
 import ProgressPage from './progress/ProgressPage'
 import ManualPaymentPage from './payments/ManualPaymentPage'
@@ -56,6 +58,8 @@ function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ default: T
 const AdminPage = lazyPage(() => import('./admin/AdminPage'))
 const DatashowViewer = lazyPage(() => import('./components/DatashowViewer'))
 const ProtectedVideoPlayer = lazyPage(() => import('./components/ProtectedVideoPlayer'))
+const ModuleExamPage = lazyPage(() => import('./exam/ModuleExamPage'))
+const SpotterDrillPage = lazyPage(() => import('./exam/SpotterDrillPage'))
 const VivaPage = lazyPage(() => import('./viva/VivaPage'))
 const FlashcardsPage = lazyPage(() => import('./flashcards/FlashcardsPage'))
 const ReviewPage = lazyPage(() => import('./review/ReviewPage'))
@@ -479,6 +483,7 @@ export default function App() {
           <Route path="/admin" element={<div dir="ltr" lang="en"><AdminPage /></div>} />
           <Route path="/curriculum" element={<Curriculum lectures={filtered} go={nav} />} />
           <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
+          <Route path="/anatomate/year/:year/module/:module/pearls" element={<ModulePearlsPage />} />
           <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
           <Route path="/anatomate/lecture/:slug/viva" element={<VivaPage />} />
@@ -497,6 +502,8 @@ export default function App() {
           <Route path="/assessments" element={<AssessmentCenterPage />} />
           <Route path="/cases" element={<CasesPage />} />
           <Route path="/osce" element={<OSCEPage />} />
+          <Route path="/mcq/exam/:year/:module" element={<ModuleExamPage />} />
+          <Route path="/spotters/drill" element={<SpotterDrillPage />} />
           <Route path="/spotters" element={<SpottersPage />} />
           <Route path="/viva-bank" element={<VivaBankPage />} />
           <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
@@ -686,6 +693,68 @@ function PageHead({ eyebrow, title, body }: { eyebrow: string; title: string; bo
   )
 }
 
+// Today's revision queue: spaced-repetition flashcards that are due, plus open MCQ weak points.
+function DueTodayCard({ go }: { go: (path: string) => void }) {
+  const tr = useTr()
+  const { dueCards, weakPoints, loaded } = useDueToday()
+  if (!loaded) return null
+  const nothingDue = dueCards === 0 && weakPoints === 0
+  return (
+    <div className="minicard duetoday">
+      <div className="minihead"><span className="softicon"><CalendarClock /></span><h3>{tr('Due today', 'مراجعة النهارده')}</h3></div>
+      {nothingDue ? (
+        <p>{tr('All caught up. New reviews appear here when cards come due.', 'خلصت مراجعتك. المراجعات الجديدة هتظهر هنا لما يجي ميعادها.')}</p>
+      ) : (
+        <div className="duetodayrows">
+          {dueCards > 0 && <button className="secondary" onClick={() => go('/flashcards?due=1')}><bdi>{dueCards}</bdi> {tr('flashcards', 'كارت')}</button>}
+          {weakPoints > 0 && <button className="secondary" onClick={() => go('/review')}><bdi>{weakPoints}</bdi> {tr('weak points', 'نقطة ضعف')}</button>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// One-page, printable night-before-the-exam sheet: every authored lecture's pearls and recall prompts.
+function ModulePearlsPage() {
+  const { year, module } = useParams()
+  const nav = useNavigate()
+  const tr = useTr()
+  const yearData = anatomateYears.find((item) => String(item.year) === year)
+  const moduleData = yearData?.modules.find((item) => item.slug === module)
+  if (!yearData || !moduleData) {
+    return <div className="page"><PageHead eyebrow="ANATOMATE" title={tr('Module not found', 'الموديول غير موجود')} body={tr('This module is not available.', 'هذا الموديول غير متاح.')} /></div>
+  }
+  const authored = moduleData.lectures.filter((lecture) => !lecture.placeholder && (lecture.pearls.length || lecture.activeRecall.length))
+  return (
+    <div className="page pearlspage">
+      <PageHead
+        eyebrow={tr('EXAM PEARLS', 'نقاط الامتحان')}
+        title={moduleData.title}
+        body={tr('High-yield points and recall questions from every published lecture in this module, on one page.', 'أهم النقاط وأسئلة الاسترجاع من كل محاضرات الموديول المنشورة، في صفحة واحدة.')}
+      />
+      <div className="pearlsactions">
+        <button className="secondary" onClick={() => nav('/anatomate/year/' + yearData.year + '/module/' + moduleData.slug)}><ArrowLeft size={17} className="dirarrow" /> {tr('Back to module', 'رجوع للموديول')}</button>
+        {authored.length > 0 && <button className="secondary" onClick={() => window.print()}><FileText size={17} /> {tr('Print', 'طباعة')}</button>}
+      </div>
+      {authored.length === 0 ? (
+        <div className="productionnotice"><ProductionChip /><p>{tr('Exam pearls for this module will appear here as its lectures are published.', 'نقاط الامتحان للموديول ده هتظهر هنا أول ما محاضراته تتنشر.')}</p></div>
+      ) : authored.map((lecture) => (
+        <section className="contentbox pearlsection" key={lecture.id}>
+          <small>{tr('Lecture', 'محاضرة')} {lecture.sequence}</small>
+          <h2>{lecture.title}</h2>
+          {lecture.pearls.length > 0 && <ul className="pearllist">{lecture.pearls.map((pearl) => <li key={pearl} dir="auto">{pearl}</li>)}</ul>}
+          {lecture.activeRecall.length > 0 && (
+            <details className="recallblock">
+              <summary>{tr('Recall questions', 'أسئلة استرجاع')} (<bdi>{lecture.activeRecall.length}</bdi>)</summary>
+              <ol>{lecture.activeRecall.map((item) => <li key={item} dir="auto">{item}</li>)}</ol>
+            </details>
+          )}
+        </section>
+      ))}
+    </div>
+  )
+}
+
 function ProductionChip() {
   const tr = useTr()
   return <span className="productionchip">{tr('In production', 'قيد الإنتاج')}</span>
@@ -778,6 +847,8 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
         </div>
 
         <aside className="rightcol">
+          <ExamCountdown />
+          <DueTodayCard go={go} />
           <Mini icon={<BookOpen />} title={t.activeNow} body={active.length ? titles(active) : t.noneActive} />
           <Mini icon={<Star />} title={t.favorites} body={favorites.length ? titles(favorites) : t.noFavorites} />
           <Mini icon={<Sparkles />} title={t.overall} body={<><bdi dir="ltr">{completedCount} / {availableLectures.length}</bdi> {t.completedOf}</>} />
@@ -897,6 +968,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   return (
     <div className="page">
       <PageHead eyebrow={tr('YEAR', 'السنة') + ' ' + yearData.year} title={moduleData.title} body={moduleData.description} />
+      <button className="secondary pearlslink" onClick={() => nav('/anatomate/year/' + yearData.year + '/module/' + moduleData.slug + '/pearls')}><Sparkles size={17} /> {tr('Module Exam Pearls', 'نقاط الامتحان للموديول')}</button>
       <div className="modulehero">
         <div><small>{tr('MODULE PROGRESS', 'تقدم الموديول')}</small><strong><bdi dir="ltr">{pct}%</bdi></strong></div>
         <div className="progress"><i style={{ width: pct + '%' }} /></div>

@@ -113,6 +113,7 @@ export function MCQModulePage() {
         <div><span className="eyebrow">YEAR {yearData.year} · MCQ BANK</span><h1>{moduleData.title}</h1><p>{tr('Choose a lecture to start its question set.', 'اختر المحاضرة لبدء مجموعة الأسئلة الخاصة بها.')}</p></div>
         <span className="mcqcount large">{total} MCQ</span>
       </div>
+      {total > 0 && <button className="primary examlaunch" onClick={() => nav('/mcq/exam/' + yearData.year + '/' + moduleData.slug)}>{tr('Timed module exam', 'امتحان الموديول بالوقت')}</button>}
 
       <ModuleAccessGate moduleCode={moduleData.code} productType="mcq">
         <div className="mcqlecturelist">
