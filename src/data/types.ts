@@ -19,4 +19,9 @@ export type Lecture={
   videoUrl?:string
   slidesUrl?:string
   pdfUrl?:string
+  /** Curriculum slot without authored notes yet (may still have an uploaded video or Datashow). */
+  placeholder?:boolean
+  /** Medical reviewer who signed off the lecture content, and when (ISO date). */
+  reviewedBy?:string
+  reviewedAt?:string
 }

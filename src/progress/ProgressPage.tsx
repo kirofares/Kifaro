@@ -3,6 +3,8 @@ import { ArrowRight, BookOpen, Brain, CheckCircle2, ClipboardCheck, Target, Tren
 import { useNavigate } from 'react-router-dom'
 import { anatomateLectures, anatomateYears } from '../data/anatomate'
 import { useProgress } from '../hooks/useProgress'
+import { useAssetReadiness } from '../hooks/useAssetReadiness'
+import { isLectureAvailable } from '../data/anatomate/availability'
 import { useMCQBank } from '../mcq/useMCQBank'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
@@ -21,6 +23,9 @@ export default function ProgressPage() {
   const { user } = useAuth()
   const { year: studentYear } = useStudentYear()
   const { progress } = useProgress()
+  const { byLecture: readiness } = useAssetReadiness()
+  // Only lectures students can actually study count toward progress.
+  const isAvailable = (lecture: { id: string; placeholder?: boolean }) => isLectureAvailable(lecture, readiness.get(lecture.id))
   const { levels, levelPerformance, reviewTargets, mastery } = useMCQBank()
   const [assessmentSummary, setAssessmentSummary] = useState<AssessmentSummary>({ attempts: 0, average: 0 })
 
@@ -47,11 +52,11 @@ export default function ProgressPage() {
   }, [user])
 
   const overallLectureProgress = useMemo(() => {
-    const visibleLectures = studentYear ? anatomateLectures.filter((lecture) => lecture.year === studentYear) : anatomateLectures
+    const visibleLectures = (studentYear ? anatomateLectures.filter((lecture) => lecture.year === studentYear) : anatomateLectures).filter(isAvailable)
     if (!visibleLectures.length) return 0
     const total = visibleLectures.reduce((sum, lecture) => sum + Number(progress[lecture.id]?.progress || 0), 0)
     return Math.round(total / visibleLectures.length)
-  }, [progress, studentYear])
+  }, [progress, studentYear, readiness])
 
   const mcqSummary = useMemo(() => {
     const attempts = mastery.reduce((sum, row) => sum + Number(row.attempts || 0), 0)
@@ -111,7 +116,7 @@ export default function ProgressPage() {
   }, [reviewTargets])
 
   const yearProgress = useMemo(() => anatomateYears.filter((year) => !studentYear || year.year === studentYear).map((year) => {
-    const lectures = year.modules.flatMap((module) => module.lectures)
+    const lectures = year.modules.flatMap((module) => module.lectures).filter(isAvailable)
     const value = lectures.length
       ? Math.round(lectures.reduce((sum, lecture) => sum + Number(progress[lecture.id]?.progress || 0), 0) / lectures.length)
       : 0
@@ -120,13 +125,14 @@ export default function ProgressPage() {
       year: year.year,
       value,
       modules: year.modules.map((module) => {
-        const moduleValue = module.lectures.length
-          ? Math.round(module.lectures.reduce((sum, lecture) => sum + Number(progress[lecture.id]?.progress || 0), 0) / module.lectures.length)
+        const moduleLectures = module.lectures.filter(isAvailable)
+        const moduleValue = moduleLectures.length
+          ? Math.round(moduleLectures.reduce((sum, lecture) => sum + Number(progress[lecture.id]?.progress || 0), 0) / moduleLectures.length)
           : 0
         return { ...module, value: moduleValue }
       }),
     }
-  }), [progress, studentYear])
+  }), [progress, studentYear, readiness])
 
   const lectureFor = (lectureId: string) => anatomateLectures.find((lecture) => lecture.id === lectureId)
 

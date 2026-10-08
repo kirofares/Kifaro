@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
 import { getStudyResources, type StudyResource } from './data/anatomate/studyResources'
+import { isLectureAvailable } from './data/anatomate/availability'
 import { getVivaDeck } from './viva/content'
 import './viva/viva.css'
 import AuthPage from './auth/AuthPage'
@@ -23,8 +24,9 @@ import { usePricingRules } from './hooks/usePricingRules'
 import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { useStudentYear } from './hooks/useStudentYear'
 import { supabase } from './lib/supabase'
-import { LangProvider, useTr, type Lang } from './i18n'
+import { LangProvider, useLang, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
+import { useMCQBank } from './mcq/useMCQBank'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
 import ProgressPage from './progress/ProgressPage'
 import ManualPaymentPage from './payments/ManualPaymentPage'
@@ -335,6 +337,7 @@ export default function App() {
     if (isAndroidApp) void checkForUpdate(false)
   }, [])
 
+  const { byLecture: lectureReadiness } = useAssetReadiness()
   const lectures = useMemo(
     () => anatomateLectures
       .filter((lecture) => isAdmin || !user || (studentYear != null && lecture.year === studentYear))
@@ -342,8 +345,9 @@ export default function App() {
       .map((lecture) => ({
         ...applyLectureSetting(lecture, lectureSettings.get(lecture.id)),
         ...(progress[lecture.id] || { progress: 0 }),
+        available: isLectureAvailable(lecture, lectureReadiness.get(lecture.id)),
       })),
-    [progress, lectureSettings, isAdmin, user, studentYear],
+    [progress, lectureSettings, isAdmin, user, studentYear, lectureReadiness],
   )
 
   const filtered = useMemo(
@@ -682,11 +686,17 @@ function PageHead({ eyebrow, title, body }: { eyebrow: string; title: string; bo
   )
 }
 
+function ProductionChip() {
+  const tr = useTr()
+  return <span className="productionchip">{tr('In production', 'قيد الإنتاج')}</span>
+}
+
 function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkUrl, latestReleasePage }: { t: any; lang: Lang; lectures: any[]; allLectures: any[]; go: (path: string) => void; studentName: string; latestApkUrl: string; latestReleasePage: string }) {
-  const active = allLectures.filter((lecture) => lecture.progress > 0 && !lecture.completed)
+  const availableLectures = allLectures.filter((lecture) => lecture.available)
+  const active = availableLectures.filter((lecture) => lecture.progress > 0 && !lecture.completed)
   const favorites = allLectures.filter((lecture) => lecture.favorite)
-  const completedCount = allLectures.filter((lecture) => lecture.completed).length
-  const current = active[0] || allLectures.find((lecture) => !lecture.completed) || allLectures[0] || anatomateLectures[0]
+  const completedCount = availableLectures.filter((lecture) => lecture.completed).length
+  const current = active[0] || availableLectures.find((lecture) => !lecture.completed) || availableLectures[0] || allLectures[0] || anatomateLectures[0]
   const started = (current.progress || 0) > 0
   const now = new Date()
   const hour = now.getHours()
@@ -697,7 +707,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
     day: 'numeric',
   })
   const yearStats = anatomateYears.map((year) => {
-    const yearLectures = allLectures.filter((lecture) => lecture.year === year.year)
+    const yearLectures = availableLectures.filter((lecture) => lecture.year === year.year)
     const done = yearLectures.filter((lecture) => lecture.completed).length
     const touched = yearLectures.some((lecture) => lecture.progress > 0)
     const pct = yearLectures.length ? Math.round((done / yearLectures.length) * 100) : 0
@@ -770,7 +780,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
         <aside className="rightcol">
           <Mini icon={<BookOpen />} title={t.activeNow} body={active.length ? titles(active) : t.noneActive} />
           <Mini icon={<Star />} title={t.favorites} body={favorites.length ? titles(favorites) : t.noFavorites} />
-          <Mini icon={<Sparkles />} title={t.overall} body={<><bdi dir="ltr">{completedCount} / {allLectures.length}</bdi> {t.completedOf}</>} />
+          <Mini icon={<Sparkles />} title={t.overall} body={<><bdi dir="ltr">{completedCount} / {availableLectures.length}</bdi> {t.completedOf}</>} />
         </aside>
       </div>
     </div>
@@ -799,7 +809,7 @@ function Curriculum({ lectures, go }: { lectures: any[]; go: (path: string) => v
             <div className="grow">
               <small>{tr('Year', 'السنة')} {lecture.year} · {tr('Lecture', 'محاضرة')} {lecture.sequence}</small>
               <h3>{lecture.title}</h3>
-              <p>{lecture.module} · <bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi></p>
+              <p>{lecture.module} · <bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi>{!lecture.available && <> · <ProductionChip /></>}</p>
               <div className="progress"><i style={{ width: (lecture.progress || 0) + '%' }} /></div>
             </div>
             <ChevronRight className="dirarrow" />
@@ -863,6 +873,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   const { year: studentYear } = useStudentYear()
   const { entitlements } = useEntitlements(user?.id)
   const { settings: lectureSettings } = useLectureSettings()
+  const { byLecture: moduleReadiness } = useAssetReadiness()
   const { offerFor } = usePricingRules()
   const tr = useTr()
   const yearData = anatomateYears.find((item) => String(item.year) === year)
@@ -879,8 +890,9 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
   const visibleLectures = moduleData.lectures
     .filter((lecture) => lectureSettings.get(lecture.id)?.published ?? true)
     .map((lecture) => applyLectureSetting(lecture, lectureSettings.get(lecture.id)))
-  const completed = visibleLectures.filter((lecture) => progress[lecture.id]?.completed).length
-  const pct = visibleLectures.length ? Math.round((completed / visibleLectures.length) * 100) : 0
+  const publishedLectures = visibleLectures.filter((lecture) => isLectureAvailable(lecture, moduleReadiness.get(lecture.id)))
+  const completed = publishedLectures.filter((lecture) => progress[lecture.id]?.completed).length
+  const pct = publishedLectures.length ? Math.round((completed / publishedLectures.length) * 100) : 0
 
   return (
     <div className="page">
@@ -888,7 +900,9 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
       <div className="modulehero">
         <div><small>{tr('MODULE PROGRESS', 'تقدم الموديول')}</small><strong><bdi dir="ltr">{pct}%</bdi></strong></div>
         <div className="progress"><i style={{ width: pct + '%' }} /></div>
-        <span>{tr(`${completed} of ${visibleLectures.length} lectures completed`, `${completed} من ${visibleLectures.length} محاضرات مكتملة`)}</span>
+        <span>{publishedLectures.length === 0
+          ? tr(`${visibleLectures.length} lectures in production`, `${visibleLectures.length} محاضرة قيد الإنتاج`)
+          : tr(`${completed} of ${publishedLectures.length} published lectures completed`, `${completed} من ${publishedLectures.length} محاضرات منشورة مكتملة`)}</span>
       </div>
 
       <div className="list">
@@ -900,7 +914,7 @@ function ModulePage({ progress, update, flash, t }: { progress: ProgressState; u
               <div className="grow">
                 <small>{lecture.system}</small>
                 <h3>{lecture.title}</h3>
-                <p><bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi> · {lecture.status === 'free' ? tr('Free lecture', 'محاضرة مجانية') : entitlements.has(lecture.id) ? tr('Purchased', 'تم الشراء') : <><bdi>{offerFor(lecture.id, getLecturePrice(lecture, lectureSettings.get(lecture.id))).price} {tr('EGP', 'ج.م')}</bdi> · {tr('Locked', 'مقفلة')}</>}</p>
+                <p><bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi> · {!isLectureAvailable(lecture, moduleReadiness.get(lecture.id)) ? <ProductionChip /> : lecture.status === 'free' ? tr('Free lecture', 'محاضرة مجانية') : entitlements.has(lecture.id) ? tr('Purchased', 'تم الشراء') : <><bdi>{offerFor(lecture.id, getLecturePrice(lecture, lectureSettings.get(lecture.id))).price} {tr('EGP', 'ج.م')}</bdi> · {tr('Locked', 'مقفلة')}</>}</p>
                 <div className="progress"><i style={{ width: (state.progress || 0) + '%' }} /></div>
               </div>
               <button
@@ -939,6 +953,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const [answer, setAnswer] = useState<number | null>(null)
   const [videoBusy, setVideoBusy] = useState(false)
   const [videoMessage, setVideoMessage] = useState('')
+  const { countsByLecture } = useMCQBank()
+  const lang = useLang()
   const tr = useTr()
 
   if (!lecture) {
@@ -959,6 +975,8 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const readiness = assetReadiness.get(lecture.id)
   const videoAvailable = Boolean(readiness?.has_video || (lecture.status === 'free' && lecture.videoUrl))
   const datashowAvailable = Boolean(readiness?.has_datashow)
+  const lectureAvailable = isLectureAvailable(lecture, readiness)
+  const bankCount = countsByLecture.get(lecture.id) || 0
   const bundleAvailable = videoAvailable && datashowAvailable
   const videoBasePrice = getLecturePrice(lecture, lectureSetting)
   const datashowBasePrice = lecture.status === 'free' ? 0 : Math.max(30, videoBasePrice)
@@ -1010,6 +1028,16 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
     await refreshEntitlements()
   }
 
+  const bankCta = bankCount > 0 ? (
+    <div className="contentbox bankcta">
+      <div>
+        <h2>{tr('Practice this lecture', 'تدرّب على المحاضرة دي')}</h2>
+        <p>{tr(`${bankCount} questions from the MCQ bank, with explanations for every option.`, `${bankCount} سؤال من بنك MCQ، مع شرح لكل اختيار.`)}</p>
+      </div>
+      <button className="primary" onClick={() => nav('/mcq/lecture/' + lecture.slug)}>{tr('Start questions', 'ابدأ الأسئلة')} <ChevronRight size={17} className="dirarrow" /></button>
+    </div>
+  ) : null
+
   return (
     <div className="page">
       <div className="lecturehead">
@@ -1029,15 +1057,17 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
             <Star size={17} fill={state.favorite ? 'currentColor' : 'none'} />
             {state.favorite ? t.unfav : t.fav}
           </button>
-          <button
-            className="primary"
-            onClick={() => {
-              update(lecture.id, { completed: true, progress: 100 })
-              flash(t.done)
-            }}
-          >
-            {t.mark}
-          </button>
+          {lectureAvailable && (
+            <button
+              className="primary"
+              onClick={() => {
+                update(lecture.id, { completed: true, progress: 100 })
+                flash(t.done)
+              }}
+            >
+              {t.mark}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1141,11 +1171,23 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
         </aside>
 
         <section className="lecturecontent">
-          <p className="lead">{lecture.description}</p>
+          {lecture.placeholder ? (
+            <div className="productionnotice">
+              <ProductionChip />
+              <p>{tr(
+                'Notes, learning objectives and practice questions for this lecture are being prepared and medically reviewed. You will see them here as soon as they are published.',
+                'الملاحظات وأهداف المحاضرة وأسئلة التدريب بتتجهّز وبتتراجع طبيًا، وهتظهر هنا أول ما تتنشر.',
+              )}</p>
+            </div>
+          ) : <p className="lead">{lecture.description}</p>}
+          {lecture.reviewedBy && (
+            <p className="reviewedby"><ShieldCheck size={15} /> {tr('Medically reviewed by', 'مراجعة طبية:')} <strong>{lecture.reviewedBy}</strong>{lecture.reviewedAt && <> · <bdi>{new Date(lecture.reviewedAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { month: 'short', year: 'numeric' })}</bdi></>}</p>
+          )}
           {getVivaDeck(lecture.id) && <div className="viva-launch">
             <div><h2>KIFARO Viva</h2><p>{tr('5 short questions · Free self-assessment pilot', '٥ أسئلة قصيرة · تجربة مجانية بتقييم ذاتي')}</p></div>
             <button className="primary" onClick={() => nav(`/anatomate/lecture/${lecture.slug}/viva`)}><Brain size={18} />{tr('Test me on this lecture', 'امتحنّي في المحاضرة دي')}</button>
           </div>}
+          {lecture.placeholder ? bankCta : <>
           <div className="tabs">
             <button className={tab === 'learn' ? 'active' : ''} onClick={() => setTab('learn')}>{tr('Learning objectives', 'أهداف المحاضرة')}</button>
             <button className={tab === 'clinical' ? 'active' : ''} onClick={() => setTab('clinical')}>{tr('Clinical relevance', 'الأهمية الإكلينيكية')}</button>
@@ -1172,6 +1214,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           )}
           {tab === 'mcq' && (
             <div className="studytabstack">
+              {bankCta}
               {quiz && (
                 <div className="contentbox">
                   <h2>{tr('MCQ Challenge', 'تحدي MCQ')}</h2>
@@ -1200,6 +1243,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
               />
             </div>
           )}
+          </>}
         </section>
       </div>
     </div>
@@ -1524,9 +1568,12 @@ function StudyResourcePanel({
 }
 
 function ContentList({ title, items }: { title: string; items: string[] }) {
+  const tr = useTr()
+  const emptyText = tr('This section is in production for this lecture.', 'القسم ده لسه قيد الإنتاج للمحاضرة دي.')
   return (
     <div className="contentbox">
       <h2>{title}</h2>
+      {items.length === 0 && <p className="emptynote">{emptyText}</p>}
       <div className="learninglist">
         {items.map((item, index) => (
           <div key={item}><span>{String(index + 1).padStart(2, '0')}</span><p dir="auto">{item}</p></div>
@@ -1546,7 +1593,7 @@ function Topics({ lectures, go }: { lectures: any[]; go: (path: string) => void 
           <button className="topiccard clickable" key={lecture.id} onClick={() => go('/anatomate/lecture/' + lecture.slug)}>
             <span className="topicindex">{String(index + 1).padStart(2, '0')}</span>
             <div>
-              <small>{lecture.system}</small><h3>{lecture.title}</h3><p>{lecture.description}</p>
+              <small>{lecture.system}</small><h3>{lecture.title}</h3>{lecture.available ? <p>{lecture.description}</p> : <p><ProductionChip /></p>}
               <div className="tags"><span>{tr('Year', 'السنة')} {lecture.year}</span><span><bdi>{lecture.duration} {tr('min', 'دقيقة')}</bdi></span><span>{tr('Lecture', 'محاضرة')} {lecture.sequence}</span></div>
             </div>
           </button>
@@ -1645,7 +1692,7 @@ function Course({ l, go, t }: { l: any; go: (path: string) => void; t: any }) {
     <button className="coursecard clickable" onClick={() => go('/anatomate/lecture/' + l.slug)}>
       <div className="cover"><Microscope /><span>{t.lecture} {l.sequence}</span></div>
       <div className="cardbody">
-        <small>{l.module}</small><h3>{l.title}</h3><p>{l.system}</p>
+        <small>{l.module}</small><h3>{l.title}</h3><p>{l.system}{l.available === false && <> · <ProductionChip /></>}</p>
         <div className="meta"><bdi>{l.duration} {t.min}</bdi><bdi dir="ltr">{l.progress || 0}%</bdi></div>
         <div className="progress"><i style={{ width: (l.progress || 0) + '%' }} /></div>
       </div>
