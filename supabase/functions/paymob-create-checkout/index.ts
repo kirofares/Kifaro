@@ -94,7 +94,12 @@ Deno.serve(async (req: Request) => {
     const { data: userData, error: userError } = await userClient.auth.getUser(token)
     if (userError || !userData.user) return json({ error: 'Invalid session' }, 401)
 
-    const { data: rateAllowed, error: rateError } = await userClient.rpc('consume_my_rate_limit', { p_action_key: 'checkout_lecture' })
+    const { data: rateAllowed, error: rateError } = await adminClient.rpc('consume_service_rate_limit', {
+      p_actor_key: 'user:' + userData.user.id,
+      p_action_key: 'checkout_lecture',
+      p_limit: 10,
+      p_window_seconds: 600,
+    })
     if (rateError) return json({ error: rateError.message }, 429)
     if (!rateAllowed) return json({ error: 'Too many requests. Try again later.' }, 429)
 
