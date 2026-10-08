@@ -14,7 +14,7 @@ function make(
     clinical:['Clinical localization and applied anatomy relevant to this region'],
     pearls:['Prioritize relations, blood supply, innervation and clinically important spaces'],
     activeRecall:['Name the key structures and their most important relations','What is the main clinical correlation for this topic?'],
-    mcqs:[{question,options,answer,explanation:'Review the anatomical relationship highlighted in this lecture.'}],
+    mcqs:[],
     slidesUrl:base+'/'+stem+'.pptx',
     pdfUrl:base+'/'+stem+'.pdf'
   }
