@@ -178,7 +178,7 @@ Deno.serve(async (req: Request) => {
 
     if (existingTransactionError) return json({ error: existingTransactionError.message }, 500)
 
-    if (existingTransaction?.status === 'paid') {
+    if (existingTransaction?.status === 'paid' && terminalStatus === 'paid_pending_fulfillment') {
       return json({ received: true, paid: true, transactionId, lectureId, productType, idempotent: true })
     }
 
@@ -202,6 +202,31 @@ Deno.serve(async (req: Request) => {
       }, { onConflict: 'paymob_transaction_id' })
 
     if (transactionUpsertError) return json({ error: transactionUpsertError.message }, 500)
+
+    if (terminalStatus === 'refunded' || terminalStatus === 'voided') {
+      if (isModulePurchase && moduleCode) {
+        const { error: recalcError } = await adminClient.rpc('recalculate_module_entitlement_after_payment_change', {
+          p_user_id: userId,
+          p_module_code: moduleCode,
+          p_product_type: rawProductType,
+        })
+        if (recalcError) return json({ error: recalcError.message, status: terminalStatus }, 500)
+      } else {
+        const { error: recalcError } = await adminClient.rpc('recalculate_lecture_entitlement_after_payment_change', {
+          p_user_id: userId,
+          p_lecture_id: lectureId,
+        })
+        if (recalcError) return json({ error: recalcError.message, status: terminalStatus }, 500)
+      }
+
+      return json({
+        received: true,
+        paid: false,
+        transactionId,
+        status: terminalStatus,
+        accessRecalculated: true,
+      })
+    }
 
     if (!success) {
       return json({ received: true, paid: false, transactionId, status: terminalStatus })
