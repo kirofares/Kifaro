@@ -1,0 +1,104 @@
+name: Build signed AnatoMate release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Release version, e.g. 1.0.3'
+        required: true
+        type: string
+      version_code:
+        description: 'Monotonically increasing Android versionCode, e.g. 103'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://gwwauaybbqmzbwvpbxly.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_4Iw4ogv0H0YgGA3sehrjjw_bjWcBcgS
+      VITE_PAYMOB_TEST_MODE: 'false'
+      VITE_APP_VERSION: ${{ inputs.version_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Validate version inputs
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          [[ "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]] || exit 1
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+          npx cap add android
+          npx cap sync android
+      - name: Restore fixed signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" && test -n "$KEYSTORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/anatomate-release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/anatomate-release.jks" >> "$GITHUB_ENV"
+      - name: Apply secure window and release signing
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          activity=pathlib.Path('android/app/src/main/java/com/kifaro/anatomate/MainActivity.java')
+          source=activity.read_text()
+          source=source.replace('import android.os.Bundle;', 'import android.os.Bundle;\nimport android.view.WindowManager;')
+          source=source.replace('super.onCreate(savedInstanceState);', 'super.onCreate(savedInstanceState);\n    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);')
+          activity.write_text(source)
+          gradle=pathlib.Path('android/app/build.gradle')
+          source=gradle.read_text()
+          source=re.sub(r'versionCode\s+\d+', 'versionCode '+os.environ['VERSION_CODE'], source)
+          source=re.sub(r'versionName\s+"[^"]+"', 'versionName "'+os.environ['VERSION_NAME']+'"', source)
+          source=source.replace('android {', """android {
+              signingConfigs {
+                  release {
+                      storeFile file(System.getenv('ANDROID_KEYSTORE_PATH'))
+                      storePassword System.getenv('ANDROID_RELEASE_KEYSTORE_PASSWORD')
+                      keyAlias System.getenv('ANDROID_RELEASE_KEY_ALIAS')
+                      keyPassword System.getenv('ANDROID_RELEASE_KEY_PASSWORD')
+                  }
+              }
+          """, 1)
+          source=source.replace('buildTypes {', 'buildTypes {\n        release { signingConfig signingConfigs.release }', 1) if 'buildTypes {' in source else source
+          gradle.write_text(source)
+          PY
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+      - name: Verify APK signature
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" verify --verbose "$APK"
+          cp "$APK" "AnatoMate-Release-v${{ inputs.version_name }}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AnatoMate-Release-v${{ inputs.version_name }}
+          path: AnatoMate-Release-v${{ inputs.version_name }}.apk
+          if-no-files-found: error
