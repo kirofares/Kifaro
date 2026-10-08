@@ -65,7 +65,7 @@ const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
 // Set VITE_PAYMOB_TEST_MODE=true in the build env while Paymob runs against its sandbox.
 const PAYMOB_TEST_MODE = import.meta.env.VITE_PAYMOB_TEST_MODE === 'true'
 const LATEST_RELEASE_API = 'https://api.github.com/repos/kirofares/Kifaro/releases/latest'
-const FALLBACK_APK_URL = 'https://github.com/kirofares/Kifaro/releases/download/v1.0.2/AnatoMate.apk'
+const FALLBACK_APK_URL = 'https://github.com/kirofares/Kifaro/releases/download/v1.0.4/AnatoMate.apk'
 const FALLBACK_RELEASE_PAGE = 'https://github.com/kirofares/Kifaro/releases/latest'
 
 function compareVersions(a: string, b: string) {
