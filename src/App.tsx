@@ -1381,11 +1381,12 @@ function PaymentReturnPage() {
             .select('lecture_id, source, granted_at')
             .eq('user_id', user.id)
             .is('revoked_at', null)
+            .gt('expires_at', new Date().toISOString())
             .order('granted_at', { ascending: false })
             .limit(1),
           supabase
             .from('module_entitlements')
-            .select('module_code, product_type, source, granted_at')
+            .select('module_code, product_type, source, granted_at, expires_at')
             .eq('user_id', user.id)
             .is('revoked_at', null)
             .order('granted_at', { ascending: false })
