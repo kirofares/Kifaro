@@ -971,8 +971,8 @@ export default function AdminPage() {
                         <td><span className={ready.has_datashow ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_datashow ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_datashow ? 'Ready' : 'Missing'}</span></td>
                         <td><span className={ready.has_pdf ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_pdf ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_pdf ? 'Ready' : 'Missing'}</span></td>
                         <td><span className={sale.ready ? 'readinessbadge ready' : 'readinessbadge missing'}>{sale.ready ? <Check size={13}/> : <XCircle size={13}/>} {sale.label}</span></td>
-                        <td>{effectiveAccess(lecture) === 'free' ? 'Free video' : 'Paid'}</td>
-                        <td><strong>{effectiveAccess(lecture) === 'free' ? 'Video free' : effectivePrice(lecture) + ' EGP'}</strong></td>
+                        <td>{effectiveAccess(lecture) === 'free' ? 'Free lecture' : 'Paid'}</td>
+                        <td><strong>{effectiveAccess(lecture) === 'free' ? '0 EGP' : effectivePrice(lecture) + ' EGP'}</strong></td>
                         <td>{isPublished(lecture.id) ? 'Published' : 'Hidden'}</td>
                         <td><button className="secondary" onClick={() => startEditLecture(lecture)}><Pencil size={15}/>Edit</button></td>
                       </tr>
