@@ -146,7 +146,7 @@ export function MCQLecturePage() {
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const lecture = getLectureBySlug(slug)
-  const { questions: bankQuestions, levels, levelPerformance, reviewTargets, recordAttempt, refreshMastery } = useMCQBank()
+  const { questions: bankQuestions, levels, levelPerformance, reviewTargets, recordAttempt, refreshMastery } = useMCQBank(lecture?.id)
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [submitted, setSubmitted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
