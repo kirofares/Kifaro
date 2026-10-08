@@ -63,6 +63,17 @@ type ClientErrorRow = {
   platform: string | null
 }
 
+type AuditRow = {
+  id: number
+  actor_user_id: string | null
+  actor_db_role: string
+  action: string
+  table_name: string
+  record_key: string | null
+  details: Record<string, unknown>
+  created_at: string
+}
+
 type PaymentTransaction = {
   paymob_transaction_id: number
   paymob_order_id: string | null
@@ -76,7 +87,7 @@ type PaymentTransaction = {
   created_at: string
 }
 
-type Tab = 'overview' | 'students' | 'purchases' | 'manual' | 'chats' | 'lectures' | 'production' | 'mcq' | 'errors'
+type Tab = 'overview' | 'students' | 'purchases' | 'manual' | 'chats' | 'lectures' | 'production' | 'mcq' | 'audit' | 'errors'
 
 function pricingRuleScore(rule: PricingRule) {
   const yearScore = rule.academic_year == null ? 0 : 20
@@ -115,6 +126,7 @@ export default function AdminPage() {
   const [progressRows, setProgressRows] = useState<ProgressRow[]>([])
   const [clientErrors, setClientErrors] = useState<ClientErrorRow[]>([])
   const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>([])
+  const [auditRows, setAuditRows] = useState<AuditRow[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [studentLecture, setStudentLecture] = useState('')
   const [loading, setLoading] = useState(true)
@@ -150,12 +162,13 @@ export default function AdminPage() {
     setLoading(true)
     setMessage('')
 
-    const [profilesResult, entitlementsResult, progressResult, errorsResult, paymentsResult] = await Promise.all([
+    const [profilesResult, entitlementsResult, progressResult, errorsResult, paymentsResult, auditResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, medical_year, faculty, university, nationality, phone_no, email, role, created_at').order('created_at', { ascending: false }),
       supabase.from('lecture_entitlements').select('user_id, lecture_id, price_paid_egp, source, granted_at, revoked_at, view_limit, views_used, offer_academic_year, offer_nationality, video_access, datashow_access, product_type').order('granted_at', { ascending: false }),
       supabase.from('lecture_progress').select('user_id, lecture_id, progress, completed, favorite, updated_at').order('updated_at', { ascending: false }),
       supabase.from('client_errors').select('id, created_at, user_id, source, message, route, app_version, platform').order('created_at', { ascending: false }).limit(50),
       supabase.from('payment_transactions').select('paymob_transaction_id, paymob_order_id, user_id, lecture_id, product_type, amount_egp, currency, status, paid_at, created_at').order('created_at', { ascending: false }).limit(200),
+      supabase.from('admin_audit_log').select('id, actor_user_id, actor_db_role, action, table_name, record_key, details, created_at').order('created_at', { ascending: false }).limit(200),
     ])
 
     if (profilesResult.error) setMessage(profilesResult.error.message)
@@ -163,12 +176,14 @@ export default function AdminPage() {
     if (progressResult.error) setMessage(progressResult.error.message)
     if (errorsResult.error) setMessage(errorsResult.error.message)
     if (paymentsResult.error) setMessage(paymentsResult.error.message)
+    if (auditResult.error) setMessage(auditResult.error.message)
 
     setProfiles((profilesResult.data || []) as Profile[])
     setEntitlements((entitlementsResult.data || []) as Entitlement[])
     setProgressRows((progressResult.data || []) as ProgressRow[])
     setClientErrors((errorsResult.data || []) as ClientErrorRow[])
     setPaymentTransactions((paymentsResult.data || []) as PaymentTransaction[])
+    setAuditRows((auditResult.data || []) as AuditRow[])
     setLoading(false)
   }
 
@@ -695,6 +710,7 @@ export default function AdminPage() {
         <button className={tab === 'lectures' ? 'active' : ''} onClick={() => setTab('lectures')}><GraduationCap size={17}/>Lectures</button>
         <button className={tab === 'production' ? 'active' : ''} onClick={() => setTab('production')}><Workflow size={17}/>Production</button>
         <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}><CircleHelp size={17}/>MCQ Bank</button>
+        <button className={tab === 'audit' ? 'active' : ''} onClick={() => setTab('audit')}><ShieldCheck size={17}/>Audit Log</button>
         <button className={tab === 'errors' ? 'active' : ''} onClick={() => setTab('errors')}><XCircle size={17}/>Errors</button>
       </div>
 
@@ -725,6 +741,32 @@ export default function AdminPage() {
       {tab === 'manual' && <ManualPaymentsAdmin onChanged={() => void load()} />}
 
       {tab === 'chats' && <StudentChatsAdmin />}
+
+      {tab === 'audit' && (
+        <div className="adminpanel">
+          <div className="adminpanelhead">
+            <div><h2>Security audit log</h2><p>Recent sensitive database changes. The log is read-only for admins.</p></div>
+            <button className="secondary" onClick={() => void load()}>Refresh</button>
+          </div>
+          <div className="admintablewrap">
+            <table className="admintable">
+              <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Table</th><th>Record</th><th>Changed fields</th></tr></thead>
+              <tbody>
+                {auditRows.length ? auditRows.map((item) => (
+                  <tr key={item.id}>
+                    <td>{new Date(item.created_at).toLocaleString()}</td>
+                    <td>{item.actor_user_id ? nameForUser(item.actor_user_id) : item.actor_db_role}</td>
+                    <td><span className="adminbadge">{item.action}</span></td>
+                    <td>{item.table_name}</td>
+                    <td><small>{item.record_key || '—'}</small></td>
+                    <td><small>{Array.isArray(item.details?.changed_keys) ? (item.details.changed_keys as unknown[]).join(', ') : '—'}</small></td>
+                  </tr>
+                )) : <tr><td colSpan={6}>No audited changes recorded yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {tab === 'errors' && (
         <div className="adminpanel">
