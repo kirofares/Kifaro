@@ -170,3 +170,10 @@ end;
 $$;
 revoke all on function public.service_submit_mcq_answers(uuid,jsonb) from public,anon,authenticated;
 grant execute on function public.service_submit_mcq_answers(uuid,jsonb) to service_role;
+
+
+-- lock direct mutation of mcq_attempts; all grading writes go through service-only server logic.
+revoke insert, update, delete, truncate, trigger, references
+on table public.mcq_attempts
+from anon, authenticated;
+grant select on table public.mcq_attempts to authenticated;
