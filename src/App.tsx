@@ -956,7 +956,6 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
   const [tab, setTab] = useState<'learn' | 'clinical' | 'pearls' | 'recall' | 'mcq'>('learn')
-  const [answer, setAnswer] = useState<number | null>(null)
   const [videoBusy, setVideoBusy] = useState(false)
   const [videoMessage, setVideoMessage] = useState('')
   const { countsByLecture } = useMCQBank()
@@ -972,7 +971,6 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   }
 
   const state = progress[lecture.id] || { progress: 0 }
-  const quiz = lecture.mcqs[0]
   const recallResources = getStudyResources(lecture.id, 'recall')
   const mcqResources = getStudyResources(lecture.id, 'mcq')
   const entitlement = entitlementByLecture.get(lecture.id)
@@ -1221,24 +1219,6 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           {tab === 'mcq' && (
             <div className="studytabstack">
               {bankCta}
-              {quiz && (
-                <div className="contentbox">
-                  <h2>{tr('MCQ Challenge', 'تحدي MCQ')}</h2>
-                  <div className="quiz">
-                    <p>{quiz.question}</p>
-                    {quiz.options.map((option, index) => (
-                      <button key={option} className={answer === index ? 'selected' : ''} onClick={() => setAnswer(index)}>
-                        <span>{String.fromCharCode(65 + index)}</span>{option}
-                      </button>
-                    ))}
-                    {answer !== null && (
-                      <div className={answer === quiz.answer ? 'feedback ok' : 'feedback bad'}>
-                        {answer === quiz.answer ? tr('Correct. ', 'إجابة صحيحة. ') : tr('Not quite. ', 'ليست الإجابة الصحيحة. ')}<span dir="auto">{quiz.explanation}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
               <StudyResourcePanel
                 title={tr('MCQ & Spotter Visuals', 'صور MCQ وSpotters')}
                 resources={mcqResources}
