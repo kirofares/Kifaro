@@ -1159,3 +1159,34 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
 .bankcta{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .bankcta h2{margin:0 0 4px}
 .bankcta p{margin:0;color:var(--muted)}
+
+
+/* Ask AnatoMate paid chat */
+.asknewchat{white-space:nowrap}
+.askchatlayout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px}
+.askthreads,.askconversation{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.askthreads{padding:12px;align-self:start}
+.askthreadhead{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 10px}
+.askthread{width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:12px;padding:11px;display:grid;gap:5px;margin-bottom:7px}
+.askthread.active{background:var(--soft);border-color:color-mix(in srgb,var(--primary) 25%,var(--line))}
+.askthread div{display:grid;gap:2px}.askthread small{color:var(--muted)}.askthread span{font-size:11px}
+.chatstatus.active{color:#16814a;font-weight:800}
+.askconversation{min-height:520px;display:flex;flex-direction:column;overflow:hidden}
+.askconversationhead{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px;border-bottom:1px solid var(--line)}
+.askconversationhead>div{display:grid;gap:3px}.askconversationhead small{color:var(--muted)}
+.asktimer{display:flex!important;grid-auto-flow:column!important;align-items:center;gap:6px!important;color:var(--primary);font-weight:800}
+.askmessages{flex:1;padding:16px;overflow:auto;display:flex;flex-direction:column;gap:10px;background:#f8fafc}
+.askmsg{max-width:76%;padding:10px 12px;border-radius:14px;background:#fff;border:1px solid var(--line)}
+.askmsg.student{align-self:flex-end;background:var(--primary);color:#fff;border-color:transparent}
+.askmsg.admin{align-self:flex-start}
+.askmsgmeta{display:flex;justify-content:space-between;gap:12px;font-size:11px;opacity:.75}.askmsg p{margin:6px 0 0;white-space:pre-wrap}
+.askcomposer{display:flex;gap:10px;padding:12px;border-top:1px solid var(--line);background:#fff}.askcomposer textarea{flex:1;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:10px}
+.askpaynotice,.askempty{padding:24px;text-align:center}.askempty{margin:auto}.askempty.compact{margin:auto;color:var(--muted)}
+.askpaynotice{border-top:1px solid var(--line);background:#fff8e8}
+.adminchatlayout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px}
+.adminchatthreads{display:grid;gap:7px;align-content:start}.adminchatthreads button{text-align:left;padding:10px;border:1px solid var(--line);border-radius:11px;background:#fff;display:grid;gap:4px}.adminchatthreads button.active{border-color:var(--primary);background:var(--soft)}
+.adminchatbox{border:1px solid var(--line);border-radius:14px;min-height:500px;display:flex;flex-direction:column;overflow:hidden}
+.adminchathead{padding:12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}.adminchathead>div{display:grid}.adminchathead span{display:flex;align-items:center;gap:5px}
+.adminchatmessages{flex:1;padding:14px;background:#f8fafc;overflow:auto;display:flex;flex-direction:column;gap:8px}.adminchatmsg{max-width:75%;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:#fff}.adminchatmsg.admin{align-self:flex-end;background:#edf4ff}.adminchatmsg p{margin:4px 0}.adminchatmsg small{color:var(--muted)}
+.adminchatcomposer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}.adminchatcomposer textarea{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px}
+@media(max-width:780px){.askchatlayout,.adminchatlayout{grid-template-columns:1fr}.askthreads{display:flex;overflow:auto;gap:8px}.askthread{min-width:220px;margin-bottom:0}.askconversation{min-height:58vh}.askmsg{max-width:88%}.pagehead .asknewchat{width:100%;justify-content:center}.adminchatthreads{display:flex;overflow:auto}.adminchatthreads button{min-width:220px}}
