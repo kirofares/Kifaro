@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Brain, Check, RotateCcw, Search, Shuffle, X, AlertTriangle } from 'lucide-react'
+import { Brain, CalendarClock, Check, RotateCcw, Search, Shuffle, X, AlertTriangle } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { buildSchedules, isDue, type ReviewEvent } from './schedule'
 
 type Flashcard = {
   id: string
@@ -15,6 +16,26 @@ type Flashcard = {
 
 type ReviewMap = Record<string, 'know' | 'review'>
 type WeaknessRow = { learning_point_id: string; wrong_count: number }
+
+// Published cards are cached on the device so revision keeps working offline (metro, microbus).
+const CARD_CACHE_KEY = 'kifaro-flashcards-cache'
+
+function readCachedCards(): Flashcard[] {
+  try {
+    const raw = localStorage.getItem(CARD_CACHE_KEY)
+    return raw ? (JSON.parse(raw) as Flashcard[]) : []
+  } catch {
+    return []
+  }
+}
+
+function writeCachedCards(cards: Flashcard[]) {
+  try {
+    localStorage.setItem(CARD_CACHE_KEY, JSON.stringify(cards))
+  } catch {
+    // Storage full or unavailable: offline revision just won't be available.
+  }
+}
 
 function getArabic() {
   return document.documentElement.dir === 'rtl' || localStorage.getItem('kifaro-lang') === 'ar'
@@ -32,22 +53,37 @@ export default function FlashcardsPage() {
   const [loading,setLoading]=useState(true)
   const [message,setMessage]=useState('')
   const [weaknesses,setWeaknesses]=useState<WeaknessRow[]>([])
+  const [history,setHistory]=useState<ReviewEvent[]>([])
+  const [offline,setOffline]=useState(false)
   const [params]=useSearchParams()
+  const [dueOnly,setDueOnly]=useState(params.get('due')==='1')
   const [weakOnly,setWeakOnly]=useState(params.get('weak')==='1')
   const requestedLearningPoint=params.get('lp')
   const ar=getArabic()
 
   useEffect(() => {
-    void load()
+    // A network failure (offline, captive portal) falls back to the cached cards instead of hanging.
+    load().catch(() => {
+      setCards(readCachedCards())
+      setOffline(true)
+      setLoading(false)
+    })
   }, [])
 
   async function load() {
-    if (!supabase) { setLoading(false); return }
-    const [{data:cardData},{data:{user}}] = await Promise.all([
+    if (!supabase) { setCards(readCachedCards()); setOffline(true); setLoading(false); return }
+    const [{data:cardData,error:cardError},{data:{user}}] = await Promise.all([
       supabase.from('flashcards').select('id,learning_point_id,lecture_id,topic,subtopic,front,back').eq('published',true).order('lecture_id').order('topic'),
       supabase.auth.getUser(),
     ])
-    setCards((cardData || []) as Flashcard[])
+    if (cardError || !cardData) {
+      setCards(readCachedCards())
+      setOffline(true)
+      setLoading(false)
+      return
+    }
+    setCards(cardData as Flashcard[])
+    writeCachedCards(cardData as Flashcard[])
     if (user) {
       const [{data:history},{data:weakData}]=await Promise.all([
         supabase
@@ -62,6 +98,7 @@ export default function FlashcardsPage() {
         if (!latest[item.flashcard_id]) latest[item.flashcard_id]=item.rating as 'know'|'review'
       }
       setReviews(latest)
+      setHistory((history || []) as ReviewEvent[])
       setWeaknesses((weakData || []).map((w:any)=>({learning_point_id:w.learning_point_id,wrong_count:Number(w.wrong_count||1)})))
     }
     setLoading(false)
@@ -71,10 +108,13 @@ export default function FlashcardsPage() {
   const topics=useMemo(()=>Array.from(new Set(cards.filter(c=>lecture==='all'||c.lecture_id===lecture).map(c=>c.topic))).sort(),[cards,lecture])
   const weakIds=useMemo(()=>new Set(weaknesses.map(w=>w.learning_point_id)),[weaknesses])
   const weakCounts=useMemo(()=>new Map(weaknesses.map(w=>[w.learning_point_id,w.wrong_count])),[weaknesses])
+  const schedules=useMemo(()=>buildSchedules(history),[history])
+  const dueCount=useMemo(()=>cards.filter(card=>isDue(schedules.get(card.id))).length,[cards,schedules])
   const filtered=useMemo(()=>cards.filter(card=>{
     if (lecture!=='all'&&card.lecture_id!==lecture) return false
     if (topic!=='all'&&card.topic!==topic) return false
     if (reviewOnly&&reviews[card.id]!=='review') return false
+    if (dueOnly&&!isDue(schedules.get(card.id))) return false
     if (weakOnly&&!weakIds.has(card.learning_point_id)) return false
     if (query) {
       const hay=(card.front+' '+card.back+' '+card.topic+' '+(card.subtopic||'')).toLowerCase()
@@ -87,9 +127,9 @@ export default function FlashcardsPage() {
       if (b.learning_point_id===requestedLearningPoint) return 1
     }
     return Number(weakIds.has(b.learning_point_id))-Number(weakIds.has(a.learning_point_id))
-  }),[cards,lecture,topic,query,reviewOnly,reviews,weakOnly,weakIds,requestedLearningPoint])
+  }),[cards,lecture,topic,query,reviewOnly,dueOnly,schedules,reviews,weakOnly,weakIds,requestedLearningPoint])
 
-  useEffect(()=>{ setIndex(0); setFlipped(false) },[lecture,topic,query,reviewOnly,weakOnly,requestedLearningPoint])
+  useEffect(()=>{ setIndex(0); setFlipped(false) },[lecture,topic,query,reviewOnly,dueOnly,weakOnly,requestedLearningPoint])
   const card=filtered[index]
   const knownCount=Object.values(reviews).filter(v=>v==='know').length
   const reviewCount=Object.values(reviews).filter(v=>v==='review').length
@@ -98,6 +138,7 @@ export default function FlashcardsPage() {
   async function rate(rating:'know'|'review') {
     if (!card) return
     setReviews(prev=>({...prev,[card.id]:rating}))
+    setHistory(prev=>[...prev,{flashcard_id:card.id,rating,reviewed_at:new Date().toISOString()}])
     if (supabase) {
       const {data:{user}}=await supabase.auth.getUser()
       if (user) await supabase.from('flashcard_reviews').insert({user_id:user.id,flashcard_id:card.id,rating})
@@ -128,7 +169,9 @@ export default function FlashcardsPage() {
         <div><small>{ar?'مراجعة نشطة':'ACTIVE RECALL'}</small><h1>{ar?'Flashcards — بطاقات المراجعة':'Flashcards'}</h1><p>{ar?'كل Learning Point في المنهج اتحولت لكارت مراجعة مرتبط بتقدمك.':'Every learning point is now a review card linked to your progress.'}</p></div>
       </div>
 
+      {offline && <div className="authnotice">{ar?'أنت أوفلاين: بتراجع آخر نسخة محفوظة من الكروت، وتقييماتك مش هتتحفظ لحد ما ترجع أونلاين.':'You are offline: reviewing your last saved cards. Ratings won\'t be saved until you are back online.'}</div>}
       <div className="flashstats">
+        <div><strong>{dueCount}</strong><span>{ar?'مستحقة النهارده':'Due today'}</span></div>
         <div><strong>{cards.length}</strong><span>{ar?'إجمالي الكروت':'Total cards'}</span></div>
         <div><strong>{knownCount}</strong><span>{ar?'متقن':'Known'}</span></div>
         <div><strong>{activeWeaknessCount}</strong><span>{ar?'نقاط ضعف نشطة':'Active weaknesses'}</span></div>
@@ -139,6 +182,7 @@ export default function FlashcardsPage() {
         <label><span>{ar?'المحاضرة':'Lecture'}</span><select value={lecture} onChange={e=>{setLecture(e.target.value);setTopic('all')}}><option value="all">{ar?'كل المحاضرات':'All lectures'}</option>{lectures.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
         <label><span>{ar?'الموضوع':'Topic'}</span><select value={topic} onChange={e=>setTopic(e.target.value)}><option value="all">{ar?'كل الموضوعات':'All topics'}</option>{topics.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
         <label className="flashsearch"><span>{ar?'بحث':'Search'}</span><div><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={ar?'ابحث في الكروت':'Search cards'}/></div></label>
+        <button className={dueOnly?'secondary active':'secondary'} onClick={()=>setDueOnly(v=>!v)}><CalendarClock size={17}/>{ar?`المستحقة (${dueCount})`:`Due today (${dueCount})`}</button>
         <button className={weakOnly?'secondary active':'secondary'} onClick={()=>setWeakOnly(v=>!v)}><AlertTriangle size={17}/>{ar?'Weakness فقط':'Weakness only'}</button>
         <button className={reviewOnly?'secondary active':'secondary'} onClick={()=>setReviewOnly(v=>!v)}><RotateCcw size={17}/>{ar?'راجع تاني':'Review again'}</button>
         <button className="secondary" onClick={shuffle}><Shuffle size={17}/>{ar?'عشوائي':'Shuffle'}</button>
@@ -171,7 +215,7 @@ export default function FlashcardsPage() {
           <button className="secondary" disabled={index===0} onClick={()=>{setIndex(i=>Math.max(0,i-1));setFlipped(false)}}>{ar?'السابق':'Previous'}</button>
           <button className="secondary" disabled={index>=filtered.length-1} onClick={()=>{setIndex(i=>Math.min(filtered.length-1,i+1));setFlipped(false)}}>{ar?'التالي':'Next'}</button>
         </div>
-      </> : <div className="empty"><h3>{ar?'مفيش كروت مطابقة':'No matching cards'}</h3><p>{ar?'غيّر الفلاتر أو أوقف فلاتر المراجعة.':'Change the filters or turn off review filters.'}</p></div>}
+      </> : dueOnly && !query && lecture==='all' && topic==='all' ? <div className="empty"><h3>{ar?'خلصت مراجعة النهارده 🎉':'All caught up for today 🎉'}</h3><p>{ar?'مفيش كروت مستحقة دلوقتي. الكروت اللي راجعتها هترجعلك في ميعادها.':'No cards are due right now. Cards you reviewed will come back when they are due.'}</p></div> : <div className="empty"><h3>{ar?'مفيش كروت مطابقة':'No matching cards'}</h3><p>{ar?'غيّر الفلاتر أو أوقف فلاتر المراجعة.':'Change the filters or turn off review filters.'}</p></div>}
 
       {message && <div className="toast">{message}</div>}
     </div>

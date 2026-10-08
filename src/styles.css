@@ -1159,3 +1159,25 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
 .bankcta{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .bankcta h2{margin:0 0 4px}
 .bankcta p{margin:0;color:var(--muted)}
+
+/* Due today (spaced repetition) */
+.duetoday{border-color:color-mix(in srgb,var(--primary) 35%,var(--line))}
+.duetodayrows{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.duetodayrows .secondary{min-height:40px}
+
+/* Module Exam Pearls */
+.pearlslink{margin-bottom:14px}
+.pearlsactions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.pearlsection{margin-bottom:14px}
+.pearlsection small{color:var(--primary);font-weight:800}
+.pearlsection h2{margin:4px 0 10px;font-size:20px}
+.pearllist{margin:0;padding-inline-start:20px;display:grid;gap:8px;line-height:1.6}
+.recallblock{margin-top:12px}
+.recallblock summary{cursor:pointer;font-weight:700;color:var(--primary)}
+.recallblock ol{margin:10px 0 0;padding-inline-start:20px;display:grid;gap:6px;line-height:1.6}
+@media print{
+  .topbar,.sidebar,.bottomtabs,.sitefooter,.contactchannels,.sectiontabs,.pearlsactions{display:none!important}
+  .main{margin:0!important;padding:0!important}
+  .pearlsection{break-inside:avoid;box-shadow:none}
+  .recallblock{display:block}
+}
