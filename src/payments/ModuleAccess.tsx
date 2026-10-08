@@ -22,6 +22,7 @@ type ModuleEntitlement = {
   product_type: ModuleProductType
   academic_year: number
   revoked_at: string | null
+  expires_at: string
 }
 
 export function useModuleAccess() {
@@ -49,7 +50,7 @@ export function useModuleAccess() {
         .eq('enabled', true),
       supabase
         .from('module_entitlements')
-        .select('module_code, product_type, academic_year, revoked_at')
+        .select('module_code, product_type, academic_year, revoked_at, expires_at')
         .eq('user_id', user.id)
         .eq('academic_year', year),
     ])
@@ -63,7 +64,7 @@ export function useModuleAccess() {
 
   const owned = useMemo(() => new Set(
     entitlements
-      .filter((item) => !item.revoked_at)
+      .filter((item) => !item.revoked_at && new Date(item.expires_at).getTime() > Date.now())
       .map((item) => item.academic_year + '::' + item.module_code + '::' + item.product_type),
   ), [entitlements])
 
@@ -161,11 +162,11 @@ export function ModuleAccessGate({
       <span className="eyebrow">ONE-TIME MODULE ACCESS · YEAR {year || '—'}</span>
       <h2>{labels[productType]} · {moduleCode}</h2>
       <p>{tr(
-        'Pay once and keep access to this assessment section for the entire module.',
-        'ادفع مرة واحدة واحتفظ بالوصول لهذا القسم من التقييمات لكل الموديول.'
+        'Pay once and get access to this assessment section for 6 months.',
+        'ادفع مرة واحدة وخد وصول لهذا القسم من التقييمات لمدة 6 شهور.'
       )}</p>
       <div className="moduleprice"><strong>{price || (productType === 'cases' ? 200 : 100)} EGP</strong><span>{tr('one-time payment', 'دفع مرة واحدة')}</span></div>
-      <div className="modulepaywallbenefit"><ShieldCheck size={18}/>{tr('Permanent module access after successful payment', 'فتح الموديول بشكل دائم بعد نجاح الدفع')}</div>
+      <div className="modulepaywallbenefit"><ShieldCheck size={18}/>{tr('6 months of module access after successful payment', 'فتح الموديول لمدة 6 شهور بعد نجاح الدفع')}</div>
       {message && <div className="authmessage">{message}</div>}
       <div className="manualcheckoutnotice compact">
         <ShieldCheck size={18}/>
