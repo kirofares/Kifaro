@@ -246,7 +246,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
     return <div className="page"><div className="contentbox"><h2>{tr(documentLabel + ' not found', docLabel + ' غير موجود')}</h2></div></div>
   }
 
-  if (authLoading || adminLoading || entitlementLoading) {
+  if (authLoading || adminLoading || entitlementLoading || lectureSettingsLoading) {
     return <div className="page"><div className="contentbox"><h2>{tr('Checking access…', 'جارٍ التحقق من الصلاحية…')}</h2></div></div>
   }
 
