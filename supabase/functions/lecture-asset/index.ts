@@ -39,7 +39,16 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: rateAllowed, error: rateError } = await userClient.rpc('consume_my_rate_limit', { p_action_key: 'lecture_asset' })
+    const adminClient = createClient(url, secretKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+
+    const { data: rateAllowed, error: rateError } = await adminClient.rpc('consume_service_rate_limit', {
+      p_actor_key: 'user:' + userData.user.id,
+      p_action_key: 'lecture_asset',
+      p_limit: 60,
+      p_window_seconds: 60,
+    })
     if (rateError || !rateAllowed) {
       return new Response(JSON.stringify({ error: rateError?.message || 'Too many requests. Try again later.' }), {
         status: 429,
@@ -78,10 +87,6 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-
-    const adminClient = createClient(url, secretKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
 
     const expiresIn = assetType === 'video' ? 120 : (assetType === 'datashow' || assetType === 'document') ? 45 : 120
     const { data: signed, error: signedError } = await adminClient.storage
