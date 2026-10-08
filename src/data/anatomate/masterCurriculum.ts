@@ -388,7 +388,11 @@ const year3Modules: ModuleSpec[] = [
 const buildModule = (year: 1 | 2 | 3, module: ModuleSpec) => ({
   ...module,
   status: 'available' as const,
-  lectures: module.lectures.map((spec) => makeLecture(year, module, spec)),
+  lectures: module.lectures.map((spec, index) => {
+    const lecture = makeLecture(year, module, spec)
+    // The opening lecture of every block is a free sample of the full lesson.
+    return index === 0 ? { ...lecture, status: 'free' as const } : lecture
+  }),
 })
 
 export const anatomateYears = [
