@@ -20,8 +20,14 @@ function caseLevelName(level: number, ar: boolean) {
 type ChoiceQuestion = {
   prompt: string
   options: string[]
-  answer: number
-  explanation?: string
+}
+
+type AssessmentResult = {
+  score: number
+  max_score: number
+  question_results: { index: number; is_correct: boolean; correct_answer: number | null; explanation: string }[]
+  key_points: string[]
+  checklist_mode?: string | null
 }
 type ChecklistItem = { label: string; marks: number }
 type AssessmentContent = {
@@ -57,7 +63,7 @@ function useAssessmentItems(types?: AssessmentType[]) {
     }
     let query = supabase
       .from('assessment_items')
-      .select('id, assessment_type, year, module_code, lecture_id, title, stem, instructions, media_url, media_alt, difficulty, time_limit_seconds, content')
+      .select('id, assessment_type, year, module_code, lecture_id, title, stem, instructions, media_url, media_alt, difficulty, time_limit_seconds')
       .eq('published', true)
       .eq('quality_status', 'ready')
       .order('year')
@@ -368,20 +374,30 @@ export function AssessmentItemPage() {
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [timerStarted, setTimerStarted] = useState(false)
   const [nextItemId, setNextItemId] = useState<string | null>(null)
+  const [result, setResult] = useState<AssessmentResult | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     if (!supabase || !id) return
-    supabase
-      .from('assessment_items')
-      .select('id, assessment_type, year, module_code, lecture_id, title, stem, instructions, media_url, media_alt, difficulty, time_limit_seconds, content')
-      .eq('id', id)
-      .eq('published', true)
-      .eq('quality_status', 'ready')
-      .maybeSingle()
-      .then(async ({ data }) => {
-        const next = (data || null) as AssessmentItem | null
+    setItem(null)
+    setResult(null)
+    setSubmitted(false)
+    setAnswers({})
+    setChecked({})
+    setLoadError('')
+
+    supabase.functions.invoke('assessment-item', { body: { itemId: id } })
+      .then(async ({ data, error }) => {
+        if (error || data?.error) {
+          setLoadError(error?.message || String(data?.error || tr('Assessment is not available.', 'التقييم غير متاح.')))
+          return
+        }
+
+        const next = (data?.item || null) as AssessmentItem | null
         setItem(next)
         setSecondsLeft(next?.time_limit_seconds ?? null)
+        setTimerStarted(!next?.time_limit_seconds)
         setNextItemId(null)
 
         if (!next || !supabase) return
@@ -414,28 +430,30 @@ export function AssessmentItemPage() {
     if (timerStarted && secondsLeft === 0 && !submitted) void finish()
   }, [secondsLeft, timerStarted, submitted])
 
+  if (loadError) return <div className="page"><div className="assessmentempty">{loadError}</div></div>
   if (!item) return <div className="page"><div className="assessmentempty">{tr('Loading station…', 'جارٍ تحميل المحطة…')}</div></div>
 
   const questions = item.content?.questions || []
   const checklist = item.content?.checklist || []
   const mediaContext = [item.title, item.stem, item.instructions || '', ...questions.map((q) => q.prompt)].join(' ').toLowerCase()
   const shouldShowMedia = Boolean(item.media_url) && /\b(image|figure|shown|specimen|radiograph|x-ray|xray|ct|mri|scan|ultrasound|diagram|photo|photograph|label|arrow|section|micrograph|karyotype)\b/.test(mediaContext)
-  const autoScore = questions.reduce((sum, q, index) => sum + (answers[index] === q.answer ? 1 : 0), 0)
-  const checklistScore = checklist.reduce((sum, row, index) => sum + (checked[index] ? Number(row.marks || 0) : 0), 0)
-  const maxScore = questions.length + checklist.reduce((sum, row) => sum + Number(row.marks || 0), 0)
-  const score = autoScore + checklistScore
+  const score = Number(result?.score || 0)
+  const maxScore = Number(result?.max_score || 0)
 
   async function finish() {
-    setSubmitted(true)
-    if (supabase && user) {
-      await supabase.from('assessment_attempts').insert({
-        user_id: user.id,
-        assessment_item_id: item!.id,
-        score,
-        max_score: maxScore,
-        details: { answers, checklist: checked },
-      })
+    if (!supabase || !user || submitting || submitted) return
+    setSubmitting(true)
+    setLoadError('')
+    const { data, error } = await supabase.functions.invoke('assessment-submit', {
+      body: { itemId: item!.id, answers, checklist: checked },
+    })
+    setSubmitting(false)
+    if (error || data?.error) {
+      setLoadError(error?.message || String(data?.error || tr('Could not submit assessment.', 'تعذر إرسال التقييم.')))
+      return
     }
+    setResult(data as AssessmentResult)
+    setSubmitted(true)
   }
 
   const minutes = secondsLeft === null ? null : Math.floor(secondsLeft / 60)
@@ -458,12 +476,15 @@ export function AssessmentItemPage() {
           </section>
 
           {questions.length > 0 && <div className="stationquestions">
-            {questions.map((q, index) => <section key={index} className="stationquestion"><h3>Q{index+1}. {q.prompt}</h3><div className="stationoptions">{q.options.map((option, optionIndex) => <button key={option} disabled={submitted} className={answers[index] === optionIndex ? 'selected' : ''} onClick={() => setAnswers((state) => ({...state,[index]:optionIndex}))}><span>{String.fromCharCode(65+optionIndex)}</span>{option}</button>)}</div>{submitted && <div className={answers[index] === q.answer ? 'stationfeedback correct' : 'stationfeedback'}>{q.explanation || (answers[index] === q.answer ? tr('Correct', 'صحيح') : tr('Review this point', 'راجع هذه النقطة'))}</div>}</section>)}
+            {questions.map((q, index) => {
+              const graded = result?.question_results?.find((row) => row.index === index)
+              return <section key={index} className="stationquestion"><h3>Q{index+1}. {q.prompt}</h3><div className="stationoptions">{q.options.map((option, optionIndex) => <button key={option} disabled={submitted} className={answers[index] === optionIndex ? 'selected' : ''} onClick={() => setAnswers((state) => ({...state,[index]:optionIndex}))}><span>{String.fromCharCode(65+optionIndex)}</span>{option}</button>)}</div>{submitted && graded && <div className={graded.is_correct ? 'stationfeedback correct' : 'stationfeedback'}>{graded.explanation || (graded.is_correct ? tr('Correct', 'صحيح') : tr('Review this point', 'راجع هذه النقطة'))}</div>}</section>
+            })}
           </div>}
 
           {checklist.length > 0 && <section className="stationchecklist"><h2>{tr('Station checklist', 'قائمة تقييم المحطة')}</h2><p>{tr('For practice mode, tick each step you completed correctly.', 'في وضع التدريب علّم على كل خطوة نفذتها بصورة صحيحة.')}</p>{checklist.map((row,index)=><label key={index}><input type="checkbox" disabled={submitted} checked={Boolean(checked[index])} onChange={(e)=>setChecked((state)=>({...state,[index]:e.target.checked}))}/><span>{row.label}</span><strong>{row.marks}</strong></label>)}</section>}
 
-          {!submitted ? <div className="stationactions"><button className="primary" onClick={() => void finish()}>{tr('Finish assessment', 'إنهاء التقييم')}</button></div> : <section className="stationresult"><CheckCircle2/><div><small>{tr('Result', 'النتيجة')}</small><strong>{score}/{maxScore}</strong><p>{item.content?.key_points?.length ? tr('Key points to review:', 'نقاط للمراجعة:') + ' ' + item.content.key_points.join(' · ') : tr('Attempt saved to your progress.', 'تم حفظ المحاولة في تقدمك.')}</p></div><div className="stationresultactions"><button className="secondary" onClick={()=>{setAnswers({});setChecked({});setSubmitted(false);setSecondsLeft(item.time_limit_seconds);setTimerStarted(!item.time_limit_seconds)}}><RotateCcw size={17}/>{tr('Try again', 'إعادة المحاولة')}</button>{nextItemId && <button className="primary" onClick={()=>nav('/assessments/item/' + nextItemId)}>{item.assessment_type === 'case' ? tr('Next Case', 'الحالة التالية') : tr('Next Station', 'المحطة التالية')}<ChevronRight size={17}/></button>}</div></section>}
+          {!submitted ? <div className="stationactions"><button className="primary" disabled={submitting} onClick={() => void finish()}>{submitting ? tr('Checking…', 'جارٍ التصحيح…') : tr('Finish assessment', 'إنهاء التقييم')}</button></div> : <section className="stationresult"><CheckCircle2/><div><small>{tr('Result', 'النتيجة')}</small><strong>{score}/{maxScore}</strong><p>{result?.key_points?.length ? tr('Key points to review:', 'نقاط للمراجعة:') + ' ' + result.key_points.join(' · ') : tr('Attempt saved to your progress.', 'تم حفظ المحاولة في تقدمك.')}</p></div><div className="stationresultactions"><button className="secondary" onClick={()=>{setAnswers({});setChecked({});setResult(null);setSubmitted(false);setLoadError('');setSecondsLeft(item.time_limit_seconds);setTimerStarted(!item.time_limit_seconds)}}><RotateCcw size={17}/>{tr('Try again', 'إعادة المحاولة')}</button>{nextItemId && <button className="primary" onClick={()=>nav('/assessments/item/' + nextItemId)}>{item.assessment_type === 'case' ? tr('Next Case', 'الحالة التالية') : tr('Next Station', 'المحطة التالية')}<ChevronRight size={17}/></button>}</div></section>}
         </>
       )}
     </div>
