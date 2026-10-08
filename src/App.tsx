@@ -193,7 +193,7 @@ type NavSection = {
   tabs?: { to: string; label: [string, string] }[]
 }
 
-const PRACTICE_ROUTES = ['/assessments', '/mcq', '/cases', '/osce', '/spotters', '/viva-bank', '/flashcards', '/studio', '/ask']
+const PRACTICE_ROUTES = ['/assessments', '/mcq', '/cases', '/osce', '/spotters', '/viva-bank', '/flashcards', '/studio']
 
 const NAV_SECTIONS: NavSection[] = [
   { key: 'home', to: '/', label: ['Home', 'الرئيسية'], icon: Home, match: (path) => path === '/' },
@@ -217,8 +217,11 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/spotters', label: ['Spotters', 'السبوتر'] },
       { to: '/viva-bank', label: ['Viva', 'الفايفا'] },
       { to: '/flashcards', label: ['Flashcards', 'البطاقات'] },
-      { to: '/ask', label: ['Ask', 'اسأل'] },
     ],
+  },
+  {
+    key: 'ask', to: '/ask', label: ['Ask', 'اسأل'], icon: MessageCircle,
+    match: (path) => path === '/ask',
   },
   {
     key: 'progress', to: '/progress', label: ['Progress', 'التقدم'], icon: TrendingUp,
