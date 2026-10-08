@@ -62,21 +62,14 @@ function makeLecture(year: 1 | 2 | 3, module: ModuleSpec, spec: LectureSpec): Le
     duration: 50,
     system: spec.system || module.system,
     status: 'purchased',
-    description: `${spec.title} — curriculum slot prepared in the Ain Shams-aligned AnatoMate sequence. Video and datashow can be uploaded from the Admin Dashboard.`,
-    objectives: [
-      `Understand the core anatomy of ${spec.title}`,
-      'Identify the clinically important structures and relationships',
-      'Apply the anatomy to common examination and clinical scenarios',
-    ],
-    clinical: ['Applied anatomy and clinically important relationships are covered in the lecture.'],
-    pearls: ['Use structure → relationship → function → clinical relevance as the study sequence.'],
-    activeRecall: [`Summarize the key anatomical map for ${spec.title} without looking at the slides.`],
-    mcqs: [{
-      question: `Which KIFARO module contains the lecture “${spec.title}”?`,
-      options: [module.title, 'A different academic module', 'A clinical rotation', 'An elective module'],
-      answer: 0,
-      explanation: `This lecture is organized under ${module.title} in the AnatoMate curriculum.`,
-    }],
+    // Unauthored slot: keep it empty rather than showing generic filler to students.
+    description: '',
+    objectives: [],
+    clinical: [],
+    pearls: [],
+    activeRecall: [],
+    mcqs: [],
+    placeholder: true,
   }
 }
 
