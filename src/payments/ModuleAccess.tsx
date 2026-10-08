@@ -46,8 +46,7 @@ export function useModuleAccess() {
       supabase
         .from('module_products')
         .select('module_code, academic_year, product_type, price_egp, enabled')
-        .eq('academic_year', year)
-        .eq('enabled', true),
+        .eq('academic_year', year),
       supabase
         .from('module_entitlements')
         .select('module_code, product_type, academic_year, revoked_at, expires_at')
@@ -106,11 +105,12 @@ export function ModuleProductSummary({
   productType: ModuleProductType
 }) {
   const tr = useTr()
-  const { loading, hasAccess, priceFor } = useModuleAccess()
+  const { loading, hasAccess, priceFor, products } = useModuleAccess()
   if (loading) return <span className="moduleproductsummary loading">{tr('Checking…', 'جارٍ الفحص…')}</span>
   if (hasAccess(moduleCode, productType)) {
     return <span className="moduleproductsummary owned"><ShieldCheck size={14}/>{tr('Unlocked', 'مفتوح')}</span>
   }
+  if (!products.some(item => item.module_code === moduleCode && item.product_type === productType && item.enabled)) return <span className="moduleproductsummary">{tr('Coming Soon', 'قريبًا')}</span>
   const fallback = productType === 'cases' ? 200 : 100
   return <span className="moduleproductsummary"><LockKeyhole size={14}/>{priceFor(moduleCode, productType) || fallback} EGP</span>
 }
@@ -127,12 +127,13 @@ export function ModuleAccessGate({
   const tr = useTr()
   const nav = useNavigate()
   const { user } = useAuth()
-  const { year, loading, hasAccess, priceFor, buy } = useModuleAccess()
+  const { year, loading, hasAccess, priceFor, buy, products } = useModuleAccess()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
   if (loading) return <div className="modulepaywall loading">{tr('Checking access…', 'جارٍ فحص صلاحية الدخول…')}</div>
   if (hasAccess(moduleCode, productType)) return <>{children}</>
+  if (!products.some(item => item.module_code === moduleCode && item.product_type === productType && item.enabled)) return <section className="modulepaywall"><div className="modulepaywallicon"><LockKeyhole /></div><h2>{tr('Coming Soon', 'قريبًا')}</h2><p>{tr('This section is being prepared. Payments are not available yet.', 'هذا القسم قيد التجهيز، والدفع غير متاح حاليًا.')}</p></section>
 
   const price = priceFor(moduleCode, productType)
   const labels = {
