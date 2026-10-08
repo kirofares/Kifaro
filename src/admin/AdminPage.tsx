@@ -12,6 +12,7 @@ import { useAssetReadiness } from '../hooks/useAssetReadiness'
 import MCQManager from './MCQManager'
 import ContentProduction from './ContentProduction'
 import ManualPaymentsAdmin from './ManualPaymentsAdmin'
+import StudentChatsAdmin from './StudentChatsAdmin'
 
 type Profile = {
   id: string
@@ -75,7 +76,7 @@ type PaymentTransaction = {
   created_at: string
 }
 
-type Tab = 'overview' | 'students' | 'purchases' | 'manual' | 'lectures' | 'production' | 'mcq' | 'errors'
+type Tab = 'overview' | 'students' | 'purchases' | 'manual' | 'chats' | 'lectures' | 'production' | 'mcq' | 'errors'
 
 function pricingRuleScore(rule: PricingRule) {
   const yearScore = rule.academic_year == null ? 0 : 20
@@ -690,6 +691,7 @@ export default function AdminPage() {
         <button className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}><Users size={17}/>Students</button>
         <button className={tab === 'purchases' ? 'active' : ''} onClick={() => setTab('purchases')}><CreditCard size={17}/>Purchases</button>
         <button className={tab === 'manual' ? 'active' : ''} onClick={() => setTab('manual')}><CreditCard size={17}/>Manual Payments</button>
+        <button className={tab === 'chats' ? 'active' : ''} onClick={() => setTab('chats')}><CircleHelp size={17}/>Student Chats</button>
         <button className={tab === 'lectures' ? 'active' : ''} onClick={() => setTab('lectures')}><GraduationCap size={17}/>Lectures</button>
         <button className={tab === 'production' ? 'active' : ''} onClick={() => setTab('production')}><Workflow size={17}/>Production</button>
         <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}><CircleHelp size={17}/>MCQ Bank</button>
@@ -721,6 +723,8 @@ export default function AdminPage() {
       )}
 
       {tab === 'manual' && <ManualPaymentsAdmin onChanged={() => void load()} />}
+
+      {tab === 'chats' && <StudentChatsAdmin />}
 
       {tab === 'errors' && (
         <div className="adminpanel">
