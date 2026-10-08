@@ -135,6 +135,7 @@ Deno.serve(async (req: Request) => {
     if (entitlementError) return json({ error: entitlementError.message }, 400)
     if (!profile) return json({ error: 'Complete your student profile before checkout.' }, 400)
     if (!setting || setting.published === false) return json({ error: 'This lecture is not available for purchase.' }, 404)
+    if (setting.access_mode === 'free') return json({ error: 'This lecture is free. Open it without payment.' }, 409)
 
     const activeEntitlement = existingEntitlement && !existingEntitlement.revoked_at ? existingEntitlement : null
     const ownsVideo = Boolean(activeEntitlement?.video_access)
