@@ -3,7 +3,7 @@ import { useLang, useTr } from '../i18n'
 
 type LegalKind = 'privacy' | 'terms' | 'refund'
 
-const updated = '3 October 2026'
+const updated = '8 October 2026'
 
 const sections: Record<LegalKind, { title: string; intro: string; items: { heading: string; body: string }[] }> = {
   privacy: {
@@ -27,7 +27,7 @@ const sections: Record<LegalKind, { title: string; intro: string; items: { headi
     items: [
       { heading: 'Educational purpose', body: 'AnatoMate provides educational material for students. It does not replace professional clinical judgment, formal university requirements, or patient-specific medical advice.' },
       { heading: 'Accounts', body: 'You are responsible for keeping your account credentials secure and for providing accurate registration information. Access is personal and may not be sold, shared, or transferred.' },
-      { heading: 'Paid access', body: 'Purchasing a lecture or bundle grants the access described at checkout. Access types, view limits, prices, and included materials may differ by product and offer.' },
+      { heading: 'Paid access', body: 'Purchasing a lecture grants the access described at checkout. Paid MCQ, Clinical Cases, and OSCE/OSPE module access is time-limited to six calendar months from successful payment or approved manual payment, unless a different period is clearly shown before purchase.' },
       { heading: 'Content protection', body: 'You may not copy, redistribute, record, scrape, bypass access controls, remove watermarks, or commercially reuse protected KIFARO or AnatoMate content without written permission.' },
       { heading: 'Availability', body: 'We aim to keep the service available but may perform maintenance, change hosting providers, update features, or temporarily suspend access where required for security or reliability.' },
       { heading: 'Academic responsibility', body: 'Course organization may support university study but students remain responsible for checking their official curriculum, exam instructions, and institutional requirements.' },
@@ -39,12 +39,13 @@ const sections: Record<LegalKind, { title: string; intro: string; items: { headi
     title: 'Refund Policy',
     intro: 'This policy describes how refund requests for digital educational access are reviewed.',
     items: [
-      { heading: 'Before purchase', body: 'Prices and the type of access being purchased are shown before payment. Please confirm the lecture, product type, and account before completing payment.' },
+      { heading: 'Before purchase', body: 'Prices, access type, and access period are shown before payment. Paid MCQ, Clinical Cases, and OSCE/OSPE module access currently lasts six calendar months. Please confirm the module, product type, and account before completing payment.' },
       { heading: 'Technical failures', body: 'If payment succeeds but the purchased content is not granted or cannot be accessed because of a verified KIFARO technical problem, we will first try to restore access. If the issue cannot reasonably be resolved, a refund may be approved.' },
       { heading: 'Duplicate charges', body: 'Verified duplicate charges for the same purchase are eligible for review and correction or refund.' },
       { heading: 'Digital content already accessed', body: 'Because access is to digital educational content, refunds are generally not provided simply because a student changes their mind after paid content has been successfully opened or used, except where applicable law requires otherwise.' },
       { heading: 'How to request a refund', body: 'Contact KIFARO support with the account email, lecture name, payment reference, payment date, and a short description of the issue. Do not send full card details.' },
-      { heading: 'Processing', body: 'Approved refunds are returned through the available payment-provider process. Bank or card posting times are controlled by the payment provider and financial institution.' },
+      { heading: 'Manual payments', body: 'InstaPay or mobile-wallet payments require verification before access is opened. Do not send full card details, passwords, or authentication codes in a payment request.' },
+      { heading: 'Processing', body: 'Approved refunds are returned through the available payment-provider process. Bank, wallet, or card posting times are controlled by the payment provider and financial institution.' },
     ],
   },
 }
