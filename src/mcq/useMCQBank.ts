@@ -63,9 +63,10 @@ export type MasteryRow = {
   last_answered_at: string
 }
 
-export function useMCQBank() {
+export function useMCQBank(lectureId?: string) {
   const { user } = useAuth()
   const [questions, setQuestions] = useState<BankQuestion[]>([])
+  const [countLectureIds, setCountLectureIds] = useState<string[]>([])
   const [levels, setLevels] = useState<MCQLevel[]>([])
   const [levelPerformance, setLevelPerformance] = useState<LevelPerformance[]>([])
   const [reviewTargets, setReviewTargets] = useState<ReviewTarget[]>([])
@@ -75,19 +76,49 @@ export function useMCQBank() {
   const refreshQuestions = useCallback(async () => {
     if (!supabase) {
       setQuestions([])
+      setCountLectureIds([])
       setLoading(false)
       return
     }
+
     setLoading(true)
-    const { data } = await supabase
-      .from('mcq_questions')
-      .select('id, lecture_id, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, question_type, difficulty, source_scope, learning_objective, image_url, image_alt, distractor_explanations')
-      .eq('published', true)
-      .eq('quality_status', 'ready')
-      .order('created_at', { ascending: true })
-    setQuestions((data || []) as BankQuestion[])
+
+    // Fetch lightweight lecture IDs in pages so coverage/counts are not capped by
+    // Supabase's default row limit.
+    const ids: string[] = []
+    const pageSize = 1000
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from('mcq_questions')
+        .select('lecture_id')
+        .eq('published', true)
+        .eq('quality_status', 'ready')
+        .range(from, from + pageSize - 1)
+
+      if (error) break
+      const rows = (data || []) as { lecture_id: string }[]
+      ids.push(...rows.map((row) => row.lecture_id))
+      if (rows.length < pageSize) break
+    }
+    setCountLectureIds(ids)
+
+    // Only load full question payloads for the lecture currently being opened.
+    if (lectureId) {
+      const { data } = await supabase
+        .from('mcq_questions')
+        .select('id, lecture_id, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, question_type, difficulty, source_scope, learning_objective, image_url, image_alt, distractor_explanations')
+        .eq('published', true)
+        .eq('quality_status', 'ready')
+        .eq('lecture_id', lectureId)
+        .order('created_at', { ascending: true })
+
+      setQuestions((data || []) as BankQuestion[])
+    } else {
+      setQuestions([])
+    }
+
     setLoading(false)
-  }, [])
+  }, [lectureId])
 
   const refreshMastery = useCallback(async () => {
     if (!supabase || !user) {
@@ -120,9 +151,9 @@ export function useMCQBank() {
 
   const countsByLecture = useMemo(() => {
     const map = new Map<string, number>()
-    for (const q of questions) map.set(q.lecture_id, (map.get(q.lecture_id) || 0) + 1)
+    for (const id of countLectureIds) map.set(id, (map.get(id) || 0) + 1)
     return map
-  }, [questions])
+  }, [countLectureIds])
 
   const recordAttempt = useCallback(async (
     question: BankQuestion,
