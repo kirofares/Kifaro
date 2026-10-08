@@ -39,6 +39,14 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    const { data: rateAllowed, error: rateError } = await userClient.rpc('consume_my_rate_limit', { p_action_key: 'lecture_asset' })
+    if (rateError || !rateAllowed) {
+      return new Response(JSON.stringify({ error: rateError?.message || 'Too many requests. Try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      })
+    }
+
     const body = await req.json()
     const lectureId = String(body?.lectureId || '')
     const assetType = String(body?.assetType || '')
