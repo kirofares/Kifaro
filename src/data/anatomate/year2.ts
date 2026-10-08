@@ -58,7 +58,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Brown-Séquard pattern','Dorsal column lesion','Spinothalamic lesion'],
     pearls:['Crossing level determines side of sensory loss','Different sensory modalities travel in different pathways'],
     activeRecall:['Where does the dorsal column pathway cross?','Where does the spinothalamic pathway cross?'],
-    mcqs:[{question:'A hemicord lesion classically affects pain and temperature on which side below the lesion?',options:['Ipsilateral','Contralateral','Bilateral equally','Neither side'],answer:1,explanation:'Spinothalamic fibers cross near their entry level, causing contralateral loss below the lesion.'}]
+    mcqs:[]
   },
   {
     id:'y2-cns-36',slug:'descending-tracts',title:'Descending Tracts',year:2,module:'Central Nervous System',sequence:36,duration:60,system:'Neuroanatomy',status:'purchased',
@@ -67,7 +67,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Upper motor neuron lesion','Lower motor neuron lesion','Brain vs spinal cord localization'],
     pearls:['Lesions above pyramidal decussation produce contralateral weakness','Lesions below decussation produce ipsilateral weakness'],
     activeRecall:['Where do corticospinal fibers decussate?','Name one UMN sign'],
-    mcqs:[{question:'A corticospinal lesion below the pyramidal decussation causes weakness that is usually:',options:['Contralateral','Ipsilateral','Bilateral','Purely sensory'],answer:1,explanation:'Below decussation the pathway has already crossed.'}]
+    mcqs:[]
   },
   {
     id:'y2-cns-37',slug:'medulla-oblongata',title:'Medulla Oblongata',year:2,module:'Central Nervous System',sequence:37,duration:62,system:'Brainstem',status:'purchased',
@@ -76,7 +76,7 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Medial medullary syndrome','Lateral medullary syndrome'],
     pearls:['Motor structures are arranged more medially than many sensory structures','Lesion location predicts the deficit pattern'],
     activeRecall:['What is the function of the inferior olivary nucleus?','Which structures are affected in lateral medulla?'],
-    mcqs:[{question:'A lateral medullary lesion is most associated with:',options:['Pure corticospinal weakness only','Brainstem sensory and autonomic deficits','Isolated frontal lobe signs','Cauda equina syndrome'],answer:1,explanation:'Lateral medullary lesions involve multiple brainstem nuclei and tracts.'}]
+    mcqs:[]
   },
   {
     id:'y2-cns-38',slug:'pons',title:'Pons',year:2,module:'Central Nervous System',sequence:38,duration:60,system:'Brainstem',status:'purchased',
@@ -85,6 +85,6 @@ export const year2CnsLectures:Lecture[]=[
     clinical:['Facial colliculus lesion','Pontine localization'],
     pearls:['The facial colliculus reflects the abducens nucleus and facial nerve internal genu','Pontine level matters for localization'],
     activeRecall:['What creates the facial colliculus?','Which cranial nerve nuclei are found in the pons?'],
-    mcqs:[{question:'The facial colliculus is formed mainly by:',options:['Facial nucleus alone','Abducens nucleus and internal genu of facial nerve','Vestibular nuclei','Trigeminal motor nucleus'],answer:1,explanation:'It overlies the abducens nucleus and the looping facial nerve fibers.'}]
+    mcqs:[]
   }
 ]
