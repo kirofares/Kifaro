@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
         .eq('product_type', productType)
         .maybeSingle(),
       adminClient.from('module_entitlements')
-        .select('module_code, product_type, revoked_at')
+        .select('module_code, product_type, revoked_at, expires_at')
         .eq('user_id', userData.user.id)
         .eq('module_code', moduleCode)
         .eq('product_type', productType)
@@ -102,7 +102,9 @@ Deno.serve(async (req: Request) => {
     if (Number(profile.medical_year) !== Number(product.academic_year)) {
       return json({ error: 'This module is not part of your current academic year.' }, 403)
     }
-    if (entitlement && !entitlement.revoked_at) return json({ error: 'You already own this module access.' }, 409)
+    if (entitlement && !entitlement.revoked_at && entitlement.expires_at && new Date(entitlement.expires_at).getTime() > Date.now()) {
+      return json({ error: 'You already have active access to this module.' }, 409)
+    }
 
     const phone = String(profile.phone_no || '').trim()
     if (!phone) return json({ error: 'Add your phone number in My Profile before payment.' }, 400)
@@ -140,7 +142,7 @@ Deno.serve(async (req: Request) => {
       items: [{
         name: ('KIFARO ' + productType.toUpperCase() + ' ' + moduleCode).slice(0, 50),
         amount: amountCents,
-        description: ('Module ' + productType + ' access: ' + moduleCode).slice(0, 255),
+        description: ('6-month module ' + productType + ' access: ' + moduleCode).slice(0, 255),
         quantity: 1,
       }],
       billing_data: {
