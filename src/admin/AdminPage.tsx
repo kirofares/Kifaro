@@ -127,6 +127,7 @@ export default function AdminPage() {
   const [clientErrors, setClientErrors] = useState<ClientErrorRow[]>([])
   const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>([])
   const [auditRows, setAuditRows] = useState<AuditRow[]>([])
+  const [chatUnread, setChatUnread] = useState(0)
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [studentLecture, setStudentLecture] = useState('')
   const [loading, setLoading] = useState(true)
@@ -191,6 +192,21 @@ export default function AdminPage() {
     if (isAdmin) void load()
     else if (!adminLoading) setLoading(false)
   }, [isAdmin, adminLoading])
+
+  useEffect(() => {
+    if (!supabase || !isAdmin) return
+
+    const refreshChatUnread = async () => {
+      const { data } = await supabase.rpc('get_admin_chat_unread_counts')
+      const total = (data || []).reduce((sum: number, row: any) => sum + Number(row.unread_count || 0), 0)
+      setChatUnread(total)
+    }
+
+    void refreshChatUnread()
+    const timer = window.setInterval(() => void refreshChatUnread(), 10000)
+    return () => window.clearInterval(timer)
+  }, [isAdmin])
+
 
   useEffect(() => {
     if (!isAdmin || !supabase) return
@@ -706,7 +722,7 @@ export default function AdminPage() {
         <button className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}><Users size={17}/>Students</button>
         <button className={tab === 'purchases' ? 'active' : ''} onClick={() => setTab('purchases')}><CreditCard size={17}/>Purchases</button>
         <button className={tab === 'manual' ? 'active' : ''} onClick={() => setTab('manual')}><CreditCard size={17}/>Manual Payments</button>
-        <button className={tab === 'chats' ? 'active' : ''} onClick={() => setTab('chats')}><CircleHelp size={17}/>Student Chats</button>
+        <button className={tab === 'chats' ? 'active' : ''} onClick={() => setTab('chats')}><CircleHelp size={17}/>Student Chats{chatUnread > 0 && <span className="chatunreadbadge">{chatUnread}</span>}</button>
         <button className={tab === 'lectures' ? 'active' : ''} onClick={() => setTab('lectures')}><GraduationCap size={17}/>Lectures</button>
         <button className={tab === 'production' ? 'active' : ''} onClick={() => setTab('production')}><Workflow size={17}/>Production</button>
         <button className={tab === 'mcq' ? 'active' : ''} onClick={() => setTab('mcq')}><CircleHelp size={17}/>MCQ Bank</button>
@@ -740,7 +756,7 @@ export default function AdminPage() {
 
       {tab === 'manual' && <ManualPaymentsAdmin onChanged={() => void load()} />}
 
-      {tab === 'chats' && <StudentChatsAdmin />}
+      {tab === 'chats' && <StudentChatsAdmin onUnreadChange={setChatUnread} />}
 
       {tab === 'audit' && (
         <div className="adminpanel">
