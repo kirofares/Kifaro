@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#fbfdff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Dermatomes & Reflexes Spotter</text>
+<circle cx="600" cy="160" r="55" fill="#efd2bd"/><rect x="560" y="220" width="80" height="260" rx="35" fill="#efd2bd"/>
+<line x1="560" y1="280" x2="400" y2="440" stroke="#efd2bd" stroke-width="42"/><line x1="640" y1="280" x2="800" y2="440" stroke="#efd2bd" stroke-width="42"/>
+<line x1="580" y1="480" x2="520" y2="700" stroke="#efd2bd" stroke-width="48"/><line x1="620" y1="480" x2="680" y2="700" stroke="#efd2bd" stroke-width="48"/>
+<circle cx="405" cy="440" r="18" fill="#6f9fd1"/><circle cx="535" cy="545" r="18" fill="#d75d66"/><circle cx="690" cy="665" r="18" fill="#7dbd96"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="365" cy="440" r="26" fill="#ffd54f"/><text x="357" y="450">1</text><circle cx="500" cy="545" r="26" fill="#ffd54f"/><text x="492" y="555">2</text><circle cx="730" cy="665" r="26" fill="#ffd54f"/><text x="722" y="675">3</text></g></svg>
