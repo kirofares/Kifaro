@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+ <rect width="1200" height="800" fill="#f8fbff"/>
+ <text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Cerebral Arterial Territories Spotter</text>
+ 
+<path d="M300 430 C300 260 420 170 600 170 C790 170 900 270 900 420 C900 570 780 640 590 635 C400 630 300 570 300 430Z" fill="#e5c4a9" stroke="#8b634a" stroke-width="10"/>
+<path d="M590 190 C560 300 565 450 590 615" stroke="#d65e66" stroke-width="44" fill="none"/>
+<path d="M600 330 C680 290 760 280 845 300 M600 365 C690 380 770 420 845 470" stroke="#6d8fd2" stroke-width="38" fill="none"/>
+<path d="M605 520 C690 540 760 555 830 560" stroke="#76bd8d" stroke-width="34" fill="none"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="560" cy="245" r="26" fill="#ffd54f"/><text x="552" y="255">1</text>
+<circle cx="780" cy="310" r="26" fill="#ffd54f"/><text x="772" y="320">2</text>
+<circle cx="780" cy="555" r="26" fill="#ffd54f"/><text x="772" y="565">3</text></g>
+ </svg>
