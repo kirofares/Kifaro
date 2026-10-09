@@ -128,6 +128,7 @@ export default function AdminPage() {
   const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>([])
   const [auditRows, setAuditRows] = useState<AuditRow[]>([])
   const [chatUnread, setChatUnread] = useState(0)
+  const [liveVisitors, setLiveVisitors] = useState({ total: 0, anonymous: 0, signedIn: 0 })
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [studentLecture, setStudentLecture] = useState('')
   const [loading, setLoading] = useState(true)
@@ -223,6 +224,26 @@ export default function AdminPage() {
     return () => window.clearInterval(timer)
   }, [isAdmin])
 
+
+  useEffect(() => {
+    if (!supabase || !isAdmin) return
+    const client = supabase
+
+    const refreshLiveVisitors = async () => {
+      const { data, error } = await client.rpc('get_live_visitor_counts')
+      if (error) return
+      const row = Array.isArray(data) ? data[0] : data
+      setLiveVisitors({
+        total: Number(row?.total_active || 0),
+        anonymous: Number(row?.anonymous_active || 0),
+        signedIn: Number(row?.signed_in_active || 0),
+      })
+    }
+
+    void refreshLiveVisitors()
+    const timer = window.setInterval(() => void refreshLiveVisitors(), 15000)
+    return () => window.clearInterval(timer)
+  }, [isAdmin])
 
   useEffect(() => {
     if (!isAdmin || !supabase) return
@@ -751,6 +772,7 @@ export default function AdminPage() {
       {tab === 'overview' && (
         <>
           <div className="adminstats">
+            <div><small>LIVE VISITORS</small><strong>{liveVisitors.total}</strong><span>{liveVisitors.anonymous} anonymous · {liveVisitors.signedIn} signed in</span></div>
             <div><small>STUDENTS</small><strong>{profiles.filter((p) => p.role === 'student').length}</strong><span>registered accounts</span></div>
             <div><small>ACTIVE PURCHASES</small><strong>{activePurchases.length}</strong><span>lecture entitlements</span></div>
             <div><small>RECORDED REVENUE</small><strong>{revenue} EGP</strong><span>from entitlement records</span></div>
