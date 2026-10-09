@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#fbfdff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Endocrine Development Spotter</text>
+<circle cx="300" cy="240" r="95" fill="#d08aa0"/><ellipse cx="600" cy="240" rx="110" ry="80" fill="#cc7991"/><ellipse cx="900" cy="240" rx="85" ry="105" fill="#e0b35d"/>
+<path d="M300 400 L300 610 M600 400 L600 610 M900 400 L900 610" stroke="#8b6c58" stroke-width="12"/>
+<circle cx="300" cy="600" r="55" fill="#9c86d2"/><circle cx="600" cy="600" r="55" fill="#79b9da"/><circle cx="900" cy="600" r="55" fill="#84c391"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="300" cy="240" r="26" fill="#ffd54f"/><text x="292" y="250">1</text><circle cx="600" cy="240" r="26" fill="#ffd54f"/><text x="592" y="250">2</text><circle cx="900" cy="240" r="26" fill="#ffd54f"/><text x="892" y="250">3</text></g></svg>
