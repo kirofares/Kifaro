@@ -24,6 +24,7 @@ import { usePricingRules } from './hooks/usePricingRules'
 import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { useStudentYear } from './hooks/useStudentYear'
 import { supabase } from './lib/supabase'
+import { publicAssetUrl } from './lib/publicAssetUrl'
 import { LangProvider, useLang, useTr, type Lang } from './i18n'
 import { MCQBankPage, MCQModulePage, MCQLecturePage } from './mcq/MCQBankPage'
 import { useMCQBank } from './mcq/useMCQBank'
@@ -376,7 +377,7 @@ export default function App() {
     return (
       <div className="nativebrandedsplash" role="presentation">
         <div className="nativebrandedsplashglow" />
-        <img src="/anatomate-logo.svg" alt="" />
+        <img src={publicAssetUrl('/anatomate-logo.svg')} alt="" />
         <h1>AnatoMate</h1>
         <p>by KIFARO</p>
         <span>Anatomy Made Simple</span>
