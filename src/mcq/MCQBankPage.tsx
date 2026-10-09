@@ -8,20 +8,10 @@ import { ModuleAccessGate, ModuleProductSummary } from '../payments/ModuleAccess
 import { useStudentYear } from '../hooks/useStudentYear'
 import { useAdmin } from '../hooks/useAdmin'
 import { useAuth } from '../auth/AuthContext'
+import { publicAssetUrl } from '../lib/publicAssetUrl'
 
 function questionCount(lectureId: string, fallback: number, counts: Map<string, number>) {
   return counts.get(lectureId) || fallback
-}
-
-function resolvePublicAssetUrl(value: string | null) {
-  if (!value) return null
-  if (/^(https?:|data:|blob:)/i.test(value)) return value
-  const clean = value.replace(/^\.\//, '').replace(/^\//, '')
-  try {
-    return new URL(clean, document.baseURI).toString()
-  } catch {
-    return value
-  }
 }
 
 export function MCQBankPage() {
@@ -254,7 +244,7 @@ export function MCQLecturePage() {
       options: [q.option_a, q.option_b, q.option_c, q.option_d],
       difficulty: q.difficulty || 1,
       learningObjective: q.learning_objective,
-      imageUrl: resolvePublicAssetUrl(q.image_url),
+      imageUrl: publicAssetUrl(q.image_url),
       imageAlt: q.image_alt,
       source: q,
     }))
