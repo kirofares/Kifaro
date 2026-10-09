@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+ <rect width="1200" height="800" fill="#f8fbff"/>
+ <text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Midbrain Spotter</text>
+ 
+<ellipse cx="600" cy="400" rx="240" ry="190" fill="#e5c4a9" stroke="#8b644a" stroke-width="10"/>
+<circle cx="600" cy="380" r="42" fill="#ffffff" stroke="#7d624d" stroke-width="6"/>
+<ellipse cx="510" cy="350" rx="38" ry="70" fill="#c86d7c"/>
+<ellipse cx="690" cy="350" rx="38" ry="70" fill="#c86d7c"/>
+<path d="M450 500 Q600 560 750 500" stroke="#6f85d1" stroke-width="55" fill="none"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="600" cy="330" r="26" fill="#ffd54f"/><text x="592" y="340">1</text>
+<circle cx="510" cy="275" r="26" fill="#ffd54f"/><text x="502" y="285">2</text>
+<circle cx="600" cy="555" r="26" fill="#ffd54f"/><text x="592" y="565">3</text></g>
+ </svg>
