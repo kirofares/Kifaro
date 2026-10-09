@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#f9fbff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Coronary Arteries Spotter</text>
+<path d="M590 185 C480 160 400 250 420 390 C445 555 545 640 600 670 C665 630 760 540 785 390 C805 255 720 160 610 185Z" fill="#d85a64" stroke="#913840" stroke-width="10"/>
+<path d="M600 205 L600 625" stroke="#f3d66a" stroke-width="18"/>
+<path d="M600 300 C520 320 470 360 435 420" stroke="#f3d66a" stroke-width="18" fill="none"/>
+<path d="M600 300 C680 320 730 350 765 405" stroke="#f3d66a" stroke-width="18" fill="none"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="600" cy="385" r="26" fill="#ffd54f"/><text x="592" y="395">1</text><circle cx="465" cy="385" r="26" fill="#ffd54f"/><text x="457" y="395">2</text><circle cx="735" cy="370" r="26" fill="#ffd54f"/><text x="727" y="380">3</text></g></svg>
