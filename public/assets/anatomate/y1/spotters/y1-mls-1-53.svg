@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#fbfdff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Lower Limb Nerve Localization</text>
+<path d="M520 150 L500 680 M680 150 L700 680" stroke="#efd2bd" stroke-width="70"/>
+<path d="M700 260 Q760 300 770 420" stroke="#e1b65e" stroke-width="18" fill="none"/>
+<path d="M540 200 L540 620" stroke="#6f8fd3" stroke-width="18"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="755" cy="320" r="26" fill="#ffd54f"/><text x="747" y="330">1</text><circle cx="540" cy="420" r="26" fill="#ffd54f"/><text x="532" y="430">2</text></g></svg>
