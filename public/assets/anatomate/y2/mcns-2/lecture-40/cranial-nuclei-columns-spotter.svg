@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+ <rect width="1200" height="800" fill="#f8fbff"/>
+ <text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Cranial Nerve Nuclear Columns Spotter</text>
+ 
+<rect x="330" y="180" width="540" height="430" rx="150" fill="#ead1b7" stroke="#8d664b" stroke-width="10"/>
+<line x1="600" y1="205" x2="600" y2="585" stroke="#ffffff" stroke-width="8"/>
+<rect x="430" y="245" width="60" height="300" rx="28" fill="#d66f7d"/>
+<rect x="525" y="245" width="60" height="300" rx="28" fill="#e7aa6e"/>
+<rect x="615" y="245" width="60" height="300" rx="28" fill="#7eb3d8"/>
+<rect x="710" y="245" width="60" height="300" rx="28" fill="#7fc69b"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="460" cy="215" r="26" fill="#ffd54f"/><text x="452" y="225">1</text>
+<circle cx="555" cy="215" r="26" fill="#ffd54f"/><text x="547" y="225">2</text>
+<circle cx="645" cy="215" r="26" fill="#ffd54f"/><text x="637" y="225">3</text>
+<circle cx="740" cy="215" r="26" fill="#ffd54f"/><text x="732" y="225">4</text></g>
+ </svg>
