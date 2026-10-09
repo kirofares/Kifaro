@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+ <rect width="1200" height="800" fill="#f8fbff"/>
+ <text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Cerebellum Spotter</text>
+ 
+<ellipse cx="600" cy="410" rx="300" ry="200" fill="#ddb08d" stroke="#8b6045" stroke-width="10"/>
+<path d="M600 210 L600 610" stroke="#7d513c" stroke-width="18"/>
+<path d="M350 360 Q600 260 850 360 M350 410 Q600 310 850 410 M350 460 Q600 360 850 460 M350 510 Q600 410 850 510" stroke="#f4dcc9" stroke-width="9" fill="none"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="600" cy="180" r="26" fill="#ffd54f"/><text x="592" y="190">1</text>
+<circle cx="400" cy="390" r="26" fill="#ffd54f"/><text x="392" y="400">2</text>
+<circle cx="800" cy="390" r="26" fill="#ffd54f"/><text x="792" y="400">3</text></g>
+ </svg>
