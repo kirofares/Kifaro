@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+ <rect width="1200" height="800" fill="#f8fbff"/>
+ <text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Spinal Cord Cross-Section Spotter</text>
+ 
+<ellipse cx="600" cy="420" rx="250" ry="210" fill="#ead0b7" stroke="#8a6247" stroke-width="10"/>
+<path d="M600 245 C560 300 555 350 600 390 C645 350 640 300 600 245Z" fill="#d89c88"/>
+<path d="M600 595 C545 545 535 485 600 445 C665 485 655 545 600 595Z" fill="#d89c88"/>
+<path d="M505 330 C470 355 455 410 485 450 C515 490 540 475 560 440 C520 405 520 365 505 330Z" fill="#c98278"/>
+<path d="M695 330 C730 355 745 410 715 450 C685 490 660 475 640 440 C680 405 680 365 695 330Z" fill="#c98278"/>
+<circle cx="600" cy="420" r="24" fill="#ffffff" stroke="#805e4a" stroke-width="5"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="600" cy="205" r="26" fill="#ffd54f"/><text x="592" y="215">1</text>
+<circle cx="470" cy="420" r="26" fill="#ffd54f"/><text x="462" y="430">2</text>
+<circle cx="600" cy="420" r="26" fill="#ffd54f"/><text x="592" y="430">3</text>
+<circle cx="600" cy="625" r="26" fill="#ffd54f"/><text x="592" y="635">4</text></g>
+ </svg>
