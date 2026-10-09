@@ -22,6 +22,17 @@ type ChoiceQuestion = {
   options: string[]
 }
 
+function resolveAssessmentMediaUrl(value: string | null) {
+  if (!value) return null
+  if (/^(https?:|data:|blob:)/i.test(value)) return value
+  const clean = value.replace(/^\.\//, '').replace(/^\//, '')
+  try {
+    return new URL(clean, document.baseURI).toString()
+  } catch {
+    return value
+  }
+}
+
 type AssessmentResult = {
   score: number
   max_score: number
@@ -597,7 +608,7 @@ export function AssessmentItemPage() {
         <>
           <section className="stationstem">
             <p>{item.stem}</p>
-            {shouldShowMedia && <figure><img src={item.media_url!} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
+            {shouldShowMedia && <figure><img src={resolveAssessmentMediaUrl(item.media_url) || ''} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
           </section>
 
           {questions.length > 0 && <div className="stationquestions">
