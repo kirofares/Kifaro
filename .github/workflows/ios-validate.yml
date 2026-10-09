@@ -11,6 +11,10 @@ on:
       - 'capacitor.config.ts'
       - '.github/workflows/ios-validate.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ios-build-check:
     runs-on: macos-latest
