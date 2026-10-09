@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#f9fbff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Valve Auscultation Spotter</text>
+<path d="M450 160 C420 270 420 530 450 650 M750 160 C780 270 780 530 750 650" stroke="#c6b09a" stroke-width="20" fill="none"/>
+<path d="M450 250 L750 250 M450 340 L750 340 M450 430 L750 430 M450 520 L750 520" stroke="#d9c5b2" stroke-width="9"/>
+<circle cx="705" cy="250" r="35" fill="#e87575"/><circle cx="495" cy="250" r="35" fill="#6fa6d9"/><circle cx="515" cy="430" r="35" fill="#8bc58f"/><circle cx="690" cy="520" r="35" fill="#d8a868"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="750" cy="250" r="26" fill="#ffd54f"/><text x="742" y="260">1</text><circle cx="450" cy="250" r="26" fill="#ffd54f"/><text x="442" y="260">2</text><circle cx="470" cy="430" r="26" fill="#ffd54f"/><text x="462" y="440">3</text><circle cx="735" cy="520" r="26" fill="#ffd54f"/><text x="727" y="530">4</text></g></svg>
