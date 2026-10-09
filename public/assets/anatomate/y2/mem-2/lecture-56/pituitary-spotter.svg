@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#fbfdff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Pituitary Spotter</text>
+<path d="M420 230 Q600 120 780 230 L730 330 Q600 280 470 330Z" fill="#e6c4aa" stroke="#8b6349" stroke-width="9"/>
+<ellipse cx="600" cy="420" rx="90" ry="65" fill="#d27b8e" stroke="#8a4c5f" stroke-width="7"/>
+<path d="M600 330 L600 360" stroke="#8b6349" stroke-width="22"/>
+<rect x="505" y="520" width="190" height="80" rx="25" fill="#d8c29d" stroke="#8b7254" stroke-width="7"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="600" cy="300" r="26" fill="#ffd54f"/><text x="592" y="310">1</text><circle cx="600" cy="420" r="26" fill="#ffd54f"/><text x="592" y="430">2</text><circle cx="600" cy="560" r="26" fill="#ffd54f"/><text x="592" y="570">3</text></g></svg>
