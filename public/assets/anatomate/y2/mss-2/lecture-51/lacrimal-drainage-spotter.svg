@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#f9fbff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Lacrimal Drainage Spotter</text>
+<ellipse cx="600" cy="390" rx="220" ry="140" fill="#ffffff" stroke="#6a879c" stroke-width="9"/>
+<ellipse cx="760" cy="260" rx="70" ry="45" fill="#8fc5e5"/>
+<path d="M750 290 C720 330 680 345 650 360" stroke="#6fa7d8" stroke-width="16" fill="none"/>
+<circle cx="450" cy="385" r="16" fill="#6fa7d8"/>
+<path d="M450 385 L400 430 L400 570" stroke="#6fa7d8" stroke-width="16" fill="none"/>
+<ellipse cx="400" cy="435" rx="32" ry="45" fill="#a9d4ee"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="800" cy="245" r="26" fill="#ffd54f"/><text x="792" y="255">1</text><circle cx="450" cy="345" r="26" fill="#ffd54f"/><text x="442" y="355">2</text><circle cx="360" cy="435" r="26" fill="#ffd54f"/><text x="352" y="445">3</text><circle cx="440" cy="555" r="26" fill="#ffd54f"/><text x="432" y="565">4</text></g></svg>
