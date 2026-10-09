@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#fbfdff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Parathyroid Spotter</text>
+<ellipse cx="500" cy="400" rx="120" ry="180" fill="#ca7891" stroke="#884b61" stroke-width="8"/>
+<ellipse cx="700" cy="400" rx="120" ry="180" fill="#ca7891" stroke="#884b61" stroke-width="8"/>
+<g fill="#e7b64d" stroke="#a87914" stroke-width="5"><ellipse cx="455" cy="330" rx="28" ry="38"/><ellipse cx="455" cy="475" rx="28" ry="38"/><ellipse cx="745" cy="330" rx="28" ry="38"/><ellipse cx="745" cy="475" rx="28" ry="38"/></g>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="415" cy="330" r="26" fill="#ffd54f"/><text x="407" y="340">1</text><circle cx="415" cy="475" r="26" fill="#ffd54f"/><text x="407" y="485">2</text><circle cx="785" cy="330" r="26" fill="#ffd54f"/><text x="777" y="340">3</text><circle cx="785" cy="475" r="26" fill="#ffd54f"/><text x="777" y="485">4</text></g></svg>
