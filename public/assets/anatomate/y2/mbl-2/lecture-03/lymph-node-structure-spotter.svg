@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<rect width="1200" height="800" fill="#fffafd"/>
+<text x="60" y="70" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Lymph Node Structure Spotter</text>
+<path d="M520 150 C350 165 260 290 280 440 C300 610 420 675 560 650 C720 622 810 500 785 340 C760 205 660 135 520 150Z" fill="#f6c5d6" stroke="#7b4057" stroke-width="10"/>
+<path d="M520 190 C390 205 330 300 345 425 C360 540 440 595 555 580 C675 565 730 485 718 360 C706 255 635 180 520 190Z" fill="#e58fb0"/>
+<path d="M520 260 C430 270 395 350 410 435 C423 510 475 545 550 530 C625 515 675 460 665 380 C655 300 605 250 520 260Z" fill="#d46d98"/>
+<path d="M700 390 C805 390 840 390 900 390" stroke="#66aee0" stroke-width="20" fill="none" stroke-linecap="round"/>
+<path d="M300 280 C210 240 180 225 130 225 M300 360 C210 340 175 340 125 340" stroke="#66aee0" stroke-width="16" fill="none" stroke-linecap="round"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67">
+<circle cx="530" cy="155" r="26" fill="#ffd54f"/><text x="522" y="165">1</text>
+<circle cx="390" cy="260" r="26" fill="#ffd54f"/><text x="382" y="270">2</text>
+<circle cx="525" cy="395" r="26" fill="#ffd54f"/><text x="517" y="405">3</text>
+<circle cx="835" cy="350" r="26" fill="#ffd54f"/><text x="827" y="360">4</text>
+</g>
+</svg>
