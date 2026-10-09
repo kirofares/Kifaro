@@ -195,10 +195,25 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!supabase || !isAdmin) return
+    let previousTotal: number | null = null
 
     const refreshChatUnread = async () => {
       const { data } = await supabase.rpc('get_admin_chat_unread_counts')
       const total = (data || []).reduce((sum: number, row: any) => sum + Number(row.unread_count || 0), 0)
+
+      if (
+        previousTotal !== null &&
+        total > previousTotal &&
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted'
+      ) {
+        new Notification('New Ask AnatoMate message', {
+          body: 'A student sent a new message.',
+          tag: 'kifaro-admin-chat',
+        })
+      }
+
+      previousTotal = total
       setChatUnread(total)
     }
 
