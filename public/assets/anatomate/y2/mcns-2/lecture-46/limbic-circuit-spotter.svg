@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+ <rect width="1200" height="800" fill="#f8fbff"/>
+ <text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Limbic Circuit Spotter</text>
+ 
+<ellipse cx="600" cy="390" rx="300" ry="205" fill="#e6c5aa" stroke="#8c654b" stroke-width="10"/>
+<path d="M430 455 C470 570 650 600 760 500" stroke="#d66f7c" stroke-width="36" fill="none" stroke-linecap="round"/>
+<path d="M760 500 C820 420 800 300 700 245" stroke="#6f8ed3" stroke-width="26" fill="none" stroke-linecap="round"/>
+<path d="M700 245 C600 180 470 220 430 330" stroke="#7bc49c" stroke-width="26" fill="none" stroke-linecap="round"/>
+<circle cx="600" cy="470" r="45" fill="#dcb36a"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="430" cy="455" r="26" fill="#ffd54f"/><text x="422" y="465">1</text>
+<circle cx="750" cy="500" r="26" fill="#ffd54f"/><text x="742" y="510">2</text>
+<circle cx="700" cy="245" r="26" fill="#ffd54f"/><text x="692" y="255">3</text>
+<circle cx="600" cy="470" r="26" fill="#ffd54f"/><text x="592" y="480">4</text></g>
+ </svg>
