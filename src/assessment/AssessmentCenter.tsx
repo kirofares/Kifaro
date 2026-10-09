@@ -485,30 +485,7 @@ export function SpottersPage() {
   return <AssessmentListPage types={['spotter']} titleEn="Image Spotters" titleAr="السبوتر والصور" bodyEn="Practice recognition of structures from images, specimens and labeled views." bodyAr="تدرب على التعرف على التراكيب من الصور والعينات والمناظر التشريحية." />
 }
 
-export function VivaBankPage() {
-  const nav = useNavigate()
-  const tr = useTr()
-  const { user } = useAuth()
-  const { isAdmin } = useAdmin(user?.id)
-  const { year: studentYear } = useStudentYear()
-  const lectures = anatomateLectures.filter((lecture) => (isAdmin || !studentYear || lecture.year === studentYear) && Boolean(getVivaDeck(lecture.id)))
-
-  return (
-    <div className="page assessmentpage">
-      <div className="pagehead"><div><span className="eyebrow">KIFARO VIVA</span><h1>{tr('Viva Practice', 'تدريب الفايفا')}</h1><p>{tr('Oral-style recall linked to lecture content.', 'تدريب شفهي مرتبط بمحتوى المحاضرات.')}</p></div></div>
-      <div className="assessmentcards">
-        {lectures.map((lecture) => (
-          <button key={lecture.id} className="assessmentcard" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/viva')}>
-            <div className="assessmenticon"><FileQuestion /></div>
-            <div className="grow"><small>YEAR {lecture.year} · {lecture.module}</small><h3>{lecture.title}</h3><p>{tr('Open viva practice', 'افتح تدريب الفايفا')}</p></div>
-            <ChevronRight />
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
+export function VivaBankPage() {\n  const nav = useNavigate()\n  const tr = useTr()\n  const { user } = useAuth()\n  const { isAdmin } = useAdmin(user?.id)\n  const { year: studentYear } = useStudentYear()\n  const [openYears, setOpenYears] = useState<Set<number>>(new Set())\n  const [openModules, setOpenModules] = useState<Set<string>>(new Set())\n  const lectures = anatomateLectures.filter((lecture) => (isAdmin || !studentYear || lecture.year === studentYear) && Boolean(getVivaDeck(lecture.id)))\n  const visibleYears = isAdmin ? anatomateYears : studentYear ? anatomateYears.filter((year) => year.year === studentYear) : anatomateYears\n\n  return (\n    <div className="page assessmentpage">\n      <div className="pagehead"><div><span className="eyebrow">KIFARO VIVA</span><h1>{tr('Viva Practice', 'تدريب الفايفا')}</h1><p>{tr('Oral-style recall linked to lecture content.', 'تدريب شفهي مرتبط بمحتوى المحاضرات.')}</p></div></div>\n      <div className="assessmentyears">\n        {visibleYears.map((year) => {\n          const yearLectures = lectures.filter((lecture) => lecture.year === year.year)\n          if (!yearLectures.length) return null\n          const yearOpen = openYears.has(year.year)\n          return <section className={yearOpen ? 'assessmentyear open' : 'assessmentyear'} key={year.year}>\n            <button className="assessmentyearhead caseaccordionbutton" type="button" aria-expanded={yearOpen} onClick={() => setOpenYears((current) => { const next = new Set(current); next.has(year.year) ? next.delete(year.year) : next.add(year.year); return next })}>\n              <div><span className="yearbadge">YEAR {year.year}</span><h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2></div>\n              <div className="caseaccordionmeta"><span className="mcqcount">{yearLectures.length}</span><ChevronRight className="caseaccordionchevron" size={22}/></div>\n            </button>\n            {yearOpen && <div className="assessmentmodules">\n              {year.modules.map((module) => {\n                const moduleLectures = yearLectures.filter((lecture) => lecture.module === module.code)\n                if (!moduleLectures.length) return null\n                const key = year.year + ':' + module.slug + ':viva'\n                const moduleOpen = openModules.has(key)\n                return <div className={moduleOpen ? 'assessmentmodule open' : 'assessmentmodule'} key={module.slug}>\n                  <button className="assessmentmodulehead caseaccordionbutton" type="button" aria-expanded={moduleOpen} onClick={() => setOpenModules((current) => { const next = new Set(current); next.has(key) ? next.delete(key) : next.add(key); return next })}>\n                    <div><small>{module.code}</small><h3>{module.title}</h3></div>\n                    <div className="caseaccordionmeta"><span className="mcqcount">{moduleLectures.length}</span><ChevronRight className="caseaccordionchevron" size={20}/></div>\n                  </button>\n                  {moduleOpen && <div className="assessmentmodulecontent"><div className="assessmentcards">\n                    {moduleLectures.map((lecture) => <button key={lecture.id} className="assessmentcard" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/viva')}><div className="assessmenticon"><FileQuestion /></div><div className="grow"><small>{module.code}</small><h3>{lecture.title}</h3><p>{tr('Open viva practice', 'افتح تدريب الفايفا')}</p></div><ChevronRight /></button>)}\n                  </div></div>}\n                </div>\n              })}\n            </div>}\n          </section>\n        })}\n      </div>\n    </div>\n  )\n}\n
 export function AssessmentItemPage() {
   const { id } = useParams()
   const nav = useNavigate()
