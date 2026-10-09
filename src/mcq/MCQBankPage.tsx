@@ -9,6 +9,51 @@ import { useStudentYear } from '../hooks/useStudentYear'
 import { useAdmin } from '../hooks/useAdmin'
 import { useAuth } from '../auth/AuthContext'
 import { publicAssetUrl } from '../lib/publicAssetUrl'
+import { supabase } from '../lib/supabase'
+
+function ProtectedMCQImage({ questionId, imagePath, alt }: { questionId: string; imagePath: string | null; alt: string }) {
+  const [url, setUrl] = useState('')
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setFailed(false)
+    if (!imagePath) {
+      setUrl('')
+      return
+    }
+
+    if (!imagePath.startsWith('private:')) {
+      setUrl(publicAssetUrl(imagePath))
+      return
+    }
+
+    if (!supabase) {
+      setFailed(true)
+      return
+    }
+
+    supabase.functions.invoke('mcq-image-access', { body: { questionId } })
+      .then(({ data, error }) => {
+        if (!active) return
+        if (error || data?.error || !data?.url) {
+          setFailed(true)
+          setUrl('')
+          return
+        }
+        setUrl(String(data.url))
+      })
+
+    return () => { active = false }
+  }, [questionId, imagePath])
+
+  if (!imagePath || failed) return null
+  if (!url) return <div className="mcqimageloading">Loading anatomy image…</div>
+
+  return <figure className="mcqimage">
+    <img src={url} alt={alt} loading="lazy" />
+  </figure>
+}
 
 function questionCount(lectureId: string, fallback: number, counts: Map<string, number>) {
   return counts.get(lectureId) || fallback
@@ -243,7 +288,7 @@ export function MCQLecturePage() {
       options: [q.option_a, q.option_b, q.option_c, q.option_d],
       difficulty: q.difficulty || 1,
       learningObjective: q.learning_objective,
-      imageUrl: publicAssetUrl(q.image_url),
+      imagePath: q.image_url,
       imageAlt: q.image_alt,
       source: q,
     }))
@@ -427,12 +472,7 @@ export function MCQLecturePage() {
             return (
               <section className="mcqquestion" key={question.id}>
                 <div className="mcqqhead"><span>Q{qIndex + 1}</span><div><h2>{question.question}</h2>{question.topic && <small className="mcqtopic">{question.subtopic || question.topic}</small>}</div></div>
-                {question.imageUrl && (
-                  <figure className="mcqimage">
-                    <img src={question.imageUrl} alt={question.imageAlt || question.question} loading="lazy" />
-                    {question.imageAlt && <figcaption>{question.imageAlt}</figcaption>}
-                  </figure>
-                )}
+                {question.imagePath && <ProtectedMCQImage questionId={question.id} imagePath={question.imagePath} alt={question.imageAlt || question.question} />}
                 <div className="mcqoptions">
                   {question.options.map((option, optionIndex) => {
                     const selectedOption = selected === optionIndex
