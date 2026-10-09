@@ -2,15 +2,15 @@
   "name": "AnatoMate by KIFARO",
   "short_name": "AnatoMate",
   "description": "Medical anatomy learning by KIFARO",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#135DDB",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/anatomate-icon.svg",
+      "src": "./icons/anatomate-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
