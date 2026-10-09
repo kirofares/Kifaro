@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#f9fbff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Extraocular Muscles Spotter</text>
+<circle cx="600" cy="400" r="170" fill="#ffffff" stroke="#5e7f98" stroke-width="10"/>
+<path d="M430 400 L250 400 M770 400 L950 400 M600 230 L600 120 M600 570 L600 690" stroke="#d66f7c" stroke-width="24"/>
+<path d="M500 285 L380 180 M700 285 L820 180" stroke="#6f8fd3" stroke-width="22"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="245" cy="400" r="26" fill="#ffd54f"/><text x="237" y="410">1</text><circle cx="955" cy="400" r="26" fill="#ffd54f"/><text x="947" y="410">2</text><circle cx="600" cy="110" r="26" fill="#ffd54f"/><text x="592" y="120">3</text><circle cx="830" cy="175" r="26" fill="#ffd54f"/><text x="822" y="185">4</text></g></svg>
