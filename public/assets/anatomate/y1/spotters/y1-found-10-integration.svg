@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<rect width="1200" height="800" fill="#fbfdff"/>
+<text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Closed Compartment Integration</text>
+<circle cx="600" cy="410" r="250" fill="#efd2bd" stroke="#90694f" stroke-width="10"/>
+<circle cx="600" cy="410" r="195" fill="#d77d77" opacity=".9"/>
+<circle cx="520" cy="370" r="45" fill="#d75d66"/>
+<circle cx="680" cy="370" r="45" fill="#6da4d5"/>
+<circle cx="600" cy="500" r="45" fill="#e1b65e"/>
+<path d="M385 235 Q600 120 815 235 M385 585 Q600 700 815 585" stroke="#7f9ab0" stroke-width="16" fill="none"/>
+<path d="M600 185 L600 635" stroke="#ffffff" stroke-width="9" stroke-dasharray="16 12"/>
+<g font-family="Arial" font-size="26" fill="#486581"><text x="865" y="315">Rigid fascial boundary</text><text x="865" y="365">Muscle swelling</text></g>
+<path d="M820 300 L760 300" stroke="#14b8a6" stroke-width="8"/><path d="M820 350 L720 385" stroke="#14b8a6" stroke-width="8"/>
+</svg>
