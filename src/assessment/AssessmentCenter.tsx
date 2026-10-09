@@ -181,6 +181,8 @@ export function CasesPage() {
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(['case'])
+  const [openYears, setOpenYears] = useState<Set<number>>(new Set())
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set())
   const caseItems = items.filter((item) => item.assessment_type === 'case')
   const visibleYears = isAdmin
     ? anatomateYears
@@ -211,64 +213,100 @@ export function CasesPage() {
         <div className="caseyears">
           {visibleYears.map((year) => {
             const yearCases = caseItems.filter((item) => item.year === year.year)
+            const yearOpen = openYears.has(year.year)
             return (
-              <section className="caseyear" key={year.year}>
-                <div className="caseyearhead">
-                  <div><span className="yearbadge">YEAR {year.year}</span><h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2></div>
-                  <span className="mcqcount">{yearCases.length} {tr('cases', 'حالات')}</span>
-                </div>
-
-                <div className="casemodules">
-                  {year.modules.map((module) => {
-                    const moduleCases = yearCases.filter((item) => item.module_code === module.code)
-                    return (
-                      <div className="casemodule" key={module.slug}>
-                        <div className="casemodulehead">
-                          <div><small>{module.code}</small><h3>{module.title}</h3></div>
-                          <div className="casemodulemeta">
-                            <ModuleProductSummary moduleCode={module.code} productType="cases" />
-                            <span>{moduleCases.length}</span>
-                          </div>
-                        </div>
-
-                        <ModuleAccessGate moduleCode={module.code} productType="cases">
-                        <div className="caselectures">
-                          {module.lectures.map((lecture) => {
-                            const lectureCases = moduleCases.filter((item) => item.lecture_id === lecture.id)
-                            return (
-                              <div className="caselecture" key={lecture.id}>
-                                <div className="caselecturehead">
-                                  <div className="lectureseq">{lecture.sequence}</div>
-                                  <div><small>{lecture.system}</small><h4>{lecture.title}</h4></div>
-                                  <span>{lectureCases.length} {tr('cases', 'حالات')}</span>
-                                </div>
-
-                                {lectureCases.length ? (
-                                  <div className="casecards">
-                                    {lectureCases.map((item) => (
-                                      <button key={item.id} className="casecard" onClick={() => nav('/assessments/item/' + item.id)}>
-                                        <div className="casecardtop">
-                                          <span className={'difficulty d' + item.difficulty}>{tr('Level', 'مستوى')} {item.difficulty}</span>
-                                          {item.time_limit_seconds && <span><Clock3 size={14}/>{Math.ceil(item.time_limit_seconds/60)} min</span>}
-                                        </div>
-                                        <h5>{item.title}</h5>
-                                        <p>{item.stem}</p>
-                                        <strong>{tr('Open case', 'افتح الحالة')} <ChevronRight size={16}/></strong>
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="caseempty">{tr('Cases coming soon for this lecture.', 'سيتم إضافة حالات لهذه المحاضرة قريبًا.')}</div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                        </ModuleAccessGate>
-                      </div>
-                    )
+              <section className={yearOpen ? 'caseyear open' : 'caseyear'} key={year.year}>
+                <button
+                  className="caseyearhead caseaccordionbutton"
+                  type="button"
+                  aria-expanded={yearOpen}
+                  onClick={() => setOpenYears((current) => {
+                    const next = new Set(current)
+                    if (next.has(year.year)) next.delete(year.year)
+                    else next.add(year.year)
+                    return next
                   })}
-                </div>
+                >
+                  <div>
+                    <span className="yearbadge">YEAR {year.year}</span>
+                    <h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2>
+                  </div>
+                  <div className="caseaccordionmeta">
+                    <span className="mcqcount">{yearCases.length} {tr('cases', 'حالات')}</span>
+                    <ChevronRight className="caseaccordionchevron" size={22}/>
+                  </div>
+                </button>
+
+                {yearOpen && (
+                  <div className="casemodules">
+                    {year.modules.map((module) => {
+                      const moduleCases = yearCases.filter((item) => item.module_code === module.code)
+                      const moduleKey = year.year + ':' + module.slug
+                      const moduleOpen = openModules.has(moduleKey)
+                      return (
+                        <div className={moduleOpen ? 'casemodule open' : 'casemodule'} key={module.slug}>
+                          <button
+                            className="casemodulehead caseaccordionbutton"
+                            type="button"
+                            aria-expanded={moduleOpen}
+                            onClick={() => setOpenModules((current) => {
+                              const next = new Set(current)
+                              if (next.has(moduleKey)) next.delete(moduleKey)
+                              else next.add(moduleKey)
+                              return next
+                            })}
+                          >
+                            <div><small>{module.code}</small><h3>{module.title}</h3></div>
+                            <div className="casemodulemeta">
+                              <ModuleProductSummary moduleCode={module.code} productType="cases" />
+                              <span>{moduleCases.length} {tr('cases', 'حالات')}</span>
+                              <ChevronRight className="caseaccordionchevron" size={20}/>
+                            </div>
+                          </button>
+
+                          {moduleOpen && (
+                            <div className="casemodulecontent">
+                              <ModuleAccessGate moduleCode={module.code} productType="cases">
+                                <div className="caselectures">
+                                  {module.lectures.map((lecture) => {
+                                    const lectureCases = moduleCases.filter((item) => item.lecture_id === lecture.id)
+                                    return (
+                                      <div className="caselecture" key={lecture.id}>
+                                        <div className="caselecturehead">
+                                          <div className="lectureseq">{lecture.sequence}</div>
+                                          <div><small>{lecture.system}</small><h4>{lecture.title}</h4></div>
+                                          <span>{lectureCases.length} {tr('cases', 'حالات')}</span>
+                                        </div>
+
+                                        {lectureCases.length ? (
+                                          <div className="casecards">
+                                            {lectureCases.map((item) => (
+                                              <button key={item.id} className="casecard" onClick={() => nav('/assessments/item/' + item.id)}>
+                                                <div className="casecardtop">
+                                                  <span className={'difficulty d' + item.difficulty}>{tr('Level', 'مستوى')} {item.difficulty}</span>
+                                                  {item.time_limit_seconds && <span><Clock3 size={14}/>{Math.ceil(item.time_limit_seconds/60)} min</span>}
+                                                </div>
+                                                <h5>{item.title}</h5>
+                                                <p>{item.stem}</p>
+                                                <strong>{tr('Open case', 'افتح الحالة')} <ChevronRight size={16}/></strong>
+                                              </button>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <div className="caseempty">{tr('Cases coming soon for this lecture.', 'سيتم إضافة حالات لهذه المحاضرة قريبًا.')}</div>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </ModuleAccessGate>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </section>
             )
           })}
