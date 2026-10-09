@@ -1212,3 +1212,21 @@ html[dir="rtl"] .caseaccordionbutton{text-align:right}
   .caseaccordionmeta .mcqcount{white-space:nowrap}
   .casemodulemeta{align-items:center;flex-wrap:wrap;justify-content:flex-end}
 }
+
+
+.assessmentyears{display:grid;gap:18px}
+.assessmentyear{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+.assessmentyearhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:2px}
+.assessmentyearhead h2{margin:8px 0 0}
+.assessmentmodules{display:grid;gap:12px;margin-top:14px}
+.assessmentmodule{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fbfcfe}
+.assessmentmodulehead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.assessmentmodulehead small{color:var(--primary);font-weight:800}
+.assessmentmodulehead h3{margin:4px 0}
+.assessmentmodulecontent{margin-top:12px}
+.assessmentyear.open>.assessmentyearhead .caseaccordionchevron,
+.assessmentmodule.open>.assessmentmodulehead .caseaccordionchevron{transform:rotate(90deg);color:var(--primary)}
+@media(max-width:780px){
+  .assessmentyear,.assessmentmodule{padding:12px}
+  .assessmentyearhead,.assessmentmodulehead{align-items:center}
+}
