@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#f9fbff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Great Vessels Spotter</text>
+<path d="M540 500 L540 240 Q540 160 620 160 Q700 160 700 240 L700 300" stroke="#d85660" stroke-width="48" fill="none" stroke-linecap="round"/>
+<path d="M620 160 L500 105 M635 160 L640 95 M665 175 L765 125" stroke="#d85660" stroke-width="28" fill="none" stroke-linecap="round"/>
+<path d="M480 480 L480 210" stroke="#6ca5d8" stroke-width="42"/><path d="M650 475 L650 330 Q650 295 690 285 L825 245" stroke="#6ca5d8" stroke-width="42" fill="none"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="650" cy="135" r="26" fill="#ffd54f"/><text x="642" y="145">1</text><circle cx="485" cy="300" r="26" fill="#ffd54f"/><text x="477" y="310">2</text><circle cx="790" cy="245" r="26" fill="#ffd54f"/><text x="782" y="255">3</text></g></svg>
