@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Activity, CheckCircle2, ChevronRight, Clock3, Eye, FileQuestion, RotateCcw, Stethoscope } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { publicAssetUrl } from '../lib/publicAssetUrl'
 import { useAuth } from '../auth/AuthContext'
 import { useLang, useTr } from '../i18n'
 import { anatomateLectures, anatomateYears } from '../data/anatomate'
@@ -20,17 +21,6 @@ function caseLevelName(level: number, ar: boolean) {
 type ChoiceQuestion = {
   prompt: string
   options: string[]
-}
-
-function resolveAssessmentMediaUrl(value: string | null) {
-  if (!value) return null
-  if (/^(https?:|data:|blob:)/i.test(value)) return value
-  const clean = value.replace(/^\.\//, '').replace(/^\//, '')
-  try {
-    return new URL(clean, document.baseURI).toString()
-  } catch {
-    return value
-  }
 }
 
 type AssessmentResult = {
@@ -608,7 +598,7 @@ export function AssessmentItemPage() {
         <>
           <section className="stationstem">
             <p>{item.stem}</p>
-            {shouldShowMedia && <figure><img src={resolveAssessmentMediaUrl(item.media_url) || ''} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
+            {shouldShowMedia && <figure><img src={publicAssetUrl(item.media_url) || ''} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
           </section>
 
           {questions.length > 0 && <div className="stationquestions">
