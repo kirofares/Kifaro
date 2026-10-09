@@ -95,17 +95,33 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(types)
+  const [openYears, setOpenYears] = useState<Set<number>>(new Set())
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set())
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, { year: number; moduleCode: string; items: AssessmentItem[] }>()
-    for (const item of items.filter((row) => isAdmin || !studentYear || row.year === studentYear)) {
-      const key = item.year + '::' + item.module_code
-      const current = map.get(key) || { year: item.year, moduleCode: item.module_code, items: [] }
-      current.items.push(item)
-      map.set(key, current)
-    }
-    return Array.from(map.values())
-  }, [items, studentYear, isAdmin])
+  const visibleItems = items.filter((row) => isAdmin || !studentYear || row.year === studentYear)
+  const visibleYears = isAdmin
+    ? anatomateYears
+    : studentYear
+      ? anatomateYears.filter((year) => year.year === studentYear)
+      : anatomateYears
+
+  const renderCards = (moduleItems: AssessmentItem[]) => (
+    <div className="assessmentcards">
+      {moduleItems.map((item) => (
+        <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
+          <div className="assessmenticon">
+            {item.assessment_type === 'case' ? <Activity /> : item.assessment_type === 'spotter' ? <Eye /> : <Stethoscope />}
+          </div>
+          <div className="grow">
+            <small>{item.assessment_type.toUpperCase()} · {item.time_limit_seconds ? Math.ceil(item.time_limit_seconds / 60) + ' min' : tr('Untimed', 'بدون وقت')}</small>
+            <h3>{item.title}</h3>
+            <p>{item.stem}</p>
+          </div>
+          <ChevronRight />
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="page assessmentpage">
@@ -117,35 +133,74 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
         </div>
       </div>
 
-      {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : grouped.length ? (
-        <div className="assessmentgroups">
-          {grouped.map((group) => (
-            <section className="assessmentgroup" key={group.year + '-' + group.moduleCode}>
-              <div className="assessmentgrouphead"><h2>Year {group.year} · {group.moduleCode}</h2><span>{group.items.length}</span></div>
-              {productType ? <ModuleAccessGate moduleCode={group.moduleCode} productType={productType}><div className="assessmentcards">
-                {group.items.map((item) => (
-                  <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
-                    <div className="assessmenticon">
-                      {item.assessment_type === 'case' ? <Activity /> : item.assessment_type === 'spotter' ? <Eye /> : <Stethoscope />}
-                    </div>
-                    <div className="grow">
-                      <small>{item.assessment_type.toUpperCase()} · {item.time_limit_seconds ? Math.ceil(item.time_limit_seconds / 60) + ' min' : tr('Untimed', 'بدون وقت')}</small>
-                      <h3>{item.title}</h3>
-                      <p>{item.stem}</p>
-                    </div>
-                    <ChevronRight />
-                  </button>
-                ))}
-              </div></ModuleAccessGate> : <div className="assessmentcards">
-                {group.items.map((item) => (
-                  <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
-                    <div className="assessmenticon">{item.assessment_type === 'case' ? <Activity /> : item.assessment_type === 'spotter' ? <Eye /> : <Stethoscope />}</div>
-                    <div className="grow"><small>{item.assessment_type.toUpperCase()} · {item.time_limit_seconds ? Math.ceil(item.time_limit_seconds / 60) + ' min' : tr('Untimed', 'بدون وقت')}</small><h3>{item.title}</h3><p>{item.stem}</p></div><ChevronRight />
-                  </button>
-                ))}
-              </div>}
-            </section>
-          ))}
+      {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : visibleItems.length ? (
+        <div className="assessmentyears">
+          {visibleYears.map((year) => {
+            const yearItems = visibleItems.filter((item) => item.year === year.year)
+            if (!yearItems.length) return null
+            const yearOpen = openYears.has(year.year)
+            return (
+              <section className={yearOpen ? 'assessmentyear open' : 'assessmentyear'} key={year.year}>
+                <button
+                  className="assessmentyearhead caseaccordionbutton"
+                  type="button"
+                  aria-expanded={yearOpen}
+                  onClick={() => setOpenYears((current) => {
+                    const next = new Set(current)
+                    if (next.has(year.year)) next.delete(year.year)
+                    else next.add(year.year)
+                    return next
+                  })}
+                >
+                  <div><span className="yearbadge">YEAR {year.year}</span><h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2></div>
+                  <div className="caseaccordionmeta">
+                    <span className="mcqcount">{yearItems.length}</span>
+                    <ChevronRight className="caseaccordionchevron" size={22}/>
+                  </div>
+                </button>
+
+                {yearOpen && (
+                  <div className="assessmentmodules">
+                    {year.modules.map((module) => {
+                      const moduleItems = yearItems.filter((item) => item.module_code === module.code)
+                      if (!moduleItems.length) return null
+                      const moduleKey = year.year + ':' + module.slug + ':' + titleEn
+                      const moduleOpen = openModules.has(moduleKey)
+                      return (
+                        <div className={moduleOpen ? 'assessmentmodule open' : 'assessmentmodule'} key={module.slug}>
+                          <button
+                            className="assessmentmodulehead caseaccordionbutton"
+                            type="button"
+                            aria-expanded={moduleOpen}
+                            onClick={() => setOpenModules((current) => {
+                              const next = new Set(current)
+                              if (next.has(moduleKey)) next.delete(moduleKey)
+                              else next.add(moduleKey)
+                              return next
+                            })}
+                          >
+                            <div><small>{module.code}</small><h3>{module.title}</h3></div>
+                            <div className="caseaccordionmeta">
+                              <span className="mcqcount">{moduleItems.length}</span>
+                              <ChevronRight className="caseaccordionchevron" size={20}/>
+                            </div>
+                          </button>
+
+                          {moduleOpen && (
+                            <div className="assessmentmodulecontent">
+                              {productType
+                                ? <ModuleAccessGate moduleCode={module.code} productType={productType}>{renderCards(moduleItems)}</ModuleAccessGate>
+                                : renderCards(moduleItems)}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+            )
+          })}
         </div>
       ) : <div className="assessmentempty">{tr('No published assessments yet.', 'لا توجد تقييمات منشورة حتى الآن.')}</div>}
     </div>
@@ -323,6 +378,8 @@ export function OSCEPage() {
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { items, loading } = useAssessmentItems(['osce','ospe'])
+  const [openYears, setOpenYears] = useState<Set<number>>(new Set())
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set())
   const visibleYears = isAdmin
     ? anatomateYears
     : studentYear
@@ -340,31 +397,84 @@ export function OSCEPage() {
       </div>
 
       {loading ? <div className="assessmentempty">{tr('Loading stations…', 'جارٍ تحميل المحطات…')}</div> : (
-        <div className="assessmentgroups">
-          {visibleYears.flatMap((year) => year.modules.map((module) => {
-            const moduleItems = items.filter((item) => item.year === year.year && item.module_code === module.code)
+        <div className="assessmentyears">
+          {visibleYears.map((year) => {
+            const yearItems = items.filter((item) => item.year === year.year)
+            if (!yearItems.length) return null
+            const yearOpen = openYears.has(year.year)
             return (
-              <section className="assessmentgroup" key={year.year + '-' + module.code}>
-                <div className="assessmentgrouphead"><h2>Year {year.year} · {module.code}</h2><span>{moduleItems.length}</span></div>
-                <ModuleAccessGate moduleCode={module.code} productType="osce">
-                  {moduleItems.length ? (
-                    <div className="assessmentcards">
-                      {moduleItems.map((item) => (
-                        <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
-                          <div className="assessmenticon"><Stethoscope /></div>
-                          <div className="grow">
-                            <small>{item.assessment_type.toUpperCase()} · {item.time_limit_seconds ? Math.ceil(item.time_limit_seconds / 60) + ' min' : tr('Untimed', 'بدون وقت')}</small>
-                            <h3>{item.title}</h3><p>{item.stem}</p>
-                          </div>
-                          <ChevronRight />
-                        </button>
-                      ))}
-                    </div>
-                  ) : <div className="caseempty">{tr('Stations coming soon for this module.', 'سيتم إضافة محطات لهذا الموديول قريبًا.')}</div>}
-                </ModuleAccessGate>
+              <section className={yearOpen ? 'assessmentyear open' : 'assessmentyear'} key={year.year}>
+                <button
+                  className="assessmentyearhead caseaccordionbutton"
+                  type="button"
+                  aria-expanded={yearOpen}
+                  onClick={() => setOpenYears((current) => {
+                    const next = new Set(current)
+                    if (next.has(year.year)) next.delete(year.year)
+                    else next.add(year.year)
+                    return next
+                  })}
+                >
+                  <div><span className="yearbadge">YEAR {year.year}</span><h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2></div>
+                  <div className="caseaccordionmeta">
+                    <span className="mcqcount">{yearItems.length}</span>
+                    <ChevronRight className="caseaccordionchevron" size={22}/>
+                  </div>
+                </button>
+
+                {yearOpen && (
+                  <div className="assessmentmodules">
+                    {year.modules.map((module) => {
+                      const moduleItems = yearItems.filter((item) => item.module_code === module.code)
+                      if (!moduleItems.length) return null
+                      const moduleKey = year.year + ':' + module.slug + ':osce'
+                      const moduleOpen = openModules.has(moduleKey)
+                      return (
+                        <div className={moduleOpen ? 'assessmentmodule open' : 'assessmentmodule'} key={module.slug}>
+                          <button
+                            className="assessmentmodulehead caseaccordionbutton"
+                            type="button"
+                            aria-expanded={moduleOpen}
+                            onClick={() => setOpenModules((current) => {
+                              const next = new Set(current)
+                              if (next.has(moduleKey)) next.delete(moduleKey)
+                              else next.add(moduleKey)
+                              return next
+                            })}
+                          >
+                            <div><small>{module.code}</small><h3>{module.title}</h3></div>
+                            <div className="caseaccordionmeta">
+                              <span className="mcqcount">{moduleItems.length}</span>
+                              <ChevronRight className="caseaccordionchevron" size={20}/>
+                            </div>
+                          </button>
+
+                          {moduleOpen && (
+                            <div className="assessmentmodulecontent">
+                              <ModuleAccessGate moduleCode={module.code} productType="osce">
+                                <div className="assessmentcards">
+                                  {moduleItems.map((item) => (
+                                    <button key={item.id} className="assessmentcard" onClick={() => nav('/assessments/item/' + item.id)}>
+                                      <div className="assessmenticon"><Stethoscope /></div>
+                                      <div className="grow">
+                                        <small>{item.assessment_type.toUpperCase()} · {item.time_limit_seconds ? Math.ceil(item.time_limit_seconds / 60) + ' min' : tr('Untimed', 'بدون وقت')}</small>
+                                        <h3>{item.title}</h3><p>{item.stem}</p>
+                                      </div>
+                                      <ChevronRight />
+                                    </button>
+                                  ))}
+                                </div>
+                              </ModuleAccessGate>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </section>
             )
-          }))}
+          })}
         </div>
       )}
     </div>
