@@ -31,6 +31,8 @@ export function MCQBankPage() {
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
+  const [openYears, setOpenYears] = useState<Set<number>>(new Set())
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set())
   const visibleYears = isAdmin
     ? anatomateYears
     : studentYear
@@ -60,38 +62,94 @@ export function MCQBankPage() {
       <div className="mcqyeargrid">
         {visibleYears.map((year) => {
           const total = year.modules.reduce((sum, module) => sum + module.lectures.reduce((n, lecture) => n + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0), 0)
+          const yearOpen = openYears.has(year.year)
           return (
-            <section className="mcqyearcard" key={year.year}>
-              <div className="mcqyearhead">
+            <section className={yearOpen ? 'mcqyearcard open' : 'mcqyearcard'} key={year.year}>
+              <button
+                className="mcqyearhead mcqaccordionbutton"
+                type="button"
+                aria-expanded={yearOpen}
+                onClick={() => setOpenYears((current) => {
+                  const next = new Set(current)
+                  if (next.has(year.year)) next.delete(year.year)
+                  else next.add(year.year)
+                  return next
+                })}
+              >
                 <div>
                   <span className="yearbadge">YEAR {year.year}</span>
                   <h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2>
                 </div>
-                <span className="mcqcount">{total} MCQ</span>
-              </div>
+                <div className="mcqaccordionmeta">
+                  <span className="mcqcount">{total} MCQ</span>
+                  <ChevronRight className="mcqaccordionchevron" size={22}/>
+                </div>
+              </button>
 
-              <div className="mcqmodulelist">
-                {year.modules.map((module) => {
-                  const count = module.lectures.reduce((sum, lecture) => sum + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0)
-                  return (
-                    <button key={module.slug} className="mcqmodulecard" onClick={() => nav('/mcq/year/' + year.year + '/module/' + module.slug)}>
-                      <div>
-                        <small>{module.code} · {module.lectures.length} {tr('lectures', 'محاضرة')}</small>
-                        <h3>{module.title}</h3>
-                        <p>{module.description}</p>
+              {yearOpen && (
+                <div className="mcqmodulelist">
+                  {year.modules.map((module) => {
+                    const count = module.lectures.reduce((sum, lecture) => sum + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0)
+                    const moduleKey = year.year + ':' + module.slug
+                    const moduleOpen = openModules.has(moduleKey)
+                    return (
+                      <div className={moduleOpen ? 'mcqmodulecard open' : 'mcqmodulecard'} key={module.slug}>
+                        <button
+                          className="mcqmodulehead mcqaccordionbutton"
+                          type="button"
+                          aria-expanded={moduleOpen}
+                          onClick={() => setOpenModules((current) => {
+                            const next = new Set(current)
+                            if (next.has(moduleKey)) next.delete(moduleKey)
+                            else next.add(moduleKey)
+                            return next
+                          })}
+                        >
+                          <div>
+                            <small>{module.code} · {module.lectures.length} {tr('lectures', 'محاضرة')}</small>
+                            <h3>{module.title}</h3>
+                            <p>{module.description}</p>
+                          </div>
+                          <div className="mcqmodulemeta">
+                            <span>{count} MCQ</span>
+                            <ModuleProductSummary moduleCode={module.code} productType="mcq" />
+                            <ChevronRight className="mcqaccordionchevron" />
+                          </div>
+                        </button>
+
+                        {moduleOpen && (
+                          <ModuleAccessGate moduleCode={module.code} productType="mcq">
+                            <div className="mcqlecturelist">
+                              {module.lectures.map((lecture) => {
+                                const lectureCount = questionCount(lecture.id, lecture.mcqs.length, countsByLecture)
+                                return (
+                                  <button
+                                    key={lecture.id}
+                                    className="mcqlecturecard"
+                                    onClick={() => nav('/mcq/lecture/' + lecture.slug)}
+                                  >
+                                    <div className="lectureseq">{lecture.sequence}</div>
+                                    <div className="grow">
+                                      <small>{lecture.system}</small>
+                                      <h4>{lecture.title}</h4>
+                                    </div>
+                                    <span>{lectureCount} MCQ</span>
+                                    <ChevronRight />
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </ModuleAccessGate>
+                        )}
                       </div>
-                      <div className="mcqmodulemeta">
-                        <span>{count} MCQ</span>
-                        <ModuleProductSummary moduleCode={module.code} productType="mcq" />
-                        <ChevronRight />
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </section>
           )
         })}
+      </div>
       </div>
     </div>
   )
