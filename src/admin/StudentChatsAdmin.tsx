@@ -44,6 +44,7 @@ export default function StudentChatsAdmin({ onUnreadChange }: { onUnreadChange?:
 
   const selected = useMemo(() => sessions.find((s) => s.id === selectedId) || null, [sessions, selectedId])
   const active = Boolean(selected?.status === 'active' && selected.expires_at && new Date(selected.expires_at).getTime() > Date.now())
+  const adminCanReply = Boolean(selected?.opened_at)
   const totalUnread = useMemo(() => Object.values(unread).reduce((sum, count) => sum + Number(count || 0), 0), [unread])
 
   const loadUnread = async (profileMap = profiles) => {
@@ -144,7 +145,7 @@ export default function StudentChatsAdmin({ onUnreadChange }: { onUnreadChange?:
   }, [selectedId])
 
   const send = async () => {
-    if (!supabase || !user || !selected || !active || !draft.trim()) return
+    if (!supabase || !user || !selected || !adminCanReply || !draft.trim()) return
     await supabase.from('student_chat_messages').insert({
       session_id: selected.id,
       sender_id: user.id,
@@ -195,7 +196,7 @@ export default function StudentChatsAdmin({ onUnreadChange }: { onUnreadChange?:
       <section className="adminchatbox">
         {selected ? <>
           <div className="adminchathead">
-            <div><strong>{profiles[selected.user_id] || selected.user_id}</strong><small>{active ? 'Active' : 'Read only'}</small></div>
+            <div><strong>{profiles[selected.user_id] || selected.user_id}</strong><small>{active ? 'Student chat active' : adminCanReply ? 'Student window ended · admin reply open' : 'Awaiting payment'}</small></div>
             <span><Clock3 size={15}/>{selected.expires_at ? new Date(selected.expires_at).toLocaleString() : 'Not activated'}</span>
           </div>
           <div className="adminchatmessages">
@@ -206,8 +207,8 @@ export default function StudentChatsAdmin({ onUnreadChange }: { onUnreadChange?:
             </div>)}
           </div>
           <div className="adminchatcomposer">
-            <textarea rows={2} value={draft} disabled={!active} onChange={(e)=>setDraft(e.target.value)} placeholder={active?'Reply to student…':'Chat is not active.'}/>
-            <button className="primary" disabled={!active || !draft.trim()} onClick={()=>void send()}><Send size={16}/>Send</button>
+            <textarea rows={2} value={draft} disabled={!adminCanReply} onChange={(e)=>setDraft(e.target.value)} placeholder={adminCanReply?'Reply to student…':'Waiting for payment activation.'}/>
+            <button className="primary" disabled={!adminCanReply || !draft.trim()} onClick={()=>void send()}><Send size={16}/>Send</button>
           </div>
         </> : <div className="assessmentempty"><MessageCircle/>Select a chat.</div>}
       </section>
