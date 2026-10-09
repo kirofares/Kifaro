@@ -140,7 +140,6 @@ export function MCQBankPage() {
           )
         })}
       </div>
-      </div>
     </div>
   )
 }
