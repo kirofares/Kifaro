@@ -1193,3 +1193,22 @@ html[dir="rtl"] .sidebar a.active{box-shadow:inset -3px 0 0 var(--primary)}
 .adminchatmessages{flex:1;padding:14px;background:#f8fafc;overflow:auto;display:flex;flex-direction:column;gap:8px}.adminchatmsg{max-width:75%;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:#fff}.adminchatmsg.admin{align-self:flex-end;background:#edf4ff}.adminchatmsg p{margin:4px 0}.adminchatmsg small{color:var(--muted)}
 .adminchatcomposer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}.adminchatcomposer textarea{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px}
 @media(max-width:780px){.askchatlayout,.adminchatlayout{grid-template-columns:1fr}.askthreads{display:flex;overflow:auto;gap:8px}.askthread{min-width:220px;margin-bottom:0}.askconversation{min-height:58vh}.askmsg{max-width:88%}.pagehead .asknewchat{width:100%;justify-content:center}.adminchatthreads{display:flex;overflow:auto}.adminchatthreads button{min-width:220px}}
+
+
+.caseaccordionbutton{width:100%;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.caseyear>.caseyearhead{margin-bottom:0;padding:2px}
+.caseyear.open>.caseyearhead{margin-bottom:16px}
+.caseaccordionmeta{display:flex;align-items:center;gap:10px}
+.caseaccordionchevron{flex:0 0 auto;transition:transform .18s ease;color:var(--muted)}
+.caseyear.open>.caseyearhead .caseaccordionchevron,
+.casemodule.open>.casemodulehead .caseaccordionchevron{transform:rotate(90deg);color:var(--primary)}
+.casemodule>.casemodulehead{margin-bottom:0;padding:0}
+.casemodule.open>.casemodulehead{margin-bottom:12px}
+.casemodulecontent{padding-top:2px}
+html[dir="rtl"] .caseaccordionbutton{text-align:right}
+@media(max-width:780px){
+  .caseyearhead,.casemodulehead{align-items:center}
+  .caseaccordionmeta{gap:6px}
+  .caseaccordionmeta .mcqcount{white-space:nowrap}
+  .casemodulemeta{align-items:center;flex-wrap:wrap;justify-content:flex-end}
+}
