@@ -195,10 +195,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!supabase || !isAdmin) return
+    const client = supabase
     let previousTotal: number | null = null
 
     const refreshChatUnread = async () => {
-      const { data } = await supabase.rpc('get_admin_chat_unread_counts')
+      const { data } = await client.rpc('get_admin_chat_unread_counts')
       const total = (data || []).reduce((sum: number, row: any) => sum + Number(row.unread_count || 0), 0)
 
       if (
