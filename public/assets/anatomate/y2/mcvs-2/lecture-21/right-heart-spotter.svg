@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#f9fbff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Right Heart Internal Anatomy</text>
+<rect x="360" y="190" width="220" height="420" rx="100" fill="#b7d9ef" stroke="#4e86ad" stroke-width="9"/>
+<path d="M580 360 Q650 300 720 360 L720 570 Q650 620 580 570Z" fill="#91c2df" stroke="#4e86ad" stroke-width="9"/>
+<circle cx="470" cy="320" r="45" fill="#f7f7f7" stroke="#7e8c95" stroke-width="6"/>
+<path d="M590 390 L690 390 M610 420 L670 520" stroke="#ffffff" stroke-width="10"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="470" cy="320" r="26" fill="#ffd54f"/><text x="462" y="330">1</text><circle cx="610" cy="380" r="26" fill="#ffd54f"/><text x="602" y="390">2</text><circle cx="660" cy="520" r="26" fill="#ffd54f"/><text x="652" y="530">3</text></g></svg>
