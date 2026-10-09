@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Brain, Check, RotateCcw, Search, Shuffle, X, AlertTriangle } from 'lucide-react'
+import { Brain, Check, RotateCcw, Search, Shuffle, X, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { anatomateYears } from '../data/anatomate'
+import { useAuth } from '../auth/AuthContext'
+import { useAdmin } from '../hooks/useAdmin'
+import { useStudentYear } from '../hooks/useStudentYear'
 
 type Flashcard = {
   id: string
@@ -21,6 +25,9 @@ function getArabic() {
 }
 
 export default function FlashcardsPage() {
+  const { user } = useAuth()
+  const { isAdmin } = useAdmin(user?.id)
+  const { year: studentYear } = useStudentYear()
   const [cards,setCards]=useState<Flashcard[]>([])
   const [reviews,setReviews]=useState<ReviewMap>({})
   const [lecture,setLecture]=useState('all')
@@ -31,6 +38,8 @@ export default function FlashcardsPage() {
   const [reviewOnly,setReviewOnly]=useState(false)
   const [loading,setLoading]=useState(true)
   const [message,setMessage]=useState('')
+  const [openYears,setOpenYears]=useState<Set<number>>(new Set())
+  const [openModules,setOpenModules]=useState<Set<string>>(new Set())
   const [weaknesses,setWeaknesses]=useState<WeaknessRow[]>([])
   const [params]=useSearchParams()
   const [weakOnly,setWeakOnly]=useState(params.get('weak')==='1')
@@ -94,6 +103,7 @@ export default function FlashcardsPage() {
   const knownCount=Object.values(reviews).filter(v=>v==='know').length
   const reviewCount=Object.values(reviews).filter(v=>v==='review').length
   const activeWeaknessCount=weaknesses.length
+  const visibleYears=isAdmin?anatomateYears:studentYear?anatomateYears.filter(y=>y.year===studentYear):anatomateYears
 
   async function rate(rating:'know'|'review') {
     if (!card) return
@@ -133,6 +143,43 @@ export default function FlashcardsPage() {
         <div><strong>{knownCount}</strong><span>{ar?'متقن':'Known'}</span></div>
         <div><strong>{activeWeaknessCount}</strong><span>{ar?'نقاط ضعف نشطة':'Active weaknesses'}</span></div>
         <div><strong>{reviewCount}</strong><span>{ar?'راجع تاني':'Review again'}</span></div>
+      </div>
+
+      <div className="flashhierarchy">
+        {visibleYears.map(year=>{
+          const yearCount=year.modules.reduce((sum,module)=>sum+module.lectures.reduce((n,l)=>n+cards.filter(c=>c.lecture_id===l.id).length,0),0)
+          if(!yearCount) return null
+          const yearOpen=openYears.has(year.year)
+          return <section className={yearOpen?'flashyear open':'flashyear'} key={year.year}>
+            <button className="flashyearhead caseaccordionbutton" onClick={()=>setOpenYears(current=>{const next=new Set(current);next.has(year.year)?next.delete(year.year):next.add(year.year);return next})}>
+              <div><span className="yearbadge">YEAR {year.year}</span><h2>{ar?'السنة الطبية '+year.year:'Medical Year '+year.year}</h2></div>
+              <div className="caseaccordionmeta"><span className="mcqcount">{yearCount}</span><ChevronRight className="caseaccordionchevron" size={22}/></div>
+            </button>
+            {yearOpen&&<div className="flashmodules">
+              {year.modules.map(module=>{
+                const moduleCount=module.lectures.reduce((n,l)=>n+cards.filter(c=>c.lecture_id===l.id).length,0)
+                if(!moduleCount) return null
+                const key=year.year+':'+module.slug+':flash'
+                const moduleOpen=openModules.has(key)
+                return <div className={moduleOpen?'flashmodule open':'flashmodule'} key={module.slug}>
+                  <button className="flashmodulehead caseaccordionbutton" onClick={()=>setOpenModules(current=>{const next=new Set(current);next.has(key)?next.delete(key):next.add(key);return next})}>
+                    <div><small>{module.code}</small><h3>{module.title}</h3></div>
+                    <div className="caseaccordionmeta"><span className="mcqcount">{moduleCount}</span><ChevronRight className="caseaccordionchevron" size={20}/></div>
+                  </button>
+                  {moduleOpen&&<div className="flashlecturelist">
+                    {module.lectures.map(l=>{
+                      const count=cards.filter(c=>c.lecture_id===l.id).length
+                      if(!count) return null
+                      return <button key={l.id} className={lecture===l.id?'flashlecture active':'flashlecture'} onClick={()=>{setLecture(l.id);setTopic('all')}}>
+                        <div className="lectureseq">{l.sequence}</div><div><small>{l.system}</small><strong>{l.title}</strong></div><span>{count}</span><ChevronRight size={18}/>
+                      </button>
+                    })}
+                  </div>}
+                </div>
+              })}
+            </div>}
+          </section>
+        })}
       </div>
 
       <div className="flashfilters">
