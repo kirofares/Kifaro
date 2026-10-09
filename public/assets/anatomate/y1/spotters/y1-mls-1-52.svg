@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#fbfdff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Lower Limb Vessels Spotter</text>
+<path d="M600 140 L600 670" stroke="#d75d66" stroke-width="34"/>
+<path d="M600 360 L510 520 M600 360 L690 520" stroke="#d75d66" stroke-width="22"/>
+<path d="M510 520 L460 680 M690 520 L750 680" stroke="#d75d66" stroke-width="18"/>
+<circle cx="600" cy="250" r="18" fill="#d75d66"/><circle cx="600" cy="420" r="18" fill="#d75d66"/><circle cx="750" cy="680" r="18" fill="#d75d66"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="600" cy="250" r="26" fill="#ffd54f"/><text x="592" y="260">1</text><circle cx="600" cy="420" r="26" fill="#ffd54f"/><text x="592" y="430">2</text><circle cx="750" cy="640" r="26" fill="#ffd54f"/><text x="742" y="650">3</text></g></svg>
