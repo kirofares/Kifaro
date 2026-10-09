@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core'
 import App from './App'
 import AppErrorBoundary from './components/AppErrorBoundary'
 import { reportClientError } from './lib/errorReporting'
+import { startSitePresenceTracking } from './lib/sitePresence'
 import { AuthProvider } from './auth/AuthContext'
 // Self-hosted fonts so the web and Android app render identically, offline too.
 import '@fontsource-variable/inter'
@@ -42,6 +43,8 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
   void reportClientError(event.reason, 'unhandled-rejection')
 })
+
+startSitePresenceTracking()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
