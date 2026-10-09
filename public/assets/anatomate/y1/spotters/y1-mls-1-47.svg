@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#fbfdff"/><text x="55" y="68" font-family="Arial" font-size="34" font-weight="700" fill="#17365d">AnatoMate · Femoral Triangle Spotter</text>
+<path d="M360 230 L600 650 L840 230" stroke="#efd2bd" stroke-width="60" fill="none"/>
+<path d="M430 280 L770 280" stroke="#c9a780" stroke-width="22"/>
+<circle cx="485" cy="410" r="24" fill="#e1b65e"/><circle cx="555" cy="410" r="24" fill="#d75d66"/><circle cx="625" cy="410" r="24" fill="#6da4d5"/><circle cx="695" cy="410" r="24" fill="#9ac276"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="485" cy="365" r="26" fill="#ffd54f"/><text x="477" y="375">1</text><circle cx="555" cy="365" r="26" fill="#ffd54f"/><text x="547" y="375">2</text><circle cx="625" cy="365" r="26" fill="#ffd54f"/><text x="617" y="375">3</text><circle cx="695" cy="365" r="26" fill="#ffd54f"/><text x="687" y="375">4</text></g></svg>
