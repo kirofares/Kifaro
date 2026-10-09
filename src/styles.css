@@ -1230,3 +1230,47 @@ html[dir="rtl"] .caseaccordionbutton{text-align:right}
   .assessmentyear,.assessmentmodule{padding:12px}
   .assessmentyearhead,.assessmentmodulehead{align-items:center}
 }
+
+
+/* Collapsible MCQ hierarchy */
+.mcqaccordionbutton{width:100%;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.mcqyearcard>.mcqyearhead{margin-bottom:0;padding:0}
+.mcqyearcard.open>.mcqyearhead{margin-bottom:15px}
+.mcqaccordionmeta{display:flex;align-items:center;gap:8px}
+.mcqaccordionchevron{flex:0 0 auto;transition:transform .18s ease;color:var(--muted)}
+.mcqyearcard.open>.mcqyearhead .mcqaccordionchevron,
+.mcqmodulecard.open>.mcqmodulehead .mcqaccordionchevron{transform:rotate(90deg);color:var(--primary)}
+.mcqmodulecard{display:block;padding:0;overflow:hidden}
+.mcqmodulehead{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px}
+.mcqmodulecard.open>.mcqmodulehead{background:var(--soft)}
+.mcqmodulecard>.mcqlecturelist,
+.mcqmodulecard .mcqlecturelist{padding:12px}
+.mcqmodulecard .mcqlecturecard{box-shadow:none}
+.mcqlecturecard h4{margin:4px 0;font-size:15px}
+html[dir="rtl"] .mcqaccordionbutton{text-align:right}
+
+/* Collapsible Flashcards hierarchy */
+.flashhierarchy{display:grid;gap:16px;margin:18px 0}
+.flashyear{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:var(--shadow)}
+.flashyearhead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.flashyearhead h2{margin:8px 0 0}
+.flashmodules{display:grid;gap:12px;margin-top:14px}
+.flashmodule{border:1px solid var(--line);border-radius:14px;background:#fbfcfe;overflow:hidden}
+.flashmodulehead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px}
+.flashmodulehead small{color:var(--primary);font-weight:800}
+.flashmodulehead h3{margin:4px 0}
+.flashyear.open>.flashyearhead .caseaccordionchevron,
+.flashmodule.open>.flashmodulehead .caseaccordionchevron{transform:rotate(90deg);color:var(--primary)}
+.flashlecturelist{display:grid;gap:8px;padding:10px 12px 12px}
+.flashlecture{width:100%;display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;background:#fff;color:inherit;text-align:left;padding:10px}
+.flashlecture:hover,.flashlecture.active{border-color:var(--primary);background:var(--soft)}
+.flashlecture>div:nth-child(2){display:grid;gap:2px}
+.flashlecture small{color:var(--primary);font-weight:800}
+.flashlecture span{font-size:12px;color:var(--muted);font-weight:800}
+html[dir="rtl"] .flashyearhead,html[dir="rtl"] .flashmodulehead,html[dir="rtl"] .flashlecture{text-align:right}
+@media(max-width:780px){
+  .mcqmodulehead,.flashyearhead,.flashmodulehead{align-items:flex-start}
+  .mcqmodulemeta{flex-wrap:wrap;justify-content:flex-end}
+  .flashlecture{grid-template-columns:auto 1fr auto}
+  .flashlecture>svg{display:none}
+}
