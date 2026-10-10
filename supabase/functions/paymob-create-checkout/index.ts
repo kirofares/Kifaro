@@ -119,7 +119,7 @@ Deno.serve(async (req: Request) => {
       { data: existingEntitlement, error: entitlementError },
     ] = await Promise.all([
         adminClient.from('profiles')
-          .select('id, full_name, email, phone_no, medical_year, nationality')
+          .select('id, full_name, email, phone_no, medical_year, nationality, role')
           .eq('id', userData.user.id)
           .maybeSingle(),
         adminClient.from('lecture_settings')
@@ -143,6 +143,19 @@ Deno.serve(async (req: Request) => {
     if (rulesError) return json({ error: rulesError.message }, 400)
     if (entitlementError) return json({ error: entitlementError.message }, 400)
     if (!profile) return json({ error: 'Complete your student profile before checkout.' }, 400)
+
+    // Authorization must come from the server; the lecture ID supplied by the
+    // client is never sufficient to buy another year's content.
+    if (profile.role !== 'admin') {
+      const { data: mappedLecture, error: mapError } = await adminClient
+        .from('lecture_module_map')
+        .select('lecture_id')
+        .eq('lecture_id', lectureId)
+        .eq('academic_year', Number(profile.medical_year))
+        .maybeSingle()
+      if (mapError) return json({ error: 'Could not verify academic year.' }, 400)
+      if (!mappedLecture) return json({ error: 'Lecture not available for your academic year.' }, 403)
+    }
     if (!setting || setting.published === false) return json({ error: 'This lecture is not available for purchase.' }, 404)
     if (setting.access_mode === 'free') return json({ error: 'This lecture is free. Open it without payment.' }, 409)
 
