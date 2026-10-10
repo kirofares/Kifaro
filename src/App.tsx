@@ -769,6 +769,8 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
       ) : (
         <PageHead eyebrow={dateLabel} title={studentName ? greeting + t.nameSep + studentName : greeting} body={t.subtitle} />
       )}
+      {!user && <DashboardSocialLinks />}
+      {user && (
       <div className="dashgrid">
         <div>
           <section className="section">
@@ -793,6 +795,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
               <p>{t.anatomyBody}</p>
               <div className="heroactions">
                 <button className="lightbtn" onClick={() => go('/anatomate')}>{t.open}<ChevronRight size={17} className="dirarrow" /></button>
+                <button className="lightbtn" type="button" onClick={() => go('/pricing')}>{lang === 'ar' ? 'الأسعار وعدد الأسئلة' : 'Prices and question counts'}<ChevronRight size={17} className="dirarrow" /></button>
                 {showAndroidDownload && (
                   <div className="downloadappgroup">
                     <a className="lightbtn downloadappbtn" href={latestApkUrl} target="_self" rel="noreferrer">
@@ -835,6 +838,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
           <Mini icon={<Sparkles />} title={t.overall} body={<><bdi dir="ltr">{completedCount} / {availableLectures.length}</bdi> {t.completedOf}</>} />
         </aside>
       </div>
+      )}
     </div>
   )
 }
