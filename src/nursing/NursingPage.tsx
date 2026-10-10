@@ -31,6 +31,7 @@ const NURSING_YEARS: { year: number; modules: NursingModule[] }[] = [
         { title: 'Anatomical Terminology, Body Regions & Cavities', titleAr: 'مصطلحات الجسم والمناطق والتجاويف' },
         { title: 'Skin, Fascia & Body Tissues', titleAr: 'الجلد والأنسجة واللفافات' },
         { title: 'Bones & the Skeletal System', titleAr: 'العظام والجهاز الهيكلي' },
+        { title: 'Joints & Muscular System', titleAr: 'المفاصل والجهاز العضلي' },
       ],
     }],
   },
@@ -107,7 +108,7 @@ export default function NursingPage() {
               {item.modules.length ? item.modules.map((module) => (
                 <button className="modulecard" key={module.slug} onClick={() => navigate('/nursing/year/' + item.year + '/module/' + module.slug)}>
                   <div>
-                    <small>{module.code} · {module.lectures.length} {tr('planned lectures', 'محاضرات تحت الإعداد')}</small>
+                    <small>{module.code} · {module.lectures.length} {tr('curriculum lectures', 'محاضرات في المنهج')}</small>
                     <h3>{tr(module.title, module.titleAr)}</h3>
                     <p>{tr(module.description, module.descriptionAr)}</p>
                     <span className="productionchip">{tr('Coming soon', 'قريبًا')}</span>
