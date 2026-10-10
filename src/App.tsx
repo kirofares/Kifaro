@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
-import { NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import {
   ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
-  Home, Library, Menu, Microscope, Palette,
+  HeartPulse, Home, Library, Menu, Microscope, Palette,
   CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
@@ -11,6 +11,7 @@ import { getStudyResources, type StudyResource } from './data/anatomate/studyRes
 import { isLectureAvailable } from './data/anatomate/availability'
 import { getVivaDeck } from './viva/content'
 import './viva/viva.css'
+import NursingPage, { NursingYearPage, NursingModulePage } from './nursing/NursingPage'
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
@@ -207,6 +208,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/topics', label: ['Topics', 'الموضوعات'] },
     ],
   },
+  { key: 'nursing', to: '/nursing', label: ['Nursing', 'التمريض'], icon: HeartPulse, match: (path) => path.startsWith('/nursing') },
   {
     key: 'practice', to: '/assessments', label: ['Practice', 'تدرّب'], icon: ClipboardCheck,
     match: (path) => PRACTICE_ROUTES.some((route) => path === route || path.startsWith(route + '/')),
@@ -244,9 +246,10 @@ export default function App() {
   const { progress, update } = useProgress()
   const { settings: lectureSettings } = useLectureSettings()
   const { user, configured, signOut } = useAuth()
-  const { year: studentYear } = useStudentYear()
-  const [profileName, setProfileName] = useState('')
+  const { year: studentYear, faculty: studentFaculty } = useStudentYear()
   const { isAdmin } = useAdmin(user?.id)
+  const isNursingStudent = Boolean(user && studentFaculty === 'Nursing' && !isAdmin)
+  const [profileName, setProfileName] = useState('')
   const [query, setQuery] = useState('')
   const [prefs, setPrefs] = useState(false)
   const [drawer, setDrawer] = useState(false)
@@ -346,14 +349,14 @@ export default function App() {
   const { byLecture: lectureReadiness } = useAssetReadiness()
   const lectures = useMemo(
     () => anatomateLectures
-      .filter((lecture) => isAdmin || !user || (studentYear != null && lecture.year === studentYear))
+      .filter((lecture) => !isNursingStudent && (isAdmin || !user || (studentYear != null && lecture.year === studentYear)))
       .filter((lecture) => lectureSettings.get(lecture.id)?.published ?? true)
       .map((lecture) => ({
         ...applyLectureSetting(lecture, lectureSettings.get(lecture.id)),
         ...(progress[lecture.id] || { progress: 0 }),
         available: isLectureAvailable(lecture, lectureReadiness.get(lecture.id)),
       })),
-    [progress, lectureSettings, isAdmin, user, studentYear, lectureReadiness],
+    [progress, lectureSettings, isAdmin, user, studentYear, isNursingStudent, lectureReadiness],
   )
 
   const filtered = useMemo(
@@ -369,7 +372,12 @@ export default function App() {
   }
 
   const pick = (label: [string, string]) => label[lang === 'ar' ? 1 : 0]
-  const activeSection = NAV_SECTIONS.find((section) => section.match(location.pathname))
+  const navigationSections = isNursingStudent
+    ? NAV_SECTIONS.filter((section) => ['home', 'nursing', 'ask'].includes(section.key))
+    : NAV_SECTIONS
+  const bottomSections = navigationSections.filter((section) => section.key !== 'nursing' || isNursingStudent)
+  const activeSection = navigationSections.find((section) => section.match(location.pathname))
+  const medicineOnly = (page: ReactNode) => isNursingStudent ? <Navigate to="/nursing" replace /> : page
   const sectionTabs = activeSection?.tabs?.some((tab) => tab.to === location.pathname) ? activeSection.tabs : undefined
   const showBottomTabs = !IMMERSIVE_ROUTE.test(location.pathname)
 
@@ -429,7 +437,7 @@ export default function App() {
           <button className="icon" onClick={() => setDrawer(false)} aria-label={t.closeMenu}><X /></button>
         </div>
         <nav>
-          {NAV_SECTIONS.map(({ key, to, label, icon: Icon }) => (
+          {navigationSections.map(({ key, to, label, icon: Icon }) => (
             <NavLink to={to} key={key} className={activeSection?.key === key ? 'active' : ''} onClick={() => setDrawer(false)}>
               <Icon size={19} /><span>{pick(label)}</span>
             </NavLink>
@@ -458,7 +466,7 @@ export default function App() {
 
       {showBottomTabs && (
         <nav className="bottomtabs" aria-label={lang === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>
-          {NAV_SECTIONS.map(({ key, to, label, icon: Icon }) => (
+          {bottomSections.map(({ key, to, label, icon: Icon }) => (
             <NavLink key={key} to={to} className={activeSection?.key === key ? 'active' : ''} aria-current={activeSection?.key === key ? 'page' : undefined}>
               <Icon size={22} /><span>{pick(label)}</span>
             </NavLink>
@@ -477,41 +485,44 @@ export default function App() {
         <GlobalBackButton lang={lang} />
         <Suspense fallback={<div className="page pageloading" role="status">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</div>}>
         <Routes>
-          <Route path="/" element={<Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} latestApkUrl={latestApkUrl} latestReleasePage={latestReleasePage} />} />
+          <Route path="/" element={isNursingStudent ? <NursingPage /> : <Dashboard t={t} lang={lang} lectures={filtered} allLectures={lectures} go={nav} studentName={studentName} latestApkUrl={latestApkUrl} latestReleasePage={latestReleasePage} />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           {/* The admin dashboard is English-only, so keep it left-to-right even in Arabic mode. */}
           <Route path="/admin" element={<div dir="ltr" lang="en"><AdminPage /></div>} />
-          <Route path="/curriculum" element={<Curriculum lectures={filtered} go={nav} />} />
-          <Route path="/anatomate" element={<AnatoMate t={t} go={nav} />} />
-          <Route path="/anatomate/year/:year/module/:module" element={<ModulePage progress={progress} update={update} flash={flash} t={t} />} />
-          <Route path="/anatomate/lecture/:slug" element={<LecturePage progress={progress} update={update} flash={flash} t={t} />} />
-          <Route path="/anatomate/lecture/:slug/viva" element={<VivaPage />} />
-          <Route path="/anatomate/lecture/:slug/datashow" element={<DatashowViewer mode="datashow" />} />
-          <Route path="/anatomate/lecture/:slug/pdf" element={<DatashowViewer mode="pdf" />} />
-          <Route path="/anatomate/lecture/:slug/video" element={<ProtectedVideoPlayer />} />
-          <Route path="/checkout/:slug" element={<CheckoutPage />} />
+          <Route path="/nursing" element={<NursingPage />} />
+          <Route path="/nursing/year/:year" element={<NursingYearPage />} />
+          <Route path="/nursing/year/:year/module/:module" element={<NursingModulePage />} />
+          <Route path="/curriculum" element={medicineOnly(<Curriculum lectures={filtered} go={nav} />)} />
+          <Route path="/anatomate" element={medicineOnly(<AnatoMate t={t} go={nav} />)} />
+          <Route path="/anatomate/year/:year/module/:module" element={medicineOnly(<ModulePage progress={progress} update={update} flash={flash} t={t} />)} />
+          <Route path="/anatomate/lecture/:slug" element={medicineOnly(<LecturePage progress={progress} update={update} flash={flash} t={t} />)} />
+          <Route path="/anatomate/lecture/:slug/viva" element={medicineOnly(<VivaPage />)} />
+          <Route path="/anatomate/lecture/:slug/datashow" element={medicineOnly(<DatashowViewer mode="datashow" />)} />
+          <Route path="/anatomate/lecture/:slug/pdf" element={medicineOnly(<DatashowViewer mode="pdf" />)} />
+          <Route path="/anatomate/lecture/:slug/video" element={medicineOnly(<ProtectedVideoPlayer />)} />
+          <Route path="/checkout/:slug" element={medicineOnly(<CheckoutPage />)} />
           <Route path="/manual-payment" element={<ManualPaymentPage />} />
           <Route path="/ask" element={<AskAnatoMatePage />} />\n          <Route path="/payment/return" element={<PaymentReturnPage />} />
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/refund" element={<LegalPage kind="refund" />} />
-          <Route path="/topics" element={<Topics lectures={filtered} go={nav} />} />
-          <Route path="/mcq" element={<MCQBankPage />} />
-          <Route path="/mcq/year/:year/module/:module" element={<MCQModulePage />} />
-          <Route path="/mcq/lecture/:slug" element={<MCQLecturePage />} />
-          <Route path="/assessments" element={<AssessmentCenterPage />} />
-          <Route path="/cases" element={<CasesPage />} />
-          <Route path="/osce" element={<OSCEPage />} />
-          <Route path="/spotters" element={<SpottersPage />} />
-          <Route path="/viva-bank" element={<VivaBankPage />} />
-          <Route path="/assessments/item/:id" element={<AssessmentItemPage />} />
-          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/topics" element={medicineOnly(<Topics lectures={filtered} go={nav} />)} />
+          <Route path="/mcq" element={medicineOnly(<MCQBankPage />)} />
+          <Route path="/mcq/year/:year/module/:module" element={medicineOnly(<MCQModulePage />)} />
+          <Route path="/mcq/lecture/:slug" element={medicineOnly(<MCQLecturePage />)} />
+          <Route path="/assessments" element={medicineOnly(<AssessmentCenterPage />)} />
+          <Route path="/cases" element={medicineOnly(<CasesPage />)} />
+          <Route path="/osce" element={medicineOnly(<OSCEPage />)} />
+          <Route path="/spotters" element={medicineOnly(<SpottersPage />)} />
+          <Route path="/viva-bank" element={medicineOnly(<VivaBankPage />)} />
+          <Route path="/assessments/item/:id" element={medicineOnly(<AssessmentItemPage />)} />
+          <Route path="/progress" element={medicineOnly(<ProgressPage />)} />
           <Route path="/studio" element={<Studio />} />
-          <Route path="/flashcards" element={<FlashcardsPage />} />
-          <Route path="/review" element={<ReviewPage />} />
-          <Route path="/library" element={<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />} />
+          <Route path="/flashcards" element={medicineOnly(<FlashcardsPage />)} />
+          <Route path="/review" element={medicineOnly(<ReviewPage />)} />
+          <Route path="/library" element={medicineOnly(<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />)} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
           <Route path="*" element={<NotFound go={nav} />} />
         </Routes>
@@ -867,6 +878,23 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
             </div>
           </section>
         ))}
+        {(!user || isAdmin) && (
+          <section className="yearcard">
+            <div className="yearbadge">{tr('NURSING', 'التمريض')}</div>
+            <h2>{tr('Nursing', 'كلية التمريض')}</h2>
+            <p>{tr('A separate anatomy learning pathway for nursing students.', 'مسار مستقل لدراسة التشريح لطلبة كلية التمريض.')}</p>
+            <div className="modulelist">
+              <button className="modulecard" onClick={() => go('/nursing')}>
+                <div>
+                  <small>KIFARO · NURSING</small>
+                  <h3>{tr('Browse Nursing Years', 'عرض الفرق الدراسية للتمريض')}</h3>
+                  <p>{tr('Year 1–4, nursing modules and upcoming lectures.', 'الفرق من الأولى للرابعة، وموديولات ومحاضرات التمريض.')}</p>
+                </div>
+                <ChevronRight className="dirarrow" />
+              </button>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )
