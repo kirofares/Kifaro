@@ -179,14 +179,28 @@ function useNursingLectureFiles(lectureId?: string) {
     })
   }, [lectureId])
 
-  const openFile = async (record: NursingFileRecord) => {
+  const openProtectedPdf = async (record: NursingFileRecord) => {
     if (!supabase) return
-    const { data, error } = await supabase.storage.from('kifaro-content').createSignedUrl(record.storage_path, 300)
-    if (error || !data?.signedUrl) throw error || new Error('Could not open file.')
-    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+    if (record.file_kind !== 'visual_pdf' && record.file_kind !== 'workbook_pdf') {
+      throw new Error('Original PowerPoint/Word files are not delivered to students.')
+    }
+    const { data, error } = await supabase.functions.invoke('nursing-watermarked-pdf', {
+      body: { lectureId: record.lecture_id, fileKind: record.file_kind },
+    })
+    if (error || !data) throw error || new Error('Could not open protected PDF.')
+
+    let blob: Blob
+    if (data instanceof Blob) blob = data
+    else if (data instanceof ArrayBuffer) blob = new Blob([data], { type: 'application/pdf' })
+    else if (ArrayBuffer.isView(data)) blob = new Blob([new Uint8Array(data.buffer, data.byteOffset, data.byteLength)], { type: 'application/pdf' })
+    else throw new Error('Could not load protected PDF.')
+
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener,noreferrer')
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
-  return { records, loading, openFile }
+  return { records, loading, openProtectedPdf }
 }
 
 function useNursingAccess() {
@@ -311,21 +325,33 @@ export function NursingLecturePage() {
           <div className="adminpanelhead">
             <div>
               <h2>{tr('Lecture files', 'ملفات المحاضرة')}</h2>
-              <p>{tr('Approved files are stored privately and open through a short-lived secure link.', 'الملفات المعتمدة محفوظة بشكل خاص وبتفتح برابط مؤقت آمن.')}</p>
+              <p>{tr('Student PDFs are generated with a personal watermark. Original PowerPoint/Word files are never delivered to students.', 'ملفات PDF للطلاب بتتولد بعلامة مائية شخصية، وملفات PowerPoint وWord الأصلية لا يتم تسليمها للطلاب.')}</p>
             </div>
           </div>
           {fileMessage && <p className="authmessage">{fileMessage}</p>}
           <div className="adminquick">
-            {files.records.map((record) => (
-              <button key={record.file_kind} onClick={() => void files.openFile(record).catch((error) => setFileMessage(error instanceof Error ? error.message : String(error)))}>
+            {files.records
+              .filter((record) => access.isAdmin || record.file_kind === 'visual_pdf' || record.file_kind === 'workbook_pdf')
+              .map((record) => (
+              <button
+                key={record.file_kind}
+                disabled={!access.isAdmin && record.file_kind !== 'visual_pdf' && record.file_kind !== 'workbook_pdf'}
+                onClick={() => {
+                  if (record.file_kind === 'visual_pdf' || record.file_kind === 'workbook_pdf') {
+                    void files.openProtectedPdf(record).catch((error) => setFileMessage(error instanceof Error ? error.message : String(error)))
+                  } else {
+                    setFileMessage(tr('Original PowerPoint/Word files are admin-only.', 'ملفات PowerPoint وWord الأصلية متاحة للإدارة فقط.'))
+                  }
+                }}
+              >
                 <BookOpen size={18}/>
                 {record.file_kind === 'visual_pdf'
-                  ? tr('Open lecture PDF', 'فتح PDF المحاضرة')
-                  : record.file_kind === 'visual_pptx'
-                    ? tr('Open PowerPoint', 'فتح PowerPoint')
-                    : record.file_kind === 'workbook_pdf'
-                      ? tr('Open workbook PDF', 'فتح Workbook PDF')
-                      : tr('Open workbook Word', 'فتح Workbook Word')}
+                  ? tr('Open protected lecture PDF', 'فتح PDF المحاضرة المحمي')
+                  : record.file_kind === 'workbook_pdf'
+                    ? tr('Open protected workbook PDF', 'فتح Workbook PDF المحمي')
+                    : record.file_kind === 'visual_pptx'
+                      ? tr('PowerPoint · Admin only', 'PowerPoint · للإدارة فقط')
+                      : tr('Word · Admin only', 'Word · للإدارة فقط')}
               </button>
             ))}
           </div>
