@@ -4,13 +4,10 @@ const STORAGE_KEY = 'kifaro_presence_session_id'
 let started = false
 
 function createSessionId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
-  const bytes = new Uint8Array(16)
-  crypto.getRandomValues(bytes)
-  bytes[6] = (bytes[6] & 0x0f) | 0x40
-  bytes[8] = (bytes[8] & 0x3f) | 0x80
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const seed = Date.now().toString(16) + Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2)
+  const hex = seed.replace(/[^a-f0-9]/gi, '').padEnd(32, '0').slice(0, 32)
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
 }
 
 function getSessionId() {
