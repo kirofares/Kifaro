@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { anatomateYears } from '../data/anatomate'
 import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
-import { ModuleAccessGate, useModuleAccess } from '../payments/ModuleAccess'
+import { ModuleAccessGate, ModuleProductSummary, useModuleAccess } from '../payments/ModuleAccess'
 import { useStudentYear } from '../hooks/useStudentYear'
 
 type Flashcard = {
@@ -159,7 +159,6 @@ export default function FlashcardsPage() {
       <div className="flashhierarchy">
         {visibleYears.map(year=>{
           const yearCount=year.modules.reduce((sum,module)=>sum+module.lectures.reduce((n,l)=>n+cards.filter(c=>c.lecture_id===l.id).length,0),0)
-          if(!yearCount) return null
           const yearOpen=openYears.has(year.year)
           return <section className={yearOpen?'flashyear open':'flashyear'} key={year.year}>
             <button className="flashyearhead caseaccordionbutton" onClick={()=>setOpenYears(current=>{const next=new Set(current);next.has(year.year)?next.delete(year.year):next.add(year.year);return next})}>
@@ -168,14 +167,14 @@ export default function FlashcardsPage() {
             </button>
             {yearOpen&&<div className="flashmodules">
               {year.modules.map(module=>{
+                if(module.code==='ORIENTATION') return null
                 const moduleCount=module.lectures.reduce((n,l)=>n+cards.filter(c=>c.lecture_id===l.id).length,0)
-                if(!moduleCount) return null
                 const key=year.year+':'+module.slug+':flash'
                 const moduleOpen=openModules.has(key)
                 return <div className={moduleOpen?'flashmodule open':'flashmodule'} key={module.slug}>
                   <button className="flashmodulehead caseaccordionbutton" onClick={()=>setOpenModules(current=>{const next=new Set(current);next.has(key)?next.delete(key):next.add(key);return next})}>
                     <div><small>{module.code}</small><h3>{module.title}</h3></div>
-                    <div className="caseaccordionmeta"><span className="mcqcount">{moduleCount}</span><ChevronRight className="caseaccordionchevron" size={20}/></div>
+                    <div className="caseaccordionmeta"><ModuleProductSummary moduleCode={module.code} productType="mcq" /><span className="mcqcount">{moduleCount || "—"}</span><ChevronRight className="caseaccordionchevron" size={20}/></div>
                   </button>
                   {moduleOpen&&<ModuleAccessGate moduleCode={module.code} productType="mcq"><div className="flashlecturelist">
                     {module.lectures.map(l=>{
