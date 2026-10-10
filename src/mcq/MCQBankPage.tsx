@@ -10,15 +10,17 @@ import { useAdmin } from '../hooks/useAdmin'
 import { useAuth } from '../auth/AuthContext'
 import { publicAssetUrl } from '../lib/publicAssetUrl'
 import { supabase } from '../lib/supabase'
+import { examSpriteStyle } from './examSprite'
 
 function ProtectedMCQImage({ questionId, imagePath, alt }: { questionId: string; imagePath: string | null; alt: string }) {
   const [url, setUrl] = useState('')
   const [failed, setFailed] = useState(false)
+  const spriteSlot = imagePath?.startsWith('sprite:') ? Number(imagePath.slice('sprite:'.length)) : null
 
   useEffect(() => {
     let active = true
     setFailed(false)
-    if (!imagePath) {
+    if (!imagePath || spriteSlot) {
       setUrl('')
       return
     }
@@ -45,9 +47,27 @@ function ProtectedMCQImage({ questionId, imagePath, alt }: { questionId: string;
       })
 
     return () => { active = false }
-  }, [questionId, imagePath])
+  }, [questionId, imagePath, spriteSlot])
 
   if (!imagePath || failed) return null
+
+  if (spriteSlot) {
+    return <figure className="mcqimage">
+      <div
+        role="img"
+        aria-label={alt}
+        style={{
+          ...examSpriteStyle(spriteSlot),
+          width: '100%',
+          maxWidth: 760,
+          aspectRatio: '1 / 1',
+          margin: '0 auto',
+          borderRadius: 16,
+        }}
+      />
+    </figure>
+  }
+
   if (!url) return <div className="mcqimageloading">Loading anatomy image…</div>
 
   return <figure className="mcqimage">
