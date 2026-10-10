@@ -21,6 +21,7 @@ import { useAuth } from './auth/AuthContext'
 import { useProgress, type LectureProgressState as ProgressState } from './hooks/useProgress'
 import { useEntitlements } from './hooks/useEntitlements'
 import { useLectureSettings, type LectureSetting } from './hooks/useLectureSettings'
+import { useLectureDocumentVariants } from './hooks/useLectureDocumentVariants'
 import { usePricingRules } from './hooks/usePricingRules'
 import { useAssetReadiness } from './hooks/useAssetReadiness'
 import { useStudentYear } from './hooks/useStudentYear'
@@ -1022,6 +1023,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const { offerFor } = usePricingRules()
   const { byLecture: assetReadiness } = useAssetReadiness()
   const baseLecture = getLectureBySlug(slug)
+  const { variants: documentVariants } = useLectureDocumentVariants(baseLecture?.id)
   const lectureSetting = baseLecture ? lectureSettings.get(baseLecture.id) : undefined
   const lecture = baseLecture && (lectureSetting?.published ?? true) ? applyLectureSetting(baseLecture, lectureSetting) : undefined
   const [tab, setTab] = useState<'learn' | 'clinical' | 'pearls' | 'recall' | 'mcq'>('learn')
@@ -1188,12 +1190,40 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
             </div>
             {datashowAvailable && datashowUnlocked ? (
               <div className="protectedviewerbuttons">
-                <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
-                  <BookOpen size={17} /> {tr('Open Datashow', 'افتح الداتاشو')}
-                </button>
-                <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/pdf')}>
-                  <FileText size={17} /> {tr('Open PDF Viewer', 'افتح عارض PDF')}
-                </button>
+                {documentVariants.length > 0 ? (
+                  <div className="lecturevariants">
+                    <small>{tr('LECTURE VERSIONS', 'نسخ المحاضرة')}</small>
+                    {documentVariants.map((variant) => (
+                      <div className="lecturevariant" key={variant.variant_key}>
+                        <div>
+                          <strong>{variant.label}</strong>
+                          {variant.description && <span>{variant.description}</span>}
+                        </div>
+                        {variant.available_pdf ? (
+                          <div className="lecturevariantactions">
+                            <button className="primary" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow?variant=' + encodeURIComponent(variant.variant_key))}>
+                              <BookOpen size={16} /> {tr('Open Datashow', 'افتح الداتاشو')}
+                            </button>
+                            <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/pdf?variant=' + encodeURIComponent(variant.variant_key))}>
+                              <FileText size={16} /> {tr('PDF Viewer', 'عارض PDF')}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="productionchip">{tr('Prepared · secure upload pending', 'جاهزة · جاري الرفع الآمن')}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
+                      <BookOpen size={17} /> {tr('Open Datashow', 'افتح الداتاشو')}
+                    </button>
+                    <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/pdf')}>
+                      <FileText size={17} /> {tr('Open PDF Viewer', 'افتح عارض PDF')}
+                    </button>
+                  </>
+                )}
               </div>
             ) : datashowAvailable ? (
               <>
