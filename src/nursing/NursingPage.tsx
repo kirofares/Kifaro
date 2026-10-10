@@ -1,9 +1,11 @@
-import { BookOpen, ChevronRight, GraduationCap, HeartPulse, LockKeyhole } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, GraduationCap, HeartPulse, LockKeyhole } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
 import { useStudentYear } from '../hooks/useStudentYear'
 import { useTr } from '../i18n'
+import { supabase } from '../lib/supabase'
 
 // Nursing is a separate curriculum, not an alias of Medicine Year 1.
 // Only approved nursing lectures will be linked here; placeholders cannot be purchased.
@@ -39,6 +41,129 @@ const NURSING_YEARS: { year: number; modules: NursingModule[] }[] = [
   { year: 3, modules: [] },
   { year: 4, modules: [] },
 ]
+
+type NursingFileKind = 'visual_pdf' | 'visual_pptx' | 'workbook_pdf' | 'workbook_docx'
+type NursingFileRecord = {
+  lecture_id: string
+  file_kind: NursingFileKind
+  original_name: string
+  storage_path: string
+}
+const NURSING_FILE_KINDS: { kind: NursingFileKind; label: string; accept: string; ext: string }[] = [
+  { kind: 'visual_pdf', label: 'عرض المحاضرة PDF', accept: '.pdf,application/pdf', ext: 'pdf' },
+  { kind: 'visual_pptx', label: 'عرض المحاضرة PowerPoint', accept: '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation', ext: 'pptx' },
+  { kind: 'workbook_pdf', label: 'كراسة المراجعة PDF', accept: '.pdf,application/pdf', ext: 'pdf' },
+  { kind: 'workbook_docx', label: 'كراسة المراجعة Word', accept: '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document', ext: 'docx' },
+]
+
+function NursingAdminUploadPanel({ year, moduleSlug, lectures, userId }: {
+  year: number
+  moduleSlug: string
+  lectures: NursingModule['lectures']
+  userId: string
+}) {
+  const [records, setRecords] = useState<NursingFileRecord[]>([])
+  const [busy, setBusy] = useState('')
+  const [notice, setNotice] = useState('')
+  const lectureId = (index: number) => `nursing-y${year}-${moduleSlug}-${String(index + 1).padStart(2, '0')}`
+
+  const refresh = async () => {
+    if (!supabase) return
+    const ids = lectures.map((_, i) => lectureId(i))
+    const { data, error } = await supabase.from('nursing_lecture_files')
+      .select('lecture_id,file_kind,original_name,storage_path')
+      .in('lecture_id', ids)
+    if (!error) setRecords((data || []) as NursingFileRecord[])
+    else setNotice('تعذر قراءة حالة ملفات التمريض: ' + error.message)
+  }
+
+  useEffect(() => { void refresh() }, [year, moduleSlug, lectures.length])
+
+  const uploadFile = async (index: number, kind: NursingFileKind, file?: File) => {
+    if (!file || !supabase) return
+    const type = NURSING_FILE_KINDS.find((item) => item.kind === kind)
+    if (!type || !file.name.toLowerCase().endsWith('.' + type.ext)) {
+      setNotice('نوع الملف غير صحيح. الرجاء اختيار ' + type?.ext.toUpperCase())
+      return
+    }
+    if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
+      setNotice('حجم الملف يجب أن يكون أكبر من صفر ولا يزيد عن 50 ميجابايت.')
+      return
+    }
+
+    const id = lectureId(index)
+    const slot = id + ':' + kind
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-')
+    const storagePath = `nursing/year-${year}/${moduleSlug}/lecture-${String(index + 1).padStart(2, '0')}/${kind}/${Date.now()}-${safeName}`
+    setBusy(slot)
+    setNotice('جارٍ رفع ' + file.name + ' إلى التخزين الخاص…')
+    try {
+      const { error: storageError } = await supabase.storage.from('kifaro-content')
+        .upload(storagePath, file, { upsert: false, contentType: file.type || undefined })
+      if (storageError) throw storageError
+      const { error: recordError } = await supabase.from('nursing_lecture_files')
+        .upsert({
+          lecture_id: id,
+          file_kind: kind,
+          storage_path: storagePath,
+          original_name: file.name,
+          mime_type: file.type || null,
+          file_size: file.size,
+          uploaded_by: userId,
+          uploaded_at: new Date().toISOString(),
+        }, { onConflict: 'lecture_id,file_kind' })
+      if (recordError) throw recordError
+      await refresh()
+      setNotice('تم حفظ ' + file.name + ' في التخزين الخاص بنجاح. النشر للطلبة يتطلب تفعيل العارض المحمي.')
+    } catch (error) {
+      setNotice('فشل تسجيل الملف: ' + (error instanceof Error ? error.message : String(error)))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  if (!supabase) return null
+  return (
+    <section className="yearcard">
+      <div className="yearbadge">ADMIN ONLY · NURSING FILES</div>
+      <h2>رفع محاضرات التمريض</h2>
+      <p>أربع ملفات لكل محاضرة (PDF / PPTX / Workbook PDF / Word). تُحفظ في التخزين الخاص. لا يتم فتح أي ملف للطلاب بمجرد رفعه دون تفعيل صلاحية العرض.</p>
+      {notice && <p role="status" className="authmessage">{notice}</p>}
+      <div className="modulelist">
+        {lectures.map((lecture, index) => (
+          <div className="modulecard" key={index} style={{cursor: 'default', display: 'block'}}>
+            <h3>Lecture {String(index + 1).padStart(2, '0')} · {lecture.title}</h3>
+            <p>{lecture.titleAr}</p>
+            <div className="adminformgrid">
+              {NURSING_FILE_KINDS.map((fileType) => {
+                const existing = records.find((record) => record.lecture_id === lectureId(index) && record.file_kind === fileType.kind)
+                const disabled = Boolean(busy)
+                return (
+                  <label key={fileType.kind} className="adminformwide">
+                    {fileType.label}
+                    <span className={existing ? 'readinessbadge ready' : 'readinessbadge missing'}>
+                      {existing ? <><Check size={13}/> تم الرفع: {existing.original_name}</> : 'لم يُرفع بعد'}
+                    </span>
+                    <input
+                      type="file"
+                      accept={fileType.accept}
+                      disabled={disabled}
+                      onChange={(event) => {
+                        const selected = event.target.files?.[0]
+                        event.target.value = ''
+                        void uploadFile(index, fileType.kind, selected)
+                      }}
+                    />
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 function useNursingAccess() {
   const { user } = useAuth()
@@ -202,5 +327,13 @@ export function NursingModulePage() {
         </div>
       ))}
     </div>
+    {access.isAdmin && access.user && (
+      <NursingAdminUploadPanel
+        year={item.year}
+        moduleSlug={selected.slug}
+        lectures={selected.lectures}
+        userId={access.user.id}
+      />
+    )}
   </div>
 }
