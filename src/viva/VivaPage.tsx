@@ -3,9 +3,11 @@ import { ArrowLeft, BookOpen, Check, ChevronRight, Lightbulb, RotateCcw, Target 
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { getLectureBySlug } from '../data/anatomate'
+import { supabase } from '../lib/supabase'
+import { ModuleAccessGate } from '../payments/ModuleAccess'
 import { useLectureSettings } from '../hooks/useLectureSettings'
 import { useLang, useTr } from '../i18n'
-import { getVivaDeck, type VivaDeck, type VivaText } from './content'
+import { buildVivaDeckFromFlashcards, getVivaDeck, type VivaDeck, type VivaFlashcardRow, type VivaText } from './content'
 import { advanceSession, newSession, parseSession, recordAnswer, revealAnswer, reviewQueue, sessionKey, toggleCriterion, useHint, type VivaSession } from './session'
 import './viva.css'
 
@@ -15,16 +17,63 @@ export default function VivaPage() {
   const { settings, loading } = useLectureSettings()
   const tr = useTr()
   const lecture = getLectureBySlug(slug)
-  const deck = lecture && getVivaDeck(lecture.id)
   const setting = lecture && settings.get(lecture.id)
-  // This is an explicitly free, source-excerpt pilot. No paid assets or
-  // entitlements are retrieved by Viva; original slides keep their own gate.
+
   if (loading || authLoading) return <div className="page" role="status">{tr('Loading practice…', 'جارٍ تحميل التدريب…')}</div>
-  if (!lecture || !deck || setting?.published === false) return <div className="page viva-page">
+  if (!lecture || setting?.published === false) return <div className="page viva-page">
     <h1>{tr('Viva practice is not available for this lecture yet.', 'تدريب Viva غير متاح لهذه المحاضرة بعد.')}</h1>
     <Link className="secondary" to="/anatomate">{tr('Back to AnatoMate', 'العودة إلى AnatoMate')}</Link>
   </div>
-  return <VivaPractice key={sessionKey(deck, user?.id)} deck={deck} userId={user?.id} slug={lecture.slug} title={setting?.title_override || lecture.title} />
+
+  return <ModuleAccessGate moduleCode={lecture.module} productType="mcq">
+    <VivaDeckLoader lectureId={lecture.id} userId={user?.id} slug={lecture.slug} title={setting?.title_override || lecture.title} />
+  </ModuleAccessGate>
+}
+
+function VivaDeckLoader({ lectureId, userId, slug, title }: { lectureId: string; userId?: string; slug: string; title: string }) {
+  const tr = useTr()
+  const staticDeck = getVivaDeck(lectureId)
+  const [deck, setDeck] = useState<VivaDeck | undefined>(staticDeck)
+  const [loading, setLoading] = useState(!staticDeck)
+
+  useEffect(() => {
+    if (staticDeck) {
+      setDeck(staticDeck)
+      setLoading(false)
+      return
+    }
+    if (!supabase) {
+      setDeck(undefined)
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setLoading(true)
+    supabase
+      .from('flashcards')
+      .select('id,topic,subtopic,front,back')
+      .eq('lecture_id', lectureId)
+      .eq('published', true)
+      .order('topic')
+      .order('subtopic')
+      .limit(5)
+      .then(({ data }) => {
+        if (cancelled) return
+        setDeck(buildVivaDeckFromFlashcards(lectureId, (data || []) as VivaFlashcardRow[]))
+        setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [lectureId])
+
+  if (loading) return <div className="page" role="status">{tr('Loading Viva questions…', 'جارٍ تحميل أسئلة Viva…')}</div>
+  if (!deck) return <div className="page viva-page">
+    <h1>{tr('Viva practice is not available for this lecture yet.', 'تدريب Viva غير متاح لهذه المحاضرة بعد.')}</h1>
+    <Link className="secondary" to="/anatomate">{tr('Back to AnatoMate', 'العودة إلى AnatoMate')}</Link>
+  </div>
+
+  return <VivaPractice key={sessionKey(deck, userId)} deck={deck} userId={userId} slug={slug} title={title} />
 }
 
 function VivaPractice({ deck, userId, slug, title }: { deck: VivaDeck; userId?: string; slug: string; title: string }) {
@@ -78,12 +127,15 @@ function VivaPractice({ deck, userId, slug, title }: { deck: VivaDeck; userId?: 
     <Link className="viva-back" to={lecturePath}><ArrowLeft size={17} />{tr('Back to lecture', 'العودة للمحاضرة')}</Link>
     <header className="viva-header">
       <div><span className="eyebrow">KIFARO VIVA</span><h1>{title}</h1></div>
-      <span className="viva-badge">{tr('Free pilot · Self-assessment', 'تجربة مجانية · تقييم ذاتي')}</span>
+      <span className="viva-badge">{tr('MCQ access · Self-assessment', 'ضمن وصول MCQ · تقييم ذاتي')}</span>
     </header>
     {!started ? <section className="viva-card viva-intro">
       <div className="viva-symbol"><Target size={30} aria-hidden="true" /></div>
       <h2>{tr('Explain it. Check it. Remember it.', 'جاوب. راجع. ثبّت المعلومة.')}</h2>
-      <p>{tr('Five short questions from your Introduction to Anatomy lecture. Write in English or Arabic, compare with the lecture points, then practise what you missed.', 'خمس أسئلة قصيرة من محاضرة Introduction to Anatomy. اكتب بالعربي أو الإنجليزي، وقارن بنقاط المحاضرة، ثم تدرب على ما نسيته.')}</p>
+      <p>{tr(
+        deck.questions.length + ' short questions from this lecture. Write in English or Arabic, compare with the key points, then practise what you missed.',
+        deck.questions.length + ' أسئلة قصيرة من هذه المحاضرة. اكتب بالعربي أو الإنجليزي، وقارن بالنقاط الأساسية، ثم تدرب على ما نسيته.'
+      )}</p>
       <ol className="viva-steps">
         <li>{tr('Answer from memory before revealing the key.', 'جاوب من الذاكرة قبل إظهار نقاط الإجابة.')}</li>
         <li>{tr('Select only the points your original answer included.', 'حدّد فقط النقاط التي ذكرتها فعلًا في إجابتك الأصلية.')}</li>
@@ -92,7 +144,7 @@ function VivaPractice({ deck, userId, slug, title }: { deck: VivaDeck; userId?: 
       <p className="viva-note">{tr('This pilot uses your own checklist assessment. AI grading and voice conversation are not enabled yet.', 'التقييم هنا ذاتي باستخدام قائمة نقاط الإجابة. التصحيح بالذكاء الاصطناعي والمحادثة الصوتية لم يتم تفعيلهما بعد.')}</p>
       <div className="viva-actions">
         {hasSavedAnswers && <button className="primary" onClick={() => setStarted(true)}>{session.complete ? tr('View last result', 'عرض آخر نتيجة') : tr('Resume practice', 'أكمل التدريب')}<ChevronRight size={17} /></button>}
-        <button className={hasSavedAnswers ? 'secondary' : 'primary'} onClick={() => start()}>{tr('Start 5 questions', 'ابدأ ٥ أسئلة')}<ChevronRight size={17} /></button>
+        <button className={hasSavedAnswers ? 'secondary' : 'primary'} onClick={() => start()}>{tr('Start ' + deck.questions.length + ' questions', 'ابدأ ' + deck.questions.length + ' أسئلة')}<ChevronRight size={17} /></button>
       </div>
       <p className="viva-small">{tr('About 5–10 minutes. Progress and written answers are saved in this browser only. You can delete them below.', 'حوالي ٥–١٠ دقائق. تُحفظ الإجابات والتقدم في هذا المتصفح فقط، ويمكنك حذفهما بالزر أدناه.')}</p>
       {hasSavedAnswers && <button className="viva-text-button" onClick={forget}>{tr('Delete saved practice', 'حذف التدريب المحفوظ')}</button>}
@@ -115,7 +167,7 @@ function VivaPractice({ deck, userId, slug, title }: { deck: VivaDeck; userId?: 
       })}</div>
       <div className="viva-actions">
         {!!missing.length && <button className="primary" onClick={() => start(missing)}><RotateCcw size={17} />{tr(`Practise ${missing.length} questions again`, `تدرّب مجددًا على ${missing.length} أسئلة`)}</button>}
-        <button className="secondary" onClick={() => start()}>{tr('Restart all 5 questions', 'أعد الأسئلة الخمسة')}</button>
+        <button className="secondary" onClick={() => start()}>{tr('Restart all ' + deck.questions.length + ' questions', 'أعد كل الأسئلة (' + deck.questions.length + ')')}</button>
         <Link className="secondary" to={lecturePath}><BookOpen size={17} />{tr('Review lecture', 'راجع المحاضرة')}</Link>
       </div>
       <p className="viva-small">{tr('Suggested next review: tomorrow. No reminder has been scheduled.', 'المراجعة المقترحة التالية: غدًا. لم يتم ضبط تنبيه.')}</p>
@@ -146,10 +198,10 @@ function VivaPractice({ deck, userId, slug, title }: { deck: VivaDeck; userId?: 
   </div>
 }
 
-function Source({ section, slide, excerpt, filename }: { section: string; slide: number; excerpt: string; filename: string }) {
+function Source({ section, slide, excerpt, filename }: { section: string; slide?: number; excerpt: string; filename: string }) {
   const tr = useTr()
   return <details className="viva-source"><summary><BookOpen size={15} />{tr('Lecture source', 'المصدر من المحاضرة')}: <bdi>{section}</bdi></summary>
     <blockquote lang="en" dir="ltr">{excerpt}</blockquote>
-    <p className="viva-small"><bdi>{filename}</bdi> · {tr('Source slide', 'شريحة المصدر')} {slide}</p>
+    <p className="viva-small"><bdi>{filename}</bdi>{slide ? <> · {tr('Source slide', 'شريحة المصدر')} {slide}</> : null}</p>
   </details>
 }
