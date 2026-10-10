@@ -1279,3 +1279,10 @@ html[dir="rtl"] .flashyearhead,html[dir="rtl"] .flashmodulehead,html[dir="rtl"] 
 .chatunreadbadge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#c62828;color:#fff;font-size:11px;font-weight:800;line-height:1;margin-left:6px}
 .adminchatthreadtitle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
 .adminchatnew{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;background:#c62828;color:#fff;font-size:10px;font-weight:800;white-space:nowrap}
+
+/* Nursing has one flat lecture catalog rather than academic-year cards. */
+.nursinglecturecard{width:100%;gap:14px;color:var(--text);font:inherit;text-align:start;cursor:pointer}
+.nursinglecturecard .lectureseq{flex:0 0 44px}
+.nursinglecturecard .grow{min-width:0}
+.nursinglecturecard h3{overflow-wrap:anywhere}
+.nursinglecturecard .productionchip{margin-top:4px}
