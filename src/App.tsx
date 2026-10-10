@@ -3,7 +3,7 @@ import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams, 
 import { Capacitor } from '@capacitor/core'
 import {
   ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, Brain, Check, ChevronRight, CircleHelp, ClipboardCheck, Clock3, GraduationCap,
-  HeartPulse, Home, Library, Menu, Microscope, Palette,
+  Home, Library, Menu, Microscope, Palette,
   CreditCard, Download, Facebook, FileText, Instagram, Lock, LogIn, LogOut, MessageCircle, Phone, PlayCircle, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserRound, X,
 } from 'lucide-react'
 import { anatomateLectures, anatomateYears, getLectureBySlug } from './data/anatomate'
@@ -202,14 +202,13 @@ const NAV_SECTIONS: NavSection[] = [
   { key: 'home', to: '/', label: ['Home', 'الرئيسية'], icon: Home, match: (path) => path === '/' },
   {
     key: 'learn', to: '/anatomate', label: ['Learn', 'تعلّم'], icon: GraduationCap,
-    match: (path) => path.startsWith('/anatomate') || path === '/curriculum' || path === '/topics',
+    match: (path) => path.startsWith('/anatomate') || path.startsWith('/nursing') || path === '/curriculum' || path === '/topics',
     tabs: [
       { to: '/anatomate', label: ['By year', 'حسب السنة'] },
       { to: '/curriculum', label: ['All lectures', 'كل المحاضرات'] },
       { to: '/topics', label: ['Topics', 'الموضوعات'] },
     ],
   },
-  { key: 'nursing', to: '/nursing', label: ['Nursing', 'التمريض'], icon: HeartPulse, match: (path) => path.startsWith('/nursing') },
   {
     key: 'practice', to: '/assessments', label: ['Practice', 'تدرّب'], icon: ClipboardCheck,
     match: (path) => PRACTICE_ROUTES.some((route) => path === route || path.startsWith(route + '/')),
@@ -373,10 +372,13 @@ export default function App() {
   }
 
   const pick = (label: [string, string]) => label[lang === 'ar' ? 1 : 0]
+  // Nursing belongs to Learn, not an extra top-level navigation item.
+  // For Nursing students, Learn opens their own curriculum directly.
   const navigationSections = isNursingStudent
-    ? NAV_SECTIONS.filter((section) => ['home', 'nursing', 'ask'].includes(section.key))
+    ? NAV_SECTIONS.filter((section) => ['home', 'learn', 'ask'].includes(section.key))
+      .map((section) => section.key === 'learn' ? { ...section, to: '/nursing' } : section)
     : NAV_SECTIONS
-  const bottomSections = navigationSections.filter((section) => section.key !== 'nursing' || isNursingStudent)
+  const bottomSections = navigationSections
   const activeSection = navigationSections.find((section) => section.match(location.pathname))
   const medicineOnly = (page: ReactNode) => isNursingStudent ? <Navigate to="/nursing" replace /> : page
   const sectionTabs = activeSection?.tabs?.some((tab) => tab.to === location.pathname) ? activeSection.tabs : undefined
