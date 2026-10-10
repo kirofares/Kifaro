@@ -23,7 +23,6 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const tr = useTr()
-  const academicLevels = faculty === 'Nursing' ? ACADEMIC_LEVELS.filter((level) => level.value <= 4) : ACADEMIC_LEVELS
 
   if (user) return <Navigate to="/" replace />
 
@@ -56,7 +55,7 @@ export default function AuthPage() {
         setBusy(false)
         return
       }
-      const result = await signUp({ email, password, fullName, academicYear, faculty, university, nationality, phoneNo, preferredLearningDepth })
+      const result = await signUp({ email, password, fullName, academicYear: faculty === 'Nursing' ? 1 : academicYear, faculty, university, nationality, phoneNo, preferredLearningDepth })
       if (result.error) setMessage(result.error)
       else if (result.needsEmailConfirmation) setMessage(tr('Check your email to confirm your KIFARO account.', 'راجع بريدك لتأكيد حسابك في KIFARO.'))
       else navigate('/')
@@ -86,8 +85,8 @@ export default function AuthPage() {
           {mode === 'signup' && (
             <>
               <label>{tr('Full name', 'الاسم بالكامل')}<div className="authinput"><UserRound /><input value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" /></div></label>
-              <label>{tr('Academic year', 'السنة الدراسية')}<div className="authinput"><GraduationCap /><select value={academicYear} onChange={(e) => setAcademicYear(Number(e.target.value))}>{academicLevels.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></div></label>
-              <label>{tr('Faculty', 'الكلية')}<div className="authinput"><School /><select value={faculty} onChange={(e) => { const selected = e.target.value; setFaculty(selected); if (selected === 'Nursing' && academicYear > 4) setAcademicYear(1) }} required>{FACULTIES.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
+              <label>{tr('Faculty', 'الكلية')}<div className="authinput"><School /><select value={faculty} onChange={(e) => { const selected = e.target.value; setFaculty(selected); if (selected === 'Nursing') setAcademicYear(1) }} required>{FACULTIES.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
+              {faculty !== 'Nursing' && <label>{tr('Academic year', 'السنة الدراسية')}<div className="authinput"><GraduationCap /><select value={academicYear} onChange={(e) => setAcademicYear(Number(e.target.value))}>{ACADEMIC_LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}</select></div></label>}
               <label>{tr('Preferred learning depth', 'مستوى التعمق المفضل')}<div className="authinput"><GraduationCap /><select value={preferredLearningDepth} onChange={(e) => setPreferredLearningDepth(e.target.value)}>{LEARNING_DEPTHS.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></label>
               <label>{tr('University', 'الجامعة')}<div className="authinput"><Building2 /><select value={university} onChange={(e) => setUniversity(e.target.value)} required><option value="">{tr('Select university', 'اختر الجامعة')}</option>{Object.entries(EGYPTIAN_UNIVERSITIES).map(([group, universities]) => <optgroup key={group} label={group}>{universities.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}</select></div></label>
               <label>{tr('Nationality', 'الجنسية')}<div className="authinput"><Flag /><input value={nationality} onChange={(e) => setNationality(e.target.value)} required /></div></label>
