@@ -8,5 +8,5 @@
 <path d="M605 520 C690 540 760 555 830 560" stroke="#76bd8d" stroke-width="34" fill="none"/>
 <g font-family="Arial" font-size="28" font-weight="700" fill="#0b3b67"><circle cx="560" cy="245" r="26" fill="#ffd54f"/><text x="552" y="255">1</text>
 <circle cx="780" cy="310" r="26" fill="#ffd54f"/><text x="772" y="320">2</text>
-<circle cx="780" cy="555" r="26" fill="#ffd54f"/><text x="772" y="565">3</text></g>
+<circle cx="780" cy="555" r="26" fill="#ffd54f"/><text x="772" y="565">3</text><circle cx="400" cy="515" r="26" fill="#ffd54f"/><text x="392" y="525" fill="#0b3b67">4</text></g>
  </svg>
