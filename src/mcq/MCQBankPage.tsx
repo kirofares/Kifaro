@@ -55,14 +55,43 @@ function ProtectedMCQImage({ questionId, imagePath, alt }: { questionId: string;
   </figure>
 }
 
-function questionCount(lectureId: string, fallback: number, counts: Map<string, number>) {
-  return counts.get(lectureId) || fallback
+// Never present bundled demonstration questions as paid bank totals.
+function questionCount(lectureId: string, counts: Map<string, number>): number | null {
+  return counts.get(lectureId) ?? null
+}
+
+function usePublishedModuleMCQCounts() {
+  const [counts, setCounts] = useState<Map<string, number>>(new Map())
+  useEffect(() => {
+    if (!supabase) return
+    let active = true
+    void supabase.rpc('get_public_module_prices').then(({ data, error }) => {
+      if (!active || error) return
+      const next = new Map<string, number>()
+      for (const item of data || []) {
+        if (item.product_type === 'mcq') {
+          next.set(String(item.academic_year) + ':' + item.module_code, Number(item.question_count) || 0)
+        }
+      }
+      setCounts(next)
+    }).catch(() => { /* Unknown is better than an invented number. */ })
+    return () => { active = false }
+  }, [])
+  return counts
+}
+
+function moduleCount(year: number, moduleCode: string, lectureIds: string[], privateCounts: Map<string, number>, publicCounts: Map<string, number>): number | null {
+  const announced = publicCounts.get(year + ':' + moduleCode)
+  if (announced !== undefined) return announced
+  if (!lectureIds.length || !lectureIds.every((id) => privateCounts.has(id))) return null
+  return lectureIds.reduce((sum, id) => sum + (privateCounts.get(id) || 0), 0)
 }
 
 export function MCQBankPage() {
   const nav = useNavigate()
   const tr = useTr()
   const { countsByLecture, mastery } = useMCQBank()
+  const publicCounts = usePublishedModuleMCQCounts()
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
@@ -96,7 +125,10 @@ export function MCQBankPage() {
 
       <div className="mcqyeargrid">
         {visibleYears.map((year) => {
-          const total = year.modules.reduce((sum, module) => sum + module.lectures.reduce((n, lecture) => n + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0), 0)
+          const perModule = year.modules.map((module) => moduleCount(year.year, module.code, module.lectures.map((lecture) => lecture.id), countsByLecture, publicCounts))
+          const total = perModule.every((value) => value !== null)
+            ? perModule.reduce<number>((sum, value) => sum + (value || 0), 0)
+            : null
           const yearOpen = openYears.has(year.year)
           return (
             <section className={yearOpen ? 'mcqyearcard open' : 'mcqyearcard'} key={year.year}>
@@ -116,7 +148,7 @@ export function MCQBankPage() {
                   <h2>{tr('Medical Year ' + year.year, 'السنة الطبية ' + year.year)}</h2>
                 </div>
                 <div className="mcqaccordionmeta">
-                  <span className="mcqcount">{total} MCQ</span>
+                  <span className="mcqcount">{total === null ? tr('Count unavailable', 'العدد غير متاح') : total + ' MCQ'}</span>
                   <ChevronRight className="mcqaccordionchevron" size={22}/>
                 </div>
               </button>
@@ -124,7 +156,7 @@ export function MCQBankPage() {
               {yearOpen && (
                 <div className="mcqmodulelist">
                   {year.modules.map((module) => {
-                    const count = module.lectures.reduce((sum, lecture) => sum + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0)
+                    const count = moduleCount(year.year, module.code, module.lectures.map((lecture) => lecture.id), countsByLecture, publicCounts)
                     const moduleKey = year.year + ':' + module.slug
                     const moduleOpen = openModules.has(moduleKey)
                     return (
@@ -146,7 +178,7 @@ export function MCQBankPage() {
                             <p>{module.description}</p>
                           </div>
                           <div className="mcqmodulemeta">
-                            <span>{count} MCQ</span>
+                            <span>{count === null ? tr('Count unavailable', 'العدد غير متاح') : count + ' MCQ'}</span>
                             <ModuleProductSummary moduleCode={module.code} productType="mcq" />
                             <ChevronRight className="mcqaccordionchevron" />
                           </div>
@@ -156,7 +188,7 @@ export function MCQBankPage() {
                           <ModuleAccessGate moduleCode={module.code} productType="mcq">
                             <div className="mcqlecturelist">
                               {module.lectures.map((lecture) => {
-                                const lectureCount = questionCount(lecture.id, lecture.mcqs.length, countsByLecture)
+                                const lectureCount = questionCount(lecture.id, countsByLecture)
                                 return (
                                   <button
                                     key={lecture.id}
@@ -168,7 +200,7 @@ export function MCQBankPage() {
                                       <small>{lecture.system}</small>
                                       <h4>{lecture.title}</h4>
                                     </div>
-                                    <span>{lectureCount} MCQ</span>
+                                    <span>{lectureCount === null ? 'MCQs' : lectureCount + ' MCQ'}</span>
                                     <ChevronRight />
                                   </button>
                                 )
@@ -197,6 +229,7 @@ export function MCQModulePage() {
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
   const { countsByLecture, mastery } = useMCQBank()
+  const publicCounts = usePublishedModuleMCQCounts()
   const yearData = anatomateYears.find((item) => String(item.year) === year)
   const moduleData = yearData?.modules.find((item) => item.slug === module)
 
@@ -208,13 +241,13 @@ export function MCQModulePage() {
     return <div className="page"><div className="assessmentempty">{tr('This module is not available for your academic year.', 'هذا الموديول غير متاح لسنتك الدراسية.')}</div></div>
   }
 
-  const total = moduleData.lectures.reduce((sum, lecture) => sum + questionCount(lecture.id, lecture.mcqs.length, countsByLecture), 0)
+  const total = moduleCount(yearData.year, moduleData.code, moduleData.lectures.map((lecture) => lecture.id), countsByLecture, publicCounts)
 
   return (
     <div className="page mcqpage">
       <div className="pagehead">
         <div><span className="eyebrow">YEAR {yearData.year} · MCQ BANK</span><h1>{moduleData.title}</h1><p>{tr('Choose a lecture to start its question set.', 'اختر المحاضرة لبدء مجموعة الأسئلة الخاصة بها.')}</p></div>
-        <span className="mcqcount large">{total} MCQ</span>
+        <span className="mcqcount large">{total === null ? tr('Count unavailable', 'العدد غير متاح') : total + ' MCQ'}</span>
       </div>
 
       <ModuleAccessGate moduleCode={moduleData.code} productType="mcq">
@@ -224,11 +257,11 @@ export function MCQModulePage() {
             const attempts = rows.reduce((sum, row) => sum + Number(row.attempts || 0), 0)
             const correct = rows.reduce((sum, row) => sum + Number(row.correct || 0), 0)
             const score = attempts ? Math.round((correct / attempts) * 100) : null
-            const count = questionCount(lecture.id, lecture.mcqs.length, countsByLecture)
+            const count = questionCount(lecture.id, countsByLecture)
             return (
               <button key={lecture.id} className="mcqlecturecard" onClick={() => nav('/mcq/lecture/' + lecture.slug)}>
                 <div className="lectureseq">{lecture.sequence}</div>
-                <div className="grow"><small>{lecture.system}</small><h3>{lecture.title}</h3><p>{count} {count === 1 ? 'MCQ' : 'MCQs'}</p></div>
+                <div className="grow"><small>{lecture.system}</small><h3>{lecture.title}</h3><p>{count === null ? 'MCQs' : count + (count === 1 ? ' MCQ' : ' MCQs')}</p></div>
                 {score !== null && <span className="mcqlecturemastery">{score}%</span>}
                 <ChevronRight />
               </button>
