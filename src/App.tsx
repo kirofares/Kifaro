@@ -495,9 +495,9 @@ export default function App() {
           <Route path="/nursing/year/:year" element={<NursingYearPage />} />
           <Route path="/nursing/year/:year/module/:module" element={<NursingModulePage />} />
           <Route path="/curriculum" element={medicineOnly(<Curriculum lectures={filtered} go={nav} />)} />
-          <Route path="/anatomate" element={medicineOnly(<AnatoMate t={t} go={nav)} />} />
-          <Route path="/anatomate/year/:year/module/:module" element={medicineOnly(<ModulePage progress={progress} update={update} flash={flash} t={t)} />} />
-          <Route path="/anatomate/lecture/:slug" element={medicineOnly(<LecturePage progress={progress} update={update} flash={flash} t={t)} />} />
+          <Route path="/anatomate" element={medicineOnly(<AnatoMate t={t} go={nav} />)} />
+          <Route path="/anatomate/year/:year/module/:module" element={medicineOnly(<ModulePage progress={progress} update={update} flash={flash} t={t} />)} />
+          <Route path="/anatomate/lecture/:slug" element={medicineOnly(<LecturePage progress={progress} update={update} flash={flash} t={t} />)} />
           <Route path="/anatomate/lecture/:slug/viva" element={medicineOnly(<VivaPage />)} />
           <Route path="/anatomate/lecture/:slug/datashow" element={medicineOnly(<DatashowViewer mode="datashow" />)} />
           <Route path="/anatomate/lecture/:slug/pdf" element={medicineOnly(<DatashowViewer mode="pdf" />)} />
@@ -508,7 +508,7 @@ export default function App() {
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/refund" element={<LegalPage kind="refund" />} />
-          <Route path="/topics" element={medicineOnly(<Topics lectures={filtered} go={nav)} />} />
+          <Route path="/topics" element={medicineOnly(<Topics lectures={filtered} go={nav} />)} />
           <Route path="/mcq" element={medicineOnly(<MCQBankPage />)} />
           <Route path="/mcq/year/:year/module/:module" element={medicineOnly(<MCQModulePage />)} />
           <Route path="/mcq/lecture/:slug" element={medicineOnly(<MCQLecturePage />)} />
@@ -522,7 +522,7 @@ export default function App() {
           <Route path="/studio" element={<Studio />} />
           <Route path="/flashcards" element={medicineOnly(<FlashcardsPage />)} />
           <Route path="/review" element={medicineOnly(<ReviewPage />)} />
-          <Route path="/library" element={medicineOnly(<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav)} />} />
+          <Route path="/library" element={medicineOnly(<LibraryPage lectures={lectures} update={update} flash={flash} t={t} go={nav} />)} />
           <Route path="/preferences" element={<Prefs lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} />} />
           <Route path="*" element={<NotFound go={nav} />} />
         </Routes>
