@@ -86,6 +86,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
   const nav = useNavigate()
   const [searchParams] = useSearchParams()
   const requestedPage = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1)
+  const requestedVariant = (searchParams.get('variant') || '').trim()
   const { user, loading: authLoading } = useAuth()
   const tr = useTr()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
@@ -148,7 +149,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
 
       const functionName = mode === 'pdf' ? 'lecture-watermarked-pdf' : 'lecture-watermarked-pdf'
       const { data, error } = await supabase.functions.invoke(functionName, {
-        body: { lectureId: lecture.id },
+        body: { lectureId: lecture.id, variantKey: requestedVariant || undefined },
       })
 
       if (!active) return
@@ -190,7 +191,7 @@ export default function DatashowViewer({ mode = 'datashow' }: { mode?: ViewerMod
       active = false
       try { loadingTask?.destroy?.() } catch {}
     }
-  }, [lecture?.id, user?.id, hasAccess, mode, requestedPage])
+  }, [lecture?.id, user?.id, hasAccess, mode, requestedPage, requestedVariant])
 
   useEffect(() => {
     let cancelled = false
