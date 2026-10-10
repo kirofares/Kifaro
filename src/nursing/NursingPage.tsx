@@ -42,6 +42,7 @@ type NursingFileRecord = {
   file_kind: NursingFileKind
   original_name: string
   storage_path: string
+  file_size?: number
 }
 const NURSING_FILE_KINDS: { kind: NursingFileKind; label: string; accept: string; ext: string }[] = [
   { kind: 'visual_pdf', label: 'عرض المحاضرة PDF', accept: '.pdf,application/pdf', ext: 'pdf' },
@@ -159,6 +160,35 @@ function NursingAdminUploadPanel({ year, moduleSlug, lectures, userId }: {
   )
 }
 
+
+function useNursingLectureFiles(lectureId?: string) {
+  const [records, setRecords] = useState<NursingFileRecord[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!supabase) return
+    const client = supabase
+    setLoading(true)
+    let query = client.from('nursing_lecture_files')
+      .select('lecture_id,file_kind,original_name,storage_path,file_size')
+    if (lectureId) query = query.eq('lecture_id', lectureId)
+
+    void query.then(({ data }) => {
+      setRecords((data || []) as NursingFileRecord[])
+      setLoading(false)
+    })
+  }, [lectureId])
+
+  const openFile = async (record: NursingFileRecord) => {
+    if (!supabase) return
+    const { data, error } = await supabase.storage.from('kifaro-content').createSignedUrl(record.storage_path, 300)
+    if (error || !data?.signedUrl) throw error || new Error('Could not open file.')
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  return { records, loading, openFile }
+}
+
 function useNursingAccess() {
   const { user } = useAuth()
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id)
@@ -196,6 +226,7 @@ export default function NursingPage() {
   const tr = useTr()
   const navigate = useNavigate()
   const access = useNursingAccess()
+  const files = useNursingLectureFiles()
 
   if (access.loading) return <LoadingAccess />
   if (!access.allowed) return <RestrictedMessage />
@@ -230,7 +261,9 @@ export default function NursingPage() {
             <div className="grow">
               <small>{tr('LECTURE', 'المحاضرة')} {String(index + 1).padStart(2, '0')}</small>
               <h3>{tr(title, titleAr)}</h3>
-              <span className="productionchip">{tr('Coming soon', 'قريبًا')}</span>
+              {files.records.some((record) => record.lecture_id === `nursing-y1-general-anatomy-${String(index + 1).padStart(2, '0')}`)
+                ? <span className="productionchip ready">{tr('Files available', 'الملفات متاحة')}</span>
+                : <span className="productionchip">{tr('Coming soon', 'قريبًا')}</span>}
             </div>
             <ChevronRight className="dirarrow" />
           </button>
@@ -248,6 +281,9 @@ export function NursingLecturePage() {
   const navigate = useNavigate()
   const { number } = useParams()
   const access = useNursingAccess()
+  const lectureId = `nursing-y1-general-anatomy-${String(Number(number)).padStart(2, '0')}`
+  const files = useNursingLectureFiles(Number.isFinite(Number(number)) ? lectureId : undefined)
+  const [fileMessage, setFileMessage] = useState('')
   if (access.loading) return <LoadingAccess />
   if (!access.allowed) return <RestrictedMessage />
 
@@ -270,10 +306,38 @@ export function NursingLecturePage() {
           <p>{tr('Nursing Anatomy', 'تشريح التمريض')}</p>
         </div>
       </div>
-      <div className="productionnotice">
-        <BookOpen size={24} />
-        <p>{tr('Coming soon. The PDF presentation, workbook and assessments are not available online yet. They will be enabled only once their approved files are uploaded and checked.', 'قريبًا. ملفات المحاضرة والـWorkbook والأسئلة مش متاحة على الموقع حاليًا. هنفعّلها بعد رفع النسخ المعتمدة واختبارها.')}</p>
-      </div>
+      {files.records.length ? (
+        <div className="adminpanel">
+          <div className="adminpanelhead">
+            <div>
+              <h2>{tr('Lecture files', 'ملفات المحاضرة')}</h2>
+              <p>{tr('Approved files are stored privately and open through a short-lived secure link.', 'الملفات المعتمدة محفوظة بشكل خاص وبتفتح برابط مؤقت آمن.')}</p>
+            </div>
+          </div>
+          {fileMessage && <p className="authmessage">{fileMessage}</p>}
+          <div className="adminquick">
+            {files.records.map((record) => (
+              <button key={record.file_kind} onClick={() => void files.openFile(record).catch((error) => setFileMessage(error instanceof Error ? error.message : String(error)))}>
+                <BookOpen size={18}/>
+                {record.file_kind === 'visual_pdf'
+                  ? tr('Open lecture PDF', 'فتح PDF المحاضرة')
+                  : record.file_kind === 'visual_pptx'
+                    ? tr('Open PowerPoint', 'فتح PowerPoint')
+                    : record.file_kind === 'workbook_pdf'
+                      ? tr('Open workbook PDF', 'فتح Workbook PDF')
+                      : tr('Open workbook Word', 'فتح Workbook Word')}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="productionnotice">
+          <BookOpen size={24} />
+          <p>{files.loading
+            ? tr('Checking lecture files…', 'جارٍ فحص ملفات المحاضرة…')
+            : tr('Coming soon. Approved lecture files have not been uploaded yet.', 'قريبًا. النسخ المعتمدة للمحاضرة لسه ما اترفعتش.')}</p>
+        </div>
+      )}
     </div>
   )
 }
