@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { anatomateYears } from '../data/anatomate'
 import { useAuth } from '../auth/AuthContext'
 import { useAdmin } from '../hooks/useAdmin'
+import { ModuleAccessGate, useModuleAccess } from '../payments/ModuleAccess'
 import { useStudentYear } from '../hooks/useStudentYear'
 
 type Flashcard = {
@@ -27,6 +28,7 @@ function getArabic() {
 export default function FlashcardsPage() {
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
+  const { hasAccess, loading: accessLoading } = useModuleAccess()
   const { year: studentYear } = useStudentYear()
   const [cards,setCards]=useState<Flashcard[]>([])
   const [reviews,setReviews]=useState<ReviewMap>({})
@@ -76,11 +78,20 @@ export default function FlashcardsPage() {
     setLoading(false)
   }
 
-  const lectures=useMemo(()=>Array.from(new Set(cards.map(c=>c.lecture_id))).sort(),[cards])
-  const topics=useMemo(()=>Array.from(new Set(cards.filter(c=>lecture==='all'||c.lecture_id===lecture).map(c=>c.topic))).sort(),[cards,lecture])
+  const lectureModuleMap=useMemo(()=>{
+    const map=new Map<string,string>()
+    for(const year of anatomateYears) for(const module of year.modules) for(const lecture of module.lectures) map.set(lecture.id,module.code)
+    return map
+  },[])
+  const accessibleCards=useMemo(()=>cards.filter(card=>{
+    const moduleCode=lectureModuleMap.get(card.lecture_id)
+    return isAdmin || Boolean(moduleCode && hasAccess(moduleCode,'mcq'))
+  }),[cards,isAdmin,hasAccess,lectureModuleMap])
+  const lectures=useMemo(()=>Array.from(new Set(accessibleCards.map(c=>c.lecture_id))).sort(),[accessibleCards])
+  const topics=useMemo(()=>Array.from(new Set(accessibleCards.filter(c=>lecture==='all'||c.lecture_id===lecture).map(c=>c.topic))).sort(),[accessibleCards,lecture])
   const weakIds=useMemo(()=>new Set(weaknesses.map(w=>w.learning_point_id)),[weaknesses])
   const weakCounts=useMemo(()=>new Map(weaknesses.map(w=>[w.learning_point_id,w.wrong_count])),[weaknesses])
-  const filtered=useMemo(()=>cards.filter(card=>{
+  const filtered=useMemo(()=>accessibleCards.filter(card=>{
     if (lecture!=='all'&&card.lecture_id!==lecture) return false
     if (topic!=='all'&&card.topic!==topic) return false
     if (reviewOnly&&reviews[card.id]!=='review') return false
@@ -96,7 +107,7 @@ export default function FlashcardsPage() {
       if (b.learning_point_id===requestedLearningPoint) return 1
     }
     return Number(weakIds.has(b.learning_point_id))-Number(weakIds.has(a.learning_point_id))
-  }),[cards,lecture,topic,query,reviewOnly,reviews,weakOnly,weakIds,requestedLearningPoint])
+  }),[accessibleCards,lecture,topic,query,reviewOnly,reviews,weakOnly,weakIds,requestedLearningPoint])
 
   useEffect(()=>{ setIndex(0); setFlipped(false) },[lecture,topic,query,reviewOnly,weakOnly,requestedLearningPoint])
   const card=filtered[index]
@@ -130,7 +141,7 @@ export default function FlashcardsPage() {
     setFlipped(false)
   }
 
-  if (loading) return <div className="page"><div className="empty">Loading flashcards…</div></div>
+  if (loading || accessLoading) return <div className="page"><div className="empty">Loading flashcards…</div></div>
 
   return (
     <div className="page flashcardspage">
@@ -166,7 +177,7 @@ export default function FlashcardsPage() {
                     <div><small>{module.code}</small><h3>{module.title}</h3></div>
                     <div className="caseaccordionmeta"><span className="mcqcount">{moduleCount}</span><ChevronRight className="caseaccordionchevron" size={20}/></div>
                   </button>
-                  {moduleOpen&&<div className="flashlecturelist">
+                  {moduleOpen&&<ModuleAccessGate moduleCode={module.code} productType="mcq"><div className="flashlecturelist">
                     {module.lectures.map(l=>{
                       const count=cards.filter(c=>c.lecture_id===l.id).length
                       if(!count) return null
@@ -174,7 +185,7 @@ export default function FlashcardsPage() {
                         <div className="lectureseq">{l.sequence}</div><div><small>{l.system}</small><strong>{l.title}</strong></div><span>{count}</span><ChevronRight size={18}/>
                       </button>
                     })}
-                  </div>}
+                  </div></ModuleAccessGate>}
                 </div>
               })}
             </div>}
