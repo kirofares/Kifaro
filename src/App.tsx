@@ -38,7 +38,7 @@ import AskAnatoMatePage from './chat/AskAnatoMatePage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
 
-type LecturePrice = 0 | 40 | 50 | 60
+type LecturePrice = 0 | 30 | 40 | 50
 
 // After a deploy the old chunk files are gone, so a tab opened before it can fail to load a lazy page.
 // Reload once to pick up the new build instead of showing the error screen.
