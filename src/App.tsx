@@ -263,6 +263,8 @@ export default function App() {
   const nav = useNavigate()
   const location = useLocation()
   const showContactChannels = location.pathname === '/' || location.pathname === '/profile'
+  const protectedScreenRoute = /^\/(anatomate\/lecture|mcq|cases|osce|spotters|viva-bank|assessments|flashcards)(\/|$)/.test(location.pathname)
+  const showSecurityWatermark = Boolean(user && !isAdmin && protectedScreenRoute)
   const metadataName = (user?.user_metadata?.full_name as string | undefined)?.trim() || ''
   const studentName = (profileName || metadataName).split(' ')[0] || ''
 
@@ -534,6 +536,14 @@ export default function App() {
         </Suspense>
       </main>
 
+      {showSecurityWatermark && user && (
+        <SecurityScreenWatermark
+          name={profileName || metadataName || user.email?.split('@')[0] || 'Student'}
+          email={user.email || 'student-account'}
+          trace={String(user.id || '').slice(0, 8).toUpperCase()}
+        />
+      )}
+
       {prefs && (
         <>
           <div className="backdrop prefs" onClick={() => setPrefs(false)} />
@@ -561,6 +571,17 @@ export default function App() {
       {toast && <div className="toast"><Check size={18} />{toast}</div>}
     </div>
     </LangProvider>
+  )
+}
+
+function SecurityScreenWatermark({ name, email, trace }: { name: string; email: string; trace: string }) {
+  const label = `${name} · ${email} · ID ${trace}`
+  return (
+    <div className="securityscreenwatermark" aria-hidden="true">
+      {Array.from({ length: 9 }, (_, index) => (
+        <span key={index}><strong>Dr. Kirolus Fares</strong><small>{label}</small></span>
+      ))}
+    </div>
   )
 }
 
