@@ -93,31 +93,78 @@ function ProtectedAssessmentImage({ itemId, mediaPath, alt }: { itemId: string; 
 function useAssessmentItems(types?: AssessmentType[]) {
   const [items, setItems] = useState<AssessmentItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [retryToken, setRetryToken] = useState(0)
+  const typeKey = types?.join('|') || ''
 
   useEffect(() => {
-    if (!supabase) {
-      setItems([])
-      setLoading(false)
-      return
+    let cancelled = false
+    const loadAll = async () => {
+      if (!supabase) {
+        if (!cancelled) {
+          setItems([])
+          setLoadError('The learning database is not configured.')
+          setLoading(false)
+        }
+        return
+      }
+
+      setLoading(true)
+      setLoadError('')
+      const pageSize = 500
+      const all: AssessmentItem[] = []
+      for (let from = 0; ; from += pageSize) {
+        let query = supabase
+          .from('assessment_items')
+          .select('id, assessment_type, year, module_code, lecture_id, title, stem, instructions, media_url, media_alt, difficulty, time_limit_seconds')
+          .eq('published', true)
+          .eq('quality_status', 'ready')
+          .order('year')
+          .order('module_code')
+          .order('created_at')
+          .order('id')
+          .range(from, from + pageSize - 1)
+        if (typeKey) query = query.in('assessment_type', typeKey.split('|') as AssessmentType[])
+
+        const { data, error } = await query
+        if (cancelled) return
+        if (error) {
+          setItems([])
+          setLoadError(error.message || 'The assessment bank could not be loaded.')
+          setLoading(false)
+          return
+        }
+        const page = (data || []) as AssessmentItem[]
+        all.push(...page)
+        if (page.length < pageSize) break
+      }
+      if (!cancelled) {
+        setItems(all)
+        setLoading(false)
+      }
     }
-    let query = supabase
-      .from('assessment_items')
-      .select('id, assessment_type, year, module_code, lecture_id, title, stem, instructions, media_url, media_alt, difficulty, time_limit_seconds')
-      .eq('published', true)
-      .eq('quality_status', 'ready')
-      .order('year')
-      .order('module_code')
-      .order('created_at')
-
-    if (types?.length) query = query.in('assessment_type', types)
-
-    query.then(({ data }) => {
-      setItems((data || []) as AssessmentItem[])
-      setLoading(false)
+    void loadAll().catch((err: unknown) => {
+      if (!cancelled) {
+        setItems([])
+        setLoadError(err instanceof Error ? err.message : 'The assessment bank could not be loaded.')
+        setLoading(false)
+      }
     })
-  }, [types?.join('|')])
+    return () => { cancelled = true }
+  }, [typeKey, retryToken])
 
-  return { items, loading }
+  return { items, loading, loadError, retry: () => setRetryToken((value) => value + 1) }
+}
+
+function AssessmentLoadError({ message, retry }: { message: string; retry: () => void }) {
+  const tr = useTr()
+  return (
+    <div className="assessmentempty">
+      <p>{tr('Could not load assessments. Check your connection and retry.', 'تعذر تحميل التقييمات. راجع اتصالك بالإنترنت وحاول مجددًا.')}</p>
+      <small>{message}</small>
+      <div><button type="button" className="secondary" onClick={retry}><RotateCcw size={16}/>{tr('Retry', 'إعادة المحاولة')}</button></div>
+    </div>
+  )
 }
 
 function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productType }: {
@@ -133,7 +180,7 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
-  const { items, loading } = useAssessmentItems(types)
+  const { items, loading, loadError, retry } = useAssessmentItems(types)
   const [openYears, setOpenYears] = useState<Set<number>>(new Set())
   const [openModules, setOpenModules] = useState<Set<string>>(new Set())
 
@@ -172,7 +219,7 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
         </div>
       </div>
 
-      {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : (visibleItems.length || Boolean(productType)) ? (
+      {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : loadError ? <AssessmentLoadError message={loadError} retry={retry} /> : (visibleItems.length || Boolean(productType)) ? (
         <div className="assessmentyears">
           {visibleYears.map((year) => {
             const yearItems = visibleItems.filter((item) => item.year === year.year)
@@ -275,7 +322,7 @@ export function CasesPage() {
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
-  const { items, loading } = useAssessmentItems(['case'])
+  const { items, loading, loadError, retry } = useAssessmentItems(['case'])
   const [openYears, setOpenYears] = useState<Set<number>>(new Set())
   const [openModules, setOpenModules] = useState<Set<string>>(new Set())
   const caseItems = items.filter((item) => item.assessment_type === 'case')
@@ -304,6 +351,8 @@ export function CasesPage() {
 
       {loading ? (
         <div className="assessmentempty">{tr('Loading cases…', 'جارٍ تحميل الحالات…')}</div>
+      ) : loadError ? (
+        <AssessmentLoadError message={loadError} retry={retry} />
       ) : (
         <div className="caseyears">
           {visibleYears.map((year) => {
@@ -417,7 +466,7 @@ export function OSCEPage() {
   const { user } = useAuth()
   const { isAdmin } = useAdmin(user?.id)
   const { year: studentYear } = useStudentYear()
-  const { items, loading } = useAssessmentItems(['osce','ospe'])
+  const { items, loading, loadError, retry } = useAssessmentItems(['osce','ospe'])
   const [openYears, setOpenYears] = useState<Set<number>>(new Set())
   const [openModules, setOpenModules] = useState<Set<string>>(new Set())
   const visibleYears = isAdmin
@@ -436,7 +485,7 @@ export function OSCEPage() {
         </div>
       </div>
 
-      {loading ? <div className="assessmentempty">{tr('Loading stations…', 'جارٍ تحميل المحطات…')}</div> : (
+      {loading ? <div className="assessmentempty">{tr('Loading stations…', 'جارٍ تحميل المحطات…')}</div> : loadError ? <AssessmentLoadError message={loadError} retry={retry} /> : (
         <div className="assessmentyears">
           {visibleYears.map((year) => {
             const yearItems = items.filter((item) => item.year === year.year)
