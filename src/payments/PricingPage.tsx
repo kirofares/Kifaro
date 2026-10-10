@@ -52,12 +52,6 @@ export default function PricingPage() {
     cases: tr('Clinical Cases', 'الحالات السريرية'),
     osce: tr('OSCE, OSPE & Spotters', 'محطات OSCE وOSPE وSpotters'),
   }
-  const paths: Record<Offer['product_type'], string> = {
-    mcq: '/mcq',
-    cases: '/cases',
-    osce: '/osce',
-  }
-
   return (
     <div className="page pricingpage">
       <div className="pagehead">
