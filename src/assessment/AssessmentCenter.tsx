@@ -133,11 +133,11 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
         </div>
       </div>
 
-      {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : visibleItems.length ? (
+      {loading ? <div className="assessmentempty">{tr('Loading assessments…', 'جارٍ تحميل التقييمات…')}</div> : (visibleItems.length || Boolean(productType)) ? (
         <div className="assessmentyears">
           {visibleYears.map((year) => {
             const yearItems = visibleItems.filter((item) => item.year === year.year)
-            if (!yearItems.length) return null
+            if (!yearItems.length && !productType) return null
             const yearOpen = openYears.has(year.year)
             return (
               <section className={yearOpen ? 'assessmentyear open' : 'assessmentyear'} key={year.year}>
@@ -163,7 +163,8 @@ function AssessmentListPage({ types, titleEn, titleAr, bodyEn, bodyAr, productTy
                   <div className="assessmentmodules">
                     {year.modules.map((module) => {
                       const moduleItems = yearItems.filter((item) => item.module_code === module.code)
-                      if (!moduleItems.length) return null
+                      if (module.code === 'ORIENTATION') return null
+                      if (!moduleItems.length && !productType) return null
                       const moduleKey = year.year + ':' + module.slug + ':' + titleEn
                       const moduleOpen = openModules.has(moduleKey)
                       return (
@@ -400,7 +401,6 @@ export function OSCEPage() {
         <div className="assessmentyears">
           {visibleYears.map((year) => {
             const yearItems = items.filter((item) => item.year === year.year)
-            if (!yearItems.length) return null
             const yearOpen = openYears.has(year.year)
             return (
               <section className={yearOpen ? 'assessmentyear open' : 'assessmentyear'} key={year.year}>
@@ -426,7 +426,7 @@ export function OSCEPage() {
                   <div className="assessmentmodules">
                     {year.modules.map((module) => {
                       const moduleItems = yearItems.filter((item) => item.module_code === module.code)
-                      if (!moduleItems.length) return null
+                      if (module.code === 'ORIENTATION') return null
                       const moduleKey = year.year + ':' + module.slug + ':osce'
                       const moduleOpen = openModules.has(moduleKey)
                       return (
