@@ -301,7 +301,7 @@ export function AssessmentCenterPage() {
     { path: '/mcq', icon: <FileQuestion />, title: tr('MCQ Bank', 'بنك MCQ'), body: tr('Lecture-based questions with mastery tracking and weak-topic reports.', 'أسئلة حسب المحاضرة مع قياس المستوى وتحديد نقاط الضعف.') },
     { path: '/cases', icon: <Activity />, title: tr('Clinical Cases', 'الحالات السريرية'), body: tr('Apply anatomy to short clinical scenarios and localization.', 'طبّق التشريح على سيناريوهات سريرية قصيرة وتحديد موضع المشكلة.') },
     { path: '/osce', icon: <Stethoscope />, title: 'OSCE / OSPE', body: tr('Timed stations, practical checklists and structured self-assessment.', 'محطات بوقت وقوائم تقييم عملية وتقييم ذاتي منظم.') },
-    { path: '/spotters', icon: <Eye />, title: tr('Image Spotters', 'السبوتر والصور'), body: tr('Identify structures on images, specimens and radiology-style prompts.', 'تعرّف على التراكيب من الصور والعينات والأسئلة الشبيهة بالأشعة.') },
+    { path: '/spotters', icon: <Eye />, title: tr('Image Spotters', 'السبوتر والصور'), body: tr('Practice structure identification with simplified schematic drawings; these are not specimen photographs.', 'تدرّب على تحديد التراكيب برسومات تخطيطية مبسطة، وليست صور عينات تشريحية حقيقية.') },
     { path: '/viva-bank', icon: <FileQuestion />, title: tr('Viva', 'الفايفا'), body: tr('Oral-style recall with structured criteria and hints.', 'أسئلة شفهية منظمة مع معايير تقييم وتلميحات.') },
   ]
 
@@ -570,7 +570,7 @@ export function OSCEPage() {
 }
 
 export function SpottersPage() {
-  return <AssessmentListPage types={['spotter']} titleEn="Image Spotters" titleAr="السبوتر والصور" bodyEn="Practice recognition of structures from images, specimens and labeled views." bodyAr="تدرب على التعرف على التراكيب من الصور والعينات والمناظر التشريحية." productType="osce" />
+  return <AssessmentListPage types={['spotter']} titleEn="Image Spotters" titleAr="السبوتر والصور" bodyEn="Identify anatomy from simplified schematic illustrations. Current images are study aids, not real anatomical specimens." bodyAr="تدرّب على تحديد التراكيب من رسومات تشريحية تخطيطية مبسطة. الصور الحالية وسائل مراجعة وليست صور عينات تشريحية حقيقية." productType="osce" />
 }
 
 export function VivaBankPage() {
