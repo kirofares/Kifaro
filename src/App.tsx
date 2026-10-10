@@ -11,7 +11,7 @@ import { getStudyResources, type StudyResource } from './data/anatomate/studyRes
 import { isLectureAvailable } from './data/anatomate/availability'
 import { getVivaDeck } from './viva/content'
 import './viva/viva.css'
-import NursingPage, { NursingYearPage, NursingModulePage } from './nursing/NursingPage'
+import NursingPage, { NursingLecturePage } from './nursing/NursingPage'
 import AuthPage from './auth/AuthPage'
 import ProfilePage from './auth/ProfilePage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
@@ -492,8 +492,10 @@ export default function App() {
           {/* The admin dashboard is English-only, so keep it left-to-right even in Arabic mode. */}
           <Route path="/admin" element={<div dir="ltr" lang="en"><AdminPage /></div>} />
           <Route path="/nursing" element={<NursingPage />} />
-          <Route path="/nursing/year/:year" element={<NursingYearPage />} />
-          <Route path="/nursing/year/:year/module/:module" element={<NursingModulePage />} />
+          <Route path="/nursing/lecture/:number" element={<NursingLecturePage />} />
+          {/* Keep old shared Nursing year links functional while removing the year hierarchy. */}
+          <Route path="/nursing/year/:year" element={<Navigate to="/nursing" replace />} />
+          <Route path="/nursing/year/:year/module/:module" element={<Navigate to="/nursing" replace />} />
           <Route path="/curriculum" element={medicineOnly(<Curriculum lectures={filtered} go={nav} />)} />
           <Route path="/anatomate" element={medicineOnly(<AnatoMate t={t} go={nav} />)} />
           <Route path="/anatomate/year/:year/module/:module" element={medicineOnly(<ModulePage progress={progress} update={update} flash={flash} t={t} />)} />
@@ -887,8 +889,8 @@ function AnatoMate({ t, go }: { t: any; go: (path: string) => void }) {
               <button className="modulecard" onClick={() => go('/nursing')}>
                 <div>
                   <small>KIFARO · NURSING</small>
-                  <h3>{tr('Browse Nursing Years', 'عرض الفرق الدراسية للتمريض')}</h3>
-                  <p>{tr('Year 1–4, nursing modules and upcoming lectures.', 'الفرق من الأولى للرابعة، وموديولات ومحاضرات التمريض.')}</p>
+                  <h3>{tr('Browse Nursing Lectures', 'عرض محاضرات التمريض')}</h3>
+                  <p>{tr('Anatomy course with 23 lectures, all in one place.', 'منهج التشريح في ٢٣ محاضرة، كلها في صفحة واحدة.')}</p>
                 </div>
                 <ChevronRight className="dirarrow" />
               </button>
