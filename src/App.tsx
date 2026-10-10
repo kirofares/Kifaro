@@ -754,6 +754,14 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
               <button className="lightbtn" type="button" onClick={() => go('/anatomate')}>{lang === 'ar' ? 'ابدأ بمحاضرة مجانية' : 'Explore free lectures'}<ChevronRight size={17} className="dirarrow" /></button>
               <button className="lightbtn" type="button" onClick={() => go('/pricing')}>{lang === 'ar' ? 'الأسعار والمحتوى' : 'Prices and content'}<ChevronRight size={17} className="dirarrow" /></button>
               <button className="lightbtn" type="button" onClick={() => go('/login')}>{lang === 'ar' ? 'إنشاء حساب / دخول' : 'Sign up / Log in'}</button>
+              {showAndroidDownload && (
+                <div className="downloadappgroup">
+                  <a className="lightbtn downloadappbtn" href={latestApkUrl} target="_self" rel="noreferrer"><Download size={17}/>{t.downloadAndroid}</a>
+                  <a className="downloadfallback" href={latestReleasePage} target="_blank" rel="noreferrer">
+                    {lang === 'ar' ? 'لو التحميل علّق، افتح صفحة الإصدار' : 'If download stalls, open the release page'}
+                  </a>
+                </div>
+              )}
             </div>
           </div>
           <Microscope className="heroicon" />
