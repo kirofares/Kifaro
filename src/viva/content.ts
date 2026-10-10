@@ -4,7 +4,7 @@ export type VivaQuestion = {
   prompt: VivaText
   hint: VivaText
   criteria: VivaText[]
-  source: { section: string; slide: number; excerpt: string }
+  source: { section: string; slide?: number; excerpt: string }
 }
 export type VivaDeck = {
   id: string
@@ -18,8 +18,6 @@ export type VivaDeck = {
 // read on 2026-10-04. These are adapted recall prompts, not AI-generated
 // grading rules. Slide numbers belong to THIS source edition only; the live
 // protected PDF can be a different edition, so do not deep-link its pages.
-// Only this free pilot is enabled. Do not derive answer keys from objectives
-// or publish additional decks without checking their actual lecture source.
 export const introViva: VivaDeck = {
   id: 'introduction-to-anatomy-v1',
   version: 1,
@@ -86,4 +84,38 @@ export const introViva: VivaDeck = {
 
 export function getVivaDeck(lectureId: string): VivaDeck | undefined {
   return lectureId === introViva.lectureId ? introViva : undefined
+}
+
+
+export type VivaFlashcardRow = {
+  id: string
+  topic: string
+  subtopic: string | null
+  front: string
+  back: string
+}
+
+export function buildVivaDeckFromFlashcards(lectureId: string, rows: VivaFlashcardRow[]): VivaDeck | undefined {
+  const selected = rows.slice(0, 5)
+  if (!selected.length) return undefined
+
+  return {
+    id: lectureId + '-learning-points-v1',
+    version: 1,
+    lectureId,
+    sourceFilename: 'KIFARO curated anatomy learning points',
+    questions: selected.map((row) => ({
+      id: row.id,
+      prompt: { en: row.front, ar: row.front },
+      hint: {
+        en: 'Think about ' + row.topic + (row.subtopic ? ' → ' + row.subtopic : '') + '.',
+        ar: 'راجع الفكرة: ' + row.topic + (row.subtopic ? ' → ' + row.subtopic : '') + '.',
+      },
+      criteria: [{ en: row.back, ar: row.back }],
+      source: {
+        section: row.subtopic || row.topic,
+        excerpt: row.back,
+      },
+    })),
+  }
 }
