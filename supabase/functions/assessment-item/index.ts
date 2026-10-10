@@ -21,10 +21,8 @@ async function canAccess(adminClient: any, userId: string, item: any, isAdmin: b
     .maybeSingle()
 
   if (!profile || Number(profile.medical_year) !== Number(item.year)) return false
-  if (item.assessment_type === 'spotter') return true
-
   const productType = item.assessment_type === 'case' ? 'cases'
-    : ['osce','ospe'].includes(item.assessment_type) ? 'osce'
+    : ['osce','ospe','spotter'].includes(item.assessment_type) ? 'osce'
     : null
   if (!productType) return false
 
