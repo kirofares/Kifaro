@@ -6,7 +6,6 @@ import { publicAssetUrl } from '../lib/publicAssetUrl'
 import { useAuth } from '../auth/AuthContext'
 import { useLang, useTr } from '../i18n'
 import { anatomateLectures, anatomateYears } from '../data/anatomate'
-import { getVivaDeck } from '../viva/content'
 import { ModuleAccessGate, ModuleProductSummary, type ModuleProductType } from '../payments/ModuleAccess'
 import { useStudentYear } from '../hooks/useStudentYear'
 import { useAdmin } from '../hooks/useAdmin'
@@ -494,7 +493,7 @@ export function VivaBankPage() {
   const { year: studentYear } = useStudentYear()
   const [openYears, setOpenYears] = useState<Set<number>>(new Set())
   const [openModules, setOpenModules] = useState<Set<string>>(new Set())
-  const lectures = anatomateLectures.filter((lecture) => (isAdmin || !studentYear || lecture.year === studentYear) && Boolean(getVivaDeck(lecture.id)))
+  const lectures = anatomateLectures.filter((lecture) => (isAdmin || !studentYear || lecture.year === studentYear) && lecture.module !== 'ORIENTATION')
   const visibleYears = isAdmin ? anatomateYears : studentYear ? anatomateYears.filter((year) => year.year === studentYear) : anatomateYears
 
   return (
@@ -521,9 +520,9 @@ export function VivaBankPage() {
                     <div><small>{module.code}</small><h3>{module.title}</h3></div>
                     <div className="caseaccordionmeta"><span className="mcqcount">{moduleLectures.length}</span><ChevronRight className="caseaccordionchevron" size={20}/></div>
                   </button>
-                  {moduleOpen && <div className="assessmentmodulecontent"><div className="assessmentcards">
+                  {moduleOpen && <div className="assessmentmodulecontent"><ModuleAccessGate moduleCode={module.code} productType="mcq"><div className="assessmentcards">
                     {moduleLectures.map((lecture) => <button key={lecture.id} className="assessmentcard" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/viva')}><div className="assessmenticon"><FileQuestion /></div><div className="grow"><small>{module.code}</small><h3>{lecture.title}</h3><p>{tr('Open viva practice', 'افتح تدريب الفايفا')}</p></div><ChevronRight /></button>)}
-                  </div></div>}
+                  </div></ModuleAccessGate></div>}
                 </div>
               })}
             </div>}
