@@ -1286,3 +1286,19 @@ html[dir="rtl"] .flashyearhead,html[dir="rtl"] .flashmodulehead,html[dir="rtl"] 
 .nursinglecturecard .grow{min-width:0}
 .nursinglecturecard h3{overflow-wrap:anywhere}
 .nursinglecturecard .productionchip{margin-top:4px}
+
+
+/* Transparent student-facing assessment catalogue */
+.pricinginformation{display:grid;gap:10px;margin:0 0 24px}
+.pricinginformation p{display:flex;align-items:flex-start;gap:10px;margin:0;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);line-height:1.6}
+.pricinginformation svg{flex:none;margin-top:2px}
+.pricingyearsections{display:grid;gap:22px}
+.pricinggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,285px),1fr));gap:16px}
+.pricingmodule{display:flex;flex-direction:column;gap:10px;min-width:0;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface,#fff)}
+.pricingmodulehead{display:flex;align-items:center;gap:10px}
+.pricingmodulehead h3{margin:0}
+.pricingrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.pricingrow>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.pricingrow small{font-size:12px;color:var(--muted)}
+.pricingrow>span{font-weight:800;white-space:nowrap}
+.pricingmodule .secondary{align-self:stretch;margin-top:auto}
