@@ -85,16 +85,21 @@ function usePublishedModuleMCQCounts() {
   useEffect(() => {
     if (!supabase) return
     let active = true
-    void supabase.rpc('get_public_module_prices').then(({ data, error }) => {
-      if (!active || error) return
-      const next = new Map<string, number>()
-      for (const item of data || []) {
-        if (item.product_type === 'mcq') {
-          next.set(String(item.academic_year) + ':' + item.module_code, Number(item.question_count) || 0)
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_public_module_prices')
+        if (!active || error) return
+        const next = new Map<string, number>()
+        for (const item of data || []) {
+          if (item.product_type === 'mcq') {
+            next.set(String(item.academic_year) + ':' + item.module_code, Number(item.question_count) || 0)
+          }
         }
+        setCounts(next)
+      } catch {
+        // Unknown is better than an invented number.
       }
-      setCounts(next)
-    }).catch(() => { /* Unknown is better than an invented number. */ })
+    })()
     return () => { active = false }
   }, [])
   return counts
