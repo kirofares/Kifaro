@@ -32,6 +32,7 @@ import { useMCQBank } from './mcq/useMCQBank'
 import { AssessmentCenterPage, AssessmentItemPage, CasesPage, OSCEPage, SpottersPage, VivaBankPage } from './assessment/AssessmentCenter'
 import ProgressPage from './progress/ProgressPage'
 import ManualPaymentPage from './payments/ManualPaymentPage'
+import PricingPage from './payments/PricingPage'
 import AskAnatoMatePage from './chat/AskAnatoMatePage'
 
 type Theme = 'blue' | 'teal' | 'violet' | 'forest'
@@ -506,6 +507,7 @@ export default function App() {
           <Route path="/anatomate/lecture/:slug/video" element={medicineOnly(<ProtectedVideoPlayer />)} />
           <Route path="/checkout/:slug" element={medicineOnly(<CheckoutPage />)} />
           <Route path="/manual-payment" element={<ManualPaymentPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/ask" element={<AskAnatoMatePage />} />\n          <Route path="/payment/return" element={<PaymentReturnPage />} />
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
@@ -712,6 +714,7 @@ function ProductionChip() {
 }
 
 function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkUrl, latestReleasePage }: { t: any; lang: Lang; lectures: any[]; allLectures: any[]; go: (path: string) => void; studentName: string; latestApkUrl: string; latestReleasePage: string }) {
+  const { user } = useAuth()
   const availableLectures = allLectures.filter((lecture) => lecture.available)
   const active = availableLectures.filter((lecture) => lecture.progress > 0 && !lecture.completed)
   const favorites = allLectures.filter((lecture) => lecture.favorite)
@@ -738,7 +741,34 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
 
   return (
     <div className="page">
-      <PageHead eyebrow={dateLabel} title={studentName ? greeting + t.nameSep + studentName : greeting} body={t.subtitle} />
+      {!user ? (
+        <section className="hero">
+          <div>
+            <span className="pill">ANATOMATE BY KIFARO</span>
+            <h2>{t.anatomyTitle}</h2>
+            <p>{t.anatomyBody}</p>
+            <p>{lang === 'ar'
+              ? 'محاضرات منظمة حسب السنة والموديول، وأسئلة MCQ وحالات سريرية وتدريب عملي. ابدأ بالمحاضرة المجانية وشوف الأسعار وعدد الأسئلة قبل الدفع.'
+              : 'Anatomy by year and module, with MCQs, clinical cases and practical stations. Start with a free lecture, and check prices and question counts before paying.'}</p>
+            <div className="heroactions">
+              <button className="lightbtn" type="button" onClick={() => go('/anatomate')}>{lang === 'ar' ? 'ابدأ بمحاضرة مجانية' : 'Explore free lectures'}<ChevronRight size={17} className="dirarrow" /></button>
+              <button className="lightbtn" type="button" onClick={() => go('/pricing')}>{lang === 'ar' ? 'الأسعار والمحتوى' : 'Prices and content'}<ChevronRight size={17} className="dirarrow" /></button>
+              <button className="lightbtn" type="button" onClick={() => go('/login')}>{lang === 'ar' ? 'إنشاء حساب / دخول' : 'Sign up / Log in'}</button>
+              {showAndroidDownload && (
+                <div className="downloadappgroup">
+                  <a className="lightbtn downloadappbtn" href={latestApkUrl} target="_self" rel="noreferrer"><Download size={17}/>{t.downloadAndroid}</a>
+                  <a className="downloadfallback" href={latestReleasePage} target="_blank" rel="noreferrer">
+                    {lang === 'ar' ? 'لو التحميل علّق، افتح صفحة الإصدار' : 'If download stalls, open the release page'}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+          <Microscope className="heroicon" />
+        </section>
+      ) : (
+        <PageHead eyebrow={dateLabel} title={studentName ? greeting + t.nameSep + studentName : greeting} body={t.subtitle} />
+      )}
       <div className="dashgrid">
         <div>
           <section className="section">
@@ -755,6 +785,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
             </div>
           </section>
 
+          {user && (
           <section className="hero">
             <div>
               <span className="pill">ANATOMATE BY KIFARO</span>
@@ -776,6 +807,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
             </div>
             <Microscope className="heroicon" />
           </section>
+          )}
 
           <DashboardSocialLinks />
 
