@@ -87,6 +87,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const path = String(question.image_url).slice('private:'.length)
+
+    const { data: protectedAsset } = await adminClient
+      .from('protected_media_assets')
+      .select('mime_type,content')
+      .eq('asset_key', path)
+      .maybeSingle()
+
+    if (protectedAsset?.content) {
+      const bytes = new TextEncoder().encode(String(protectedAsset.content))
+      let binary = ''
+      for (const byte of bytes) binary += String.fromCharCode(byte)
+      return json({
+        url: 'data:' + String(protectedAsset.mime_type || 'image/svg+xml') + ';base64,' + btoa(binary),
+        expiresIn: 0,
+      })
+    }
+
     const { data: signed, error: signedError } = await adminClient.storage.from('mcq-images').createSignedUrl(path, 300)
     if (signedError || !signed?.signedUrl) return json({ error: signedError?.message || 'Could not open image' }, 500)
 
