@@ -27,7 +27,11 @@ const NURSING_YEARS: { year: number; modules: NursingModule[] }[] = [
       titleAr: 'التشريح العام للتمريض',
       description: 'Anatomy foundations for first-year nursing students. Course material is being prepared and reviewed.',
       descriptionAr: 'أساسيات التشريح لطلبة الفرقة الأولى تمريض. يجري إعداد ومراجعة المادة العلمية.',
-      lectures: [{ title: 'Introduction to Anatomy', titleAr: 'مقدمة في علم التشريح' }],
+      lectures: [
+        { title: 'Anatomical Terminology, Body Regions & Cavities', titleAr: 'مصطلحات الجسم والمناطق والتجاويف' },
+        { title: 'Skin, Fascia & Body Tissues', titleAr: 'الجلد والأنسجة واللفافات' },
+        { title: 'Bones & the Skeletal System', titleAr: 'العظام والجهاز الهيكلي' },
+      ],
     }],
   },
   { year: 2, modules: [] },
@@ -103,7 +107,7 @@ export default function NursingPage() {
               {item.modules.length ? item.modules.map((module) => (
                 <button className="modulecard" key={module.slug} onClick={() => navigate('/nursing/year/' + item.year + '/module/' + module.slug)}>
                   <div>
-                    <small>{module.code} · {module.lectures.length} {tr('planned lecture', 'محاضرة تحت الإعداد')}</small>
+                    <small>{module.code} · {module.lectures.length} {tr('planned lectures', 'محاضرات تحت الإعداد')}</small>
                     <h3>{tr(module.title, module.titleAr)}</h3>
                     <p>{tr(module.description, module.descriptionAr)}</p>
                     <span className="productionchip">{tr('Coming soon', 'قريبًا')}</span>
