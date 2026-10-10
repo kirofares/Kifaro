@@ -51,6 +51,45 @@ type AssessmentItem = {
   content: AssessmentContent
 }
 
+
+function ProtectedAssessmentImage({ itemId, mediaPath, alt }: { itemId: string; mediaPath: string; alt: string }) {
+  const [url, setUrl] = useState('')
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setFailed(false)
+
+    if (!mediaPath.startsWith('private:')) {
+      setUrl(publicAssetUrl(mediaPath) || '')
+      return () => { active = false }
+    }
+
+    if (!supabase) {
+      setFailed(true)
+      setUrl('')
+      return () => { active = false }
+    }
+
+    supabase.functions.invoke('assessment-media-access', { body: { itemId } })
+      .then(({ data, error }) => {
+        if (!active) return
+        if (error || data?.error || !data?.url) {
+          setFailed(true)
+          setUrl('')
+          return
+        }
+        setUrl(String(data.url))
+      })
+
+    return () => { active = false }
+  }, [itemId, mediaPath])
+
+  if (failed) return <div className="assessmentempty">Protected image could not be loaded.</div>
+  if (!url) return <div className="assessmentempty">Loading protected image…</div>
+  return <img src={url} alt={alt} loading="lazy" />
+}
+
 function useAssessmentItems(types?: AssessmentType[]) {
   const [items, setItems] = useState<AssessmentItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -644,7 +683,7 @@ export function AssessmentItemPage() {
         <>
           <section className="stationstem">
             <p>{item.stem}</p>
-            {shouldShowMedia && <figure><img src={publicAssetUrl(item.media_url) || ''} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
+            {shouldShowMedia && item.media_url && <figure><ProtectedAssessmentImage itemId={item.id} mediaPath={item.media_url} alt={item.media_alt || item.title}/>{item.media_alt && <figcaption>{item.media_alt}</figcaption>}</figure>}
           </section>
 
           {questions.length > 0 && <div className="stationquestions">
