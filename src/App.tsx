@@ -86,7 +86,7 @@ function compareVersions(a: string, b: string) {
 
 function getLecturePrice(lecture: { status: string; duration: number; system: string }, setting?: LectureSetting): LecturePrice {
   if (setting?.access_mode === 'free' || lecture.status === 'free' && setting?.access_mode !== 'paid') return 0
-  if (setting?.price_egp === 40 || setting?.price_egp === 50 || setting?.price_egp === 60) return setting.price_egp
+  if (setting?.price_egp === 30 || setting?.price_egp === 40 || setting?.price_egp === 50) return setting.price_egp
 
   const premiumSystems = new Set([
     'Neuroanatomy',
@@ -96,12 +96,10 @@ function getLecturePrice(lecture: { status: string; duration: number; system: st
     'Head & Neck Anatomy',
   ])
 
-  // 60 EGP for long lectures or clinically/core-system heavy topics.
-  if (lecture.duration >= 55 || premiumSystems.has(lecture.system)) return 60
-  // 50 EGP for standard full lectures.
-  if (lecture.duration >= 45) return 50
-  // 40 EGP for shorter focused lectures.
-  return 40
+  // Public AnatoMate lecture pricing: 30–50 EGP for video.
+  if (lecture.duration >= 55 || premiumSystems.has(lecture.system)) return 50
+  if (lecture.duration >= 45) return 40
+  return 30
 }
 
 
@@ -1369,7 +1367,7 @@ function CheckoutPage() {
   }
 
   const basePrice = getLecturePrice(lecture, lectureSetting)
-  const datashowBasePrice = Math.max(30, basePrice)
+  const datashowBasePrice = 30
   const videoOffer = offerFor(lecture.id, basePrice, 'video')
   const datashowOffer = offerFor(lecture.id, datashowBasePrice, 'datashow')
   const bundleOffer = offerFor(lecture.id, basePrice + datashowBasePrice, 'bundle')
