@@ -192,7 +192,10 @@ function useNursingLectureFiles(lectureId?: string) {
     let blob: Blob
     if (data instanceof Blob) blob = data
     else if (data instanceof ArrayBuffer) blob = new Blob([data], { type: 'application/pdf' })
-    else if (ArrayBuffer.isView(data)) blob = new Blob([new Uint8Array(data.buffer, data.byteOffset, data.byteLength)], { type: 'application/pdf' })
+    else if (ArrayBuffer.isView(data)) {
+      const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+      blob = new Blob([bytes.slice().buffer], { type: 'application/pdf' })
+    }
     else throw new Error('Could not load protected PDF.')
 
     const url = URL.createObjectURL(blob)
