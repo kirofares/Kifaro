@@ -95,11 +95,19 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
 
     if (protectedAsset?.content) {
-      const bytes = new TextEncoder().encode(String(protectedAsset.content))
+      const stored = String(protectedAsset.content)
+      const mime = String(protectedAsset.mime_type || 'image/svg+xml')
+      if (stored.startsWith('base64:')) {
+        return json({
+          url: 'data:' + mime + ';base64,' + stored.slice('base64:'.length),
+          expiresIn: 0,
+        })
+      }
+      const bytes = new TextEncoder().encode(stored)
       let binary = ''
       for (const byte of bytes) binary += String.fromCharCode(byte)
       return json({
-        url: 'data:' + String(protectedAsset.mime_type || 'image/svg+xml') + ';base64,' + btoa(binary),
+        url: 'data:' + mime + ';base64,' + btoa(binary),
         expiresIn: 0,
       })
     }
