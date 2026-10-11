@@ -12,18 +12,6 @@
     <link rel="icon" href="./icons/anatomate-icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icons/anatomate-icon.svg" />
     <title>AnatoMate by KIFARO</title>
-    <script>
-      // Restore deep links redirected by GitHub Pages 404 before React Router boots.
-      (function () {
-        try {
-          var target = sessionStorage.getItem('kifaro-spa-redirect');
-          if (target) {
-            sessionStorage.removeItem('kifaro-spa-redirect');
-            history.replaceState(null, '', target);
-          }
-        } catch (_) {}
-      })();
-    </script>
     <meta name="description" content="AnatoMate by KIFARO — visual, clinically connected anatomy lectures for undergraduate medical students, in English and Arabic." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KIFARO" />
