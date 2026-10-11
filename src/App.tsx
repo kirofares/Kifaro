@@ -1073,7 +1073,7 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
   const bankCount = countsByLecture.get(lecture.id) || 0
   const bundleAvailable = videoAvailable && datashowAvailable
   const videoBasePrice = getLecturePrice(lecture, lectureSetting)
-  const datashowBasePrice = lecture.status === 'free' ? 0 : Math.max(30, videoBasePrice)
+  const datashowBasePrice = lecture.status === 'free' ? 0 : 30
   const bundleBasePrice = videoBasePrice + datashowBasePrice
   const videoOffer = offerFor(lecture.id, videoBasePrice, 'video')
   const datashowOffer = offerFor(lecture.id, datashowBasePrice, 'datashow')
@@ -1203,11 +1203,13 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           )}
 
           <div className="datashowcard">
-            <div className="availableformats">
-              <span><FileText size={15} /> PPT / Datashow</span>
-              <span><FileText size={15} /> PDF</span>
-              <small>{tr('Both formats are included in Datashow access. Originals remain private.', 'الـPPT والـPDF داخل وصول الداتاشو، والملفات الأصلية تظل خاصة.')}</small>
-            </div>
+            {datashowAvailable && (
+              <div className="availableformats">
+                <span><FileText size={15} /> PPT / Datashow</span>
+                {readiness?.has_pdf && <span><FileText size={15} /> PDF</span>}
+                <small>{tr('Available protected formats. Originals remain private.', 'الصيغ المحمية المتاحة. الملفات الأصلية تظل خاصة.')}</small>
+              </div>
+            )}
             <div className="datashowcardhead">
               <BookOpen size={24} />
               <div><strong>{tr('PPT / Datashow', 'PPT / الداتاشو')}</strong><small>{tr('Protected PowerPoint-style slide viewer · watermarked', 'عارض شرائح PowerPoint محمي · بعلامة مائية')}</small></div>
@@ -1280,10 +1282,17 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           {isAdmin && (
             <div className="adminoriginals">
               <small>{tr('ADMIN ORIGINAL FILES', 'الملفات الأصلية (للإدارة)')}</small>
-              <div className="adminquick">
-                <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>{tr('Original PDF', 'ملف PDF الأصلي')}</button>
-                <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>{tr('Original PowerPoint', 'ملف PowerPoint الأصلي')}</button>
-              </div>
+              {(readiness?.has_pdf || readiness?.has_pptx) ? (
+                <div className="adminquick">
+                  {readiness?.has_pdf && <button className="secondary" onClick={() => void openProtectedAsset('pdf')}>{tr('Original PDF', 'ملف PDF الأصلي')}</button>}
+                  {readiness?.has_pptx && <button className="secondary" onClick={() => void openProtectedAsset('pptx')}>{tr('Original PowerPoint', 'ملف PowerPoint الأصلي')}</button>}
+                </div>
+              ) : (
+                <div className="authmessage">
+                  {tr('No original PDF/PPT is linked to this lecture yet.', 'لا يوجد PDF/PPT أصلي مربوط بهذه المحاضرة حتى الآن.')}
+                  {' '}<bdi>{lecture.id}</bdi>
+                </div>
+              )}
             </div>
           )}
 
