@@ -96,12 +96,21 @@ Deno.serve(async (req: Request) => {
     if (assetError) return json({ error: assetError.message }, 400)
     if (!asset?.content) return json({ error: 'Protected image not found' }, 404)
 
-    const bytes = new TextEncoder().encode(String(asset.content))
+    const stored = String(asset.content)
+    const mime = String(asset.mime_type || 'image/svg+xml')
+    if (stored.startsWith('base64:')) {
+      return json({
+        url: 'data:' + mime + ';base64,' + stored.slice('base64:'.length),
+        expiresIn: 0,
+      })
+    }
+
+    const bytes = new TextEncoder().encode(stored)
     let binary = ''
     for (const byte of bytes) binary += String.fromCharCode(byte)
 
     return json({
-      url: 'data:' + String(asset.mime_type || 'image/svg+xml') + ';base64,' + btoa(binary),
+      url: 'data:' + mime + ';base64,' + btoa(binary),
       expiresIn: 0,
     })
   } catch (error) {
