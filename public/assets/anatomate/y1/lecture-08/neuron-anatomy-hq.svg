@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 810">
+<rect width="1440" height="810" fill="#f8fbfd"/><text x="60" y="70" font-family="Arial" font-size="40" font-weight="700" fill="#0b2a3d">Neuron Anatomy — Exam Visual</text>
+<g transform="translate(80 120)">
+<circle cx="280" cy="280" r="105" fill="#f0c7d8" stroke="#8b5e77" stroke-width="8"/><circle cx="280" cy="280" r="35" fill="#7c3aed"/>
+<g stroke="#8b5e77" stroke-width="16" fill="none" stroke-linecap="round"><path d="M220 210Q120 90 45 65"/><path d="M195 270Q95 230 30 205"/><path d="M210 335Q120 430 45 470"/><path d="M245 190Q210 90 205 30"/></g>
+<line x1="385" y1="280" x2="1020" y2="280" stroke="#d97d66" stroke-width="22"/>
+<g fill="#f0d85a" stroke="#c5ad2e" stroke-width="3"><rect x="470" y="240" width="105" height="80" rx="38"/><rect x="620" y="240" width="105" height="80" rx="38"/><rect x="770" y="240" width="105" height="80" rx="38"/></g>
+<path d="M1020 280Q1110 200 1210 160M1020 280Q1120 280 1230 280M1020 280Q1110 360 1210 400" fill="none" stroke="#d97d66" stroke-width="16" stroke-linecap="round"/>
+<g font-family="Arial" font-size="28" font-weight="700" fill="#fff">
+<circle cx="115" cy="105" r="36" fill="#0ea5e9"/><text x="105" y="116">1</text>
+<circle cx="280" cy="465" r="36" fill="#14b8a6"/><text x="270" y="476">2</text>
+<circle cx="700" cy="410" r="36" fill="#7c3aed"/><text x="690" y="421">3</text>
+<circle cx="1200" cy="500" r="36" fill="#ef4444"/><text x="1190" y="511">4</text>
+</g>
+<g stroke-width="5" fill="none"><path d="M140 125L205 185" stroke="#0ea5e9"/><path d="M280 430L280 380" stroke="#14b8a6"/><path d="M700 374L700 324" stroke="#7c3aed"/><path d="M1180 466L1160 390" stroke="#ef4444"/></g>
+</g>
+<text x="60" y="760" font-family="Arial" font-size="22" fill="#667988">Four numbered targets. No structure names shown.</text></svg>
