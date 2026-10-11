@@ -3,11 +3,10 @@ import part02 from './part02'
 import part03 from './part03'
 import s2p1 from './s2p1'
 import s2p2 from './s2p2'
-import s2p3 from './s2p3'
 import s2p4 from './s2p4'
 
 export const examSpriteUrl = 'data:image/jpeg;base64,' + part01 + part02 + part03
-const examSprite2Url = 'data:image/webp;base64,' + s2p1 + s2p2 + s2p3 + s2p4
+const examSprite2Url = 'data:image/webp;base64,' + s2p1 + s2p2 + s2p4
 
 const legacyImageSlots: Record<string, number> = {
   '/assets/anatomate/y1/lecture-01/anatomical-position-regions-exam.svg': 1,
