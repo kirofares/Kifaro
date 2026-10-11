@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 810">
+<rect width="1440" height="810" fill="#f8fbfd"/>
+<text x="60" y="70" font-family="Arial" font-size="40" font-weight="700" fill="#0b2a3d">Muscle Tissue Types — Exam Visual</text>
+<g transform="translate(70 150)">
+  <g>
+    <rect width="390" height="480" rx="28" fill="#fff" stroke="#cbdde5" stroke-width="4"/>
+    <g stroke="#d65f61" stroke-width="28" stroke-linecap="round">
+      <line x1="70" y1="130" x2="320" y2="130"/><line x1="70" y1="225" x2="320" y2="225"/><line x1="70" y1="320" x2="320" y2="320"/>
+    </g>
+    <g stroke="#fff" stroke-width="5" opacity=".9">
+      <path d="M95 112v36M125 112v36M155 112v36M185 112v36M215 112v36M245 112v36M275 112v36"/>
+      <path d="M95 207v36M125 207v36M155 207v36M185 207v36M215 207v36M245 207v36M275 207v36"/>
+      <path d="M95 302v36M125 302v36M155 302v36M185 302v36M215 302v36M245 302v36M275 302v36"/>
+    </g>
+    <g fill="#643b75"><ellipse cx="85" cy="112" rx="9" ry="16"/><ellipse cx="306" cy="146" rx="9" ry="16"/><ellipse cx="90" cy="243" rx="9" ry="16"/><ellipse cx="300" cy="302" rx="9" ry="16"/></g>
+    <circle cx="195" cy="420" r="34" fill="#0ea5e9"/><text x="183" y="432" font-family="Arial" font-size="32" font-weight="700" fill="#fff">1</text>
+  </g>
+  <g transform="translate(455 0)">
+    <rect width="390" height="480" rx="28" fill="#fff" stroke="#cbdde5" stroke-width="4"/>
+    <g fill="none" stroke="#d65f61" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M75 160 C140 160 160 110 210 120 C255 130 260 180 325 175"/>
+      <path d="M95 265 C150 250 175 215 220 230 C265 245 280 300 330 315"/>
+      <path d="M205 125 C210 170 215 200 220 230"/>
+    </g>
+    <g stroke="#fff" stroke-width="4" opacity=".9"><path d="M120 146l18 18M150 131l18 18M250 141l18 18M135 244l18 18M185 225l18 18M260 258l18 18"/></g>
+    <g stroke="#2d334a" stroke-width="8"><line x1="184" y1="108" x2="198" y2="137"/><line x1="242" y1="225" x2="255" y2="255"/></g>
+    <g fill="#643b75"><ellipse cx="235" cy="146" rx="12" ry="17"/><ellipse cx="206" cy="244" rx="12" ry="17"/></g>
+    <circle cx="195" cy="420" r="34" fill="#14b8a6"/><text x="183" y="432" font-family="Arial" font-size="32" font-weight="700" fill="#fff">2</text>
+  </g>
+  <g transform="translate(910 0)">
+    <rect width="390" height="480" rx="28" fill="#fff" stroke="#cbdde5" stroke-width="4"/>
+    <g fill="#f4c08b" stroke="#bd7b51" stroke-width="4">
+      <path d="M55 120 Q195 65 335 120 Q195 175 55 120Z"/><path d="M55 220 Q195 165 335 220 Q195 275 55 220Z"/><path d="M55 320 Q195 265 335 320 Q195 375 55 320Z"/>
+    </g>
+    <g fill="#643b75"><ellipse cx="195" cy="120" rx="12" ry="18"/><ellipse cx="195" cy="220" rx="12" ry="18"/><ellipse cx="195" cy="320" rx="12" ry="18"/></g>
+    <circle cx="195" cy="420" r="34" fill="#7c3aed"/><text x="183" y="432" font-family="Arial" font-size="32" font-weight="700" fill="#fff">3</text>
+  </g>
+</g>
+<text x="60" y="760" font-family="Arial" font-size="22" fill="#667988">Identify the tissue from morphology. Labels intentionally hidden.</text>
+</svg>
