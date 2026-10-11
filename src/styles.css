@@ -1331,3 +1331,7 @@ html[dir="rtl"] .flashyearhead,html[dir="rtl"] .flashmodulehead,html[dir="rtl"] 
   .securityscreenwatermark span{max-width:44vw}
   .securityscreenwatermark span:nth-child(9){display:none}
 }
+
+.availableformats{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+.availableformats>span{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;color:var(--primary)}
+.availableformats>small{width:100%;color:var(--muted);font-size:11px;line-height:1.5}
