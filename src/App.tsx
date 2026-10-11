@@ -1203,9 +1203,14 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
           )}
 
           <div className="datashowcard">
+            <div className="availableformats">
+              <span><FileText size={15} /> PPT / Datashow</span>
+              <span><FileText size={15} /> PDF</span>
+              <small>{tr('Both formats are included in Datashow access. Originals remain private.', 'الـPPT والـPDF داخل وصول الداتاشو، والملفات الأصلية تظل خاصة.')}</small>
+            </div>
             <div className="datashowcardhead">
               <BookOpen size={24} />
-              <div><strong>{tr('Datashow', 'الداتاشو')}</strong><small>{tr('Protected slide viewer · watermarked', 'عارض شرائح محمي · بعلامة مائية')}</small></div>
+              <div><strong>{tr('PPT / Datashow', 'PPT / الداتاشو')}</strong><small>{tr('Protected PowerPoint-style slide viewer · watermarked', 'عارض شرائح PowerPoint محمي · بعلامة مائية')}</small></div>
             </div>
             {datashowAvailable && datashowUnlocked ? (
               <div className="protectedviewerbuttons">
@@ -1221,10 +1226,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                         {variant.available_pdf ? (
                           <div className="lecturevariantactions">
                             <button className="primary" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow?variant=' + encodeURIComponent(variant.variant_key))}>
-                              <BookOpen size={16} /> {tr('Open Datashow', 'افتح الداتاشو')}
+                              <BookOpen size={16} /> {tr('Open PPT / Datashow', 'افتح PPT / الداتاشو')}
                             </button>
                             <button className="secondary" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/pdf?variant=' + encodeURIComponent(variant.variant_key))}>
-                              <FileText size={16} /> {tr('PDF Viewer', 'عارض PDF')}
+                              <FileText size={16} /> {tr('Protected PDF', 'PDF محمي')}
                             </button>
                           </div>
                         ) : (
@@ -1236,10 +1241,10 @@ function LecturePage({ progress, update, flash, t }: { progress: ProgressState; 
                 ) : (
                   <>
                     <button className="primary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/datashow')}>
-                      <BookOpen size={17} /> {tr('Open Datashow', 'افتح الداتاشو')}
+                      <BookOpen size={17} /> {tr('Open PPT / Datashow', 'افتح PPT / الداتاشو')}
                     </button>
                     <button className="secondary full" onClick={() => nav('/anatomate/lecture/' + lecture.slug + '/pdf')}>
-                      <FileText size={17} /> {tr('Open PDF Viewer', 'افتح عارض PDF')}
+                      <FileText size={17} /> {tr('Open Protected PDF', 'افتح PDF المحمي')}
                     </button>
                   </>
                 )}
