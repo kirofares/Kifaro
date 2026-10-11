@@ -10,12 +10,12 @@ import { useAdmin } from '../hooks/useAdmin'
 import { useAuth } from '../auth/AuthContext'
 import { publicAssetUrl } from '../lib/publicAssetUrl'
 import { supabase } from '../lib/supabase'
-import { examSpriteStyle } from './examSprite'
+import { examSpriteSlotForPath, examSpriteStyle } from './examSprite'
 
 function ProtectedMCQImage({ questionId, imagePath, alt }: { questionId: string; imagePath: string | null; alt: string }) {
   const [url, setUrl] = useState('')
   const [failed, setFailed] = useState(false)
-  const spriteSlot = imagePath?.startsWith('sprite:') ? Number(imagePath.slice('sprite:'.length)) : null
+  const spriteSlot = examSpriteSlotForPath(imagePath)
 
   useEffect(() => {
     let active = true
