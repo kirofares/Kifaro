@@ -98,7 +98,7 @@ jobs:
                 } else {
                   await github.rest.issues.create({
                     owner, repo, title: category.title, body,
-                    labels: ['guardian-monitor', category.label],
+                    labels: ['guardian-monitor'],
                   });
                 }
               } else if (issue?.state === 'open') {
