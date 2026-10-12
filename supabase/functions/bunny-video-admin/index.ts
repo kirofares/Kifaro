@@ -219,8 +219,15 @@ Deno.serve(async (req: Request) => {
       }
 
       const encodeProgress = Math.max(0, Math.min(100, Number(video.encodeProgress || 0)))
-      const ready = encodeProgress >= 100 && Boolean(video.availableResolutions)
-      const bunnyStatus = ready ? 'ready' : 'processing'
+      const providerStatus = Number(video.status)
+      const hasPlayableResolution = String(video.availableResolutions || '').trim().length > 0
+      // Bunny may report "resolution finished" (4) before overall encodeProgress reaches 100.
+      const ready = hasPlayableResolution && (
+        providerStatus === 3 || providerStatus === 4 || encodeProgress >= 100
+      )
+      const bunnyStatus = [5, 8].includes(providerStatus)
+        ? 'error'
+        : ready ? 'ready' : 'processing'
 
       const { error: updateError } = await adminClient.from('lecture_assets').update({
         video_provider: 'bunny',
