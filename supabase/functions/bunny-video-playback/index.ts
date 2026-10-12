@@ -66,7 +66,9 @@ Deno.serve(async (req: Request) => {
     const expires = Math.floor(Date.now() / 1000) + 30 * 60
     const signedToken = await sha256Hex(tokenKey + videoId + String(expires))
     const embedUrl =
-      `https://player.mediadelivery.net/embed/${encodeURIComponent(libraryId)}/${encodeURIComponent(videoId)}` +
+      // Legacy Bunny embed passed the admin's signed playback probe (200), while the newer player returned 403.
+      // Keep the existing server-side entitlement check and time-limited token signature unchanged.
+      `https://iframe.mediadelivery.net/embed/${encodeURIComponent(libraryId)}/${encodeURIComponent(videoId)}` +
       `?token=${signedToken}&expires=${expires}&preload=true&rememberPosition=true`
 
     const remainingViews = row.view_limit == null ? null : Math.max(0, Number(row.view_limit) - Number(row.views_used || 0))
