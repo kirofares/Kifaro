@@ -151,6 +151,8 @@ export default function AdminPage() {
   const [assetUploading, setAssetUploading] = useState<'video' | 'pdf' | 'pptx' | ''>('')
   const [videoUploadProgress, setVideoUploadProgress] = useState(0)
   const [bunnyConfigured, setBunnyConfigured] = useState<boolean | null>(null)
+  const [bunnyDiagnosis, setBunnyDiagnosis] = useState('')
+  const [bunnyDiagnosing, setBunnyDiagnosing] = useState(false)
   const [editingRuleId, setEditingRuleId] = useState('')
   const [ruleYear, setRuleYear] = useState(0)
   const [ruleNationality, setRuleNationality] = useState('*')
@@ -533,6 +535,41 @@ export default function AdminPage() {
     setMessage(data?.status === 'ready'
       ? 'Video is encoded and ready for sale.'
       : 'Bunny Stream is still processing the video: ' + Number(data?.encodeProgress || 0) + '%.')
+  }
+
+  const diagnoseBunnyPlayback = async () => {
+    if (!supabase || !editingLecture || !lectureDraft.bunnyVideoId || bunnyDiagnosing) return
+    setBunnyDiagnosing(true)
+    setBunnyDiagnosis('Checking Bunny video metadata and both player endpoints…')
+    try {
+      const { data, error } = await supabase.functions.invoke('bunny-video-admin', {
+        body: { action: 'diagnose', lectureId: editingLecture },
+      })
+      if (error || data?.error) {
+        setBunnyDiagnosis(data?.error || error?.message || 'Could not run the secure video diagnostic.')
+        return
+      }
+      if (!data?.reachable) {
+        setBunnyDiagnosis(`Bunny API HTTP ${data?.providerHttpStatus ?? 'unknown'}: ${data?.diagnosis || 'Video could not be verified.'}`)
+        return
+      }
+      const current = data.currentPlayer?.status ?? 'no response'
+      const legacy = data.legacyPlayer?.status ?? 'no response'
+      const parts = [
+        `Bunny API: HTTP ${data.providerHttpStatus}.`,
+        `Video/library identity: ${data.videoMatches && data.libraryMatches ? 'match' : 'MISMATCH'}.`,
+        `Video status: ${data.providerStatus}; encode: ${data.encodeProgress}%; playable: ${data.hasPlayableResolution ? 'yes' : 'no'}.`,
+        `Signed new player: HTTP ${current}; legacy player: HTTP ${legacy}.`,
+        `Playback signing key: ${data.tokenKeyConfigured ? 'configured' : 'MISSING'}.`,
+        data.isPublic === false ? 'Bunny reports video is not public; check its security settings.' : '',
+        'Server-side checks may differ from playback in your browser.',
+      ]
+      setBunnyDiagnosis(parts.filter(Boolean).join(' '))
+    } catch (error) {
+      setBunnyDiagnosis(error instanceof Error ? error.message : 'Diagnostic request failed.')
+    } finally {
+      setBunnyDiagnosing(false)
+    }
   }
 
   const uploadVideoToBunny = async () => {
@@ -1203,11 +1240,17 @@ export default function AdminPage() {
                       </span>
                     </div>
                     {lectureDraft.bunnyVideoId && (
-                      <button className="secondary" disabled={assetUploading === 'video'} onClick={() => void refreshBunnyStatus()}>
-                        Refresh video status
-                      </button>
+                      <>
+                        <button className="secondary" disabled={assetUploading === 'video'} onClick={() => void refreshBunnyStatus()}>
+                          Refresh video status
+                        </button>
+                        <button className="secondary" disabled={assetUploading === 'video' || bunnyDiagnosing} onClick={() => void diagnoseBunnyPlayback()}>
+                          {bunnyDiagnosing ? 'Diagnosing…' : 'Diagnose playback 404'}
+                        </button>
+                      </>
                     )}
                   </div>
+                  {bunnyDiagnosis && <p className="adminformwide" role="status">{bunnyDiagnosis}</p>}
                   <label className="adminformwide">Upload lecture video to Bunny Stream
                     <input type="file" accept="video/mp4,video/webm,video/quicktime,.m4v,.mkv" onChange={(e) => setVideoFile(e.target.files?.[0] || null)}/>
                   </label>
