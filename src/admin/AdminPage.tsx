@@ -256,6 +256,90 @@ export default function AdminPage() {
     })()
   }, [isAdmin])
 
+  // Reconcile Bunny encoding in the admin lecture catalog, without exposing
+  // Bunny credentials or marking an unfinished upload as watchable.
+  const [bunnyStates, setBunnyStates] = useState<Record<string, { status: string; progress: number }>>({})
+
+  useEffect(() => {
+    if (!supabase || !isAdmin || tab !== 'lectures') return
+    const client = supabase
+    let cancelled = false
+    let busy = false
+
+    const syncPendingVideos = async () => {
+      if (busy || document.visibilityState === 'hidden' || assetUploading === 'video') return
+      busy = true
+      try {
+        const { data: assets, error } = await client
+          .from('lecture_assets')
+          .select('lecture_id, bunny_video_id, bunny_status, bunny_encode_progress, updated_at')
+          .eq('video_provider', 'bunny')
+          .order('updated_at', { ascending: true })
+          .limit(500)
+
+        if (cancelled || error) return
+
+        const states: Record<string, { status: string; progress: number }> = {}
+        for (const item of assets || []) {
+          states[item.lecture_id] = {
+            status: String(item.bunny_status || ''),
+            progress: Number(item.bunny_encode_progress || 0),
+          }
+        }
+        setBunnyStates(states)
+
+        const pending = (assets || []).filter((item) =>
+          Boolean(item.bunny_video_id) &&
+          (item.bunny_status === 'processing' ||
+            (item.bunny_status === 'uploading' &&
+              Date.now() - new Date(item.updated_at).getTime() > 15 * 60_000)),
+        ).slice(0, 10)
+
+        if (!pending.length) return
+
+        const results = await Promise.all(pending.map(async (item) => {
+          const { data, error: statusError } = await client.functions.invoke('bunny-video-admin', {
+            body: { action: 'status', lectureId: item.lecture_id },
+          })
+          return statusError || data?.error ? null : {
+            lectureId: item.lecture_id,
+            videoId: String(data.videoId || ''),
+            status: String(data.status || ''),
+            progress: Number(data.encodeProgress || 0),
+          }
+        }))
+        if (cancelled) return
+
+        const updates = results.filter((result) => result !== null)
+        if (updates.length) {
+          setBunnyStates((previous) => {
+            const next = { ...previous }
+            for (const item of updates) {
+              next[item.lectureId] = { status: item.status, progress: item.progress }
+            }
+            return next
+          })
+          const edited = updates.find((item) => item.lectureId === editingLecture)
+          if (edited) setLectureDraft((current) =>
+            current.bunnyVideoId === edited.videoId
+              ? { ...current, bunnyStatus: edited.status, bunnyProgress: edited.progress }
+              : current,
+          )
+          await refreshAssetReadiness()
+        }
+      } finally {
+        busy = false
+      }
+    }
+
+    void syncPendingVideos()
+    const interval = window.setInterval(() => void syncPendingVideos(), 25_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [isAdmin, tab, editingLecture, assetUploading])
+
   const activePurchases = entitlements.filter((item) => !item.revoked_at)
   const revenue = activePurchases.reduce((sum, item) => sum + Number(item.price_paid_egp || 0), 0)
   const selectedStudent = profiles.find((p) => p.id === selectedStudentId)
@@ -1062,12 +1146,18 @@ export default function AdminPage() {
                   {anatomateLectures.map((lecture) => {
                     const ready = readinessFor(lecture.id)
                     const sale = saleReadiness(lecture.id)
+                    const bunny = bunnyStates[lecture.id]
+                    const videoLabel = ready.has_video ? 'Ready'
+                      : bunny?.status === 'processing' ? 'Processing ' + bunny.progress + '%'
+                      : bunny?.status === 'uploading' ? 'Uploading'
+                      : bunny?.status === 'error' ? 'Encoding failed'
+                      : 'Missing'
                     return (
                       <tr key={lecture.id}>
                         <td>Year {lecture.year}</td>
                         <td><strong>{settingFor(lecture.id)?.title_override || lecture.title}</strong><small>{lecture.system}</small></td>
                         <td>{lecture.module}</td>
-                        <td><span className={ready.has_video ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_video ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_video ? 'Ready' : 'Missing'}</span></td>
+                        <td><span className={ready.has_video ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_video ? <Check size={13}/> : <XCircle size={13}/>} {videoLabel}</span></td>
                         <td><span className={ready.has_datashow ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_datashow ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_datashow ? 'Ready' : 'Missing'}</span></td>
                         <td><span className={ready.has_pdf ? 'readinessbadge ready' : 'readinessbadge missing'}>{ready.has_pdf ? <Check size={13}/> : <XCircle size={13}/>} {ready.has_pdf ? 'Ready' : 'Missing'}</span></td>
                         <td><span className={sale.ready ? 'readinessbadge ready' : 'readinessbadge missing'}>{sale.ready ? <Check size={13}/> : <XCircle size={13}/>} {sale.label}</span></td>
@@ -1104,6 +1194,7 @@ export default function AdminPage() {
                   <div className="adminformwide bunnyuploadbox">
                     <div>
                       <small>BUNNY STREAM VIDEO</small>
+                      <small>Encoding status updates automatically while this tab is open.</small>
                       <strong>{lectureDraft.bunnyVideoId ? 'Connected to Bunny Stream' : 'No Bunny video uploaded yet'}</strong>
                       <span>
                         {lectureDraft.bunnyStatus
