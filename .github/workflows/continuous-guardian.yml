@@ -1,0 +1,134 @@
+name: KIFARO Continuous Guardian
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: guardian-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-fund
+
+      - name: Regression tests
+        run: |
+          node --test tests/guardian.policy.test.mjs
+          npm run test:viva
+
+      - name: TypeScript and production build
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Dependency vulnerability assessment
+        if: always()
+        run: |
+          npm audit --omit=dev --audit-level=high --json > guardian-audit-raw.json || true
+          node scripts/guardian/summarize-audit.mjs
+
+      - name: Live site and asset monitoring
+        if: ${{ github.event_name != 'pull_request' }}
+        run: node scripts/guardian/check-site.mjs
+
+      - name: Publish findings to one reusable GitHub issue per category
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const { owner, repo } = context.repo;
+            const categories = [
+              {
+                filename: 'guardian-audit-result.json',
+                title: '[Guardian] Dependency security',
+                label: 'security',
+              },
+              {
+                filename: 'guardian-site-result.json',
+                title: '[Guardian] Live website and asset availability',
+                label: 'site-monitor',
+              },
+            ];
+            const existing = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, labels: 'guardian-monitor', state: 'all', per_page: 100,
+            });
+            for (const category of categories) {
+              if (!fs.existsSync(category.filename)) continue;
+              const report = JSON.parse(fs.readFileSync(category.filename, 'utf8'));
+              const issue = existing.find(x => x.title === category.title && !x.pull_request);
+              const bad = report.status === 'FAIL' || report.status === 'UNKNOWN';
+              const body = [
+                'Automated KIFARO Guardian finding. Do not publish or change billing/security rules without owner approval.',
+                '',
+                'Status: **' + report.status + '**',
+                'Run: ' + context.serverUrl + '/' + owner + '/' + repo + '/actions/runs/' + context.runId,
+                '',
+                '```json',
+                JSON.stringify(report, null, 2).slice(0, 16000),
+                '```',
+                '',
+                'Add a regression test to any approved fix. Close only when a later check confirms recovery.',
+              ].join('\n');
+              if (bad) {
+                if (issue) {
+                  await github.rest.issues.update({ owner, repo, issue_number: issue.number, body, state: 'open' });
+                } else {
+                  await github.rest.issues.create({
+                    owner, repo, title: category.title, body,
+                    labels: ['guardian-monitor', category.label],
+                  });
+                }
+              } else if (issue?.state === 'open') {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: issue.number,
+                  body: 'Guardian recovery confirmed in run ' + context.runId + '. Status: ' + report.status,
+                });
+                await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed' });
+              }
+            }
+
+      - name: Keep machine-readable audit records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-report-${{ github.run_id }}
+          path: |
+            guardian-audit-result.json
+            guardian-site-result.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail on confirmed critical checks
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        run: |
+          node --input-type=module -e "
+            import {readFileSync,existsSync} from 'node:fs';
+            let bad = false;
+            for (const file of ['guardian-audit-result.json','guardian-site-result.json']) {
+              if (!existsSync(file)) { console.error('Missing report: ' + file); bad = true; continue; }
+              const status = JSON.parse(readFileSync(file,'utf8')).status;
+              if (status === 'FAIL' || status === 'UNKNOWN') { console.error(file + ': ' + status); bad = true; }
+            }
+            if (bad) process.exitCode = 1;
+          "
