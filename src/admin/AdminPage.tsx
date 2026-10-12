@@ -561,8 +561,24 @@ export default function AdminPage() {
         `Video status: ${data.providerStatus}; encode: ${data.encodeProgress}%; playable: ${data.hasPlayableResolution ? 'yes' : 'no'}.`,
         `Signed new player: HTTP ${current}; legacy player: HTTP ${legacy}.`,
         `Playback signing key: ${data.tokenKeyConfigured ? 'configured' : 'MISSING'}.`,
-        data.isPublic === false ? 'Bunny reports video is not public; check its security settings.' : '',
-        'Server-side checks may differ from playback in your browser.',
+        data.librarySecurity?.fetched
+          ? `Library security: player token auth=${String(data.librarySecurity.playerTokenAuthenticationEnabled)}; CDN token auth=${String(data.librarySecurity.cdnTokenAuthenticationEnabled)}; block missing referrer=${String(data.librarySecurity.blockNoReferrer)}.`
+          : `Library security could not be read (HTTP ${data.librarySecurity?.httpStatus ?? 'unavailable'}).`,
+        data.librarySecurity?.fetched
+          ? `Allowed domains: ${data.librarySecurity.allowedReferrers?.join(', ') || 'none'}; blocked domains: ${data.librarySecurity.blockedReferrers?.join(', ') || 'none'}.`
+          : '',
+        data.librarySecurity?.productionDomainAllowed === false || data.librarySecurity?.productionDomainBlocked
+          ? 'ACTION: kifaroedu.com is missing from the Bunny allowlist or is blocked.'
+          : '',
+        data.librarySecurity?.signingKeyMatches === false
+          ? 'ACTION: Supabase playback signing key does not match the Bunny library key.'
+          : '',
+        data.librarySecurity?.signingKeyMatches === true ? 'Bunny signing key matches library.' : '',
+        data.librarySecurity?.signingKeyComparisonAvailable === false
+          ? 'Bunny API did not return the signing key, so a configured key is NOT proof of a matching key.'
+          : '',
+        data.isPublic === false ? 'Bunny reports video isPublic=false (access restricted). Do not change privacy before verifying the intended protected playback configuration.' : '',
+        'HTTP 200 from a server-side probe does not prove iframe playback succeeds in the browser.',
       ]
       setBunnyDiagnosis(parts.filter(Boolean).join(' '))
     } catch (error) {

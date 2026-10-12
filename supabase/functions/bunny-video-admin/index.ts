@@ -242,6 +242,47 @@ Deno.serve(async (req: Request) => {
         testEmbed('iframe.mediadelivery.net'),
       ])
 
+      // Read-only library security inspection, to separate bad signatures from
+      // hostname/referrer restrictions. Never echo security keys or API secrets.
+      let librarySecurity: any = { fetched: false, httpStatus: null }
+      try {
+        const libraryResponse = await fetch(`https://api.bunny.net/videolibrary/${encodeURIComponent(libraryId)}`, {
+          headers: { 'AccessKey': apiKey, 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+        })
+        librarySecurity.httpStatus = libraryResponse.status
+        if (libraryResponse.ok) {
+          const library: any = await libraryResponse.json()
+          const allowed = (Array.isArray(library.AllowedReferrers) ? library.AllowedReferrers :
+            Array.isArray(library.allowedReferrers) ? library.allowedReferrers : [])
+            .map((s: unknown) => String(s).toLowerCase())
+          const blocked = (Array.isArray(library.BlockedReferrers) ? library.BlockedReferrers :
+            Array.isArray(library.blockedReferrers) ? library.blockedReferrers : [])
+            .map((s: unknown) => String(s).toLowerCase())
+          // Only compare a field explicitly labeled for embed/player authentication.
+          // A generic TokenAuthenticationKey may instead be the CDN key.
+          const keyFromLibrary = [
+            library.PlayerTokenAuthenticationKey, library.playerTokenAuthenticationKey,
+          ].find((k) => typeof k === 'string' && k.length > 0)
+          librarySecurity = {
+            fetched: true,
+            httpStatus: libraryResponse.status,
+            allowedReferrers: allowed,
+            blockedReferrers: blocked,
+            productionDomainAllowed: allowed.length === 0 || allowed.includes('kifaroedu.com'),
+            productionDomainBlocked: blocked.includes('kifaroedu.com'),
+            playerTokenAuthenticationEnabled: library.PlayerTokenAuthenticationEnabled ?? library.playerTokenAuthenticationEnabled ?? null,
+            cdnTokenAuthenticationEnabled: library.EnableTokenAuthentication ?? library.enableTokenAuthentication ?? null,
+            blockNoReferrer: library.BlockNoneReferrer ?? library.blockNoneReferrer ?? null,
+            drmEnabled: library.EnableDRM ?? library.enableDRM ?? null,
+            signingKeyMatches: keyFromLibrary ? keyFromLibrary === tokenKey : null,
+            signingKeyComparisonAvailable: Boolean(keyFromLibrary),
+          }
+        }
+      } catch {
+        librarySecurity = { fetched: false, httpStatus: null }
+      }
+
       return json({
         reachable: true,
         providerHttpStatus: videoResponse.status,
@@ -255,6 +296,7 @@ Deno.serve(async (req: Request) => {
         storageBytes: Number(video?.storageSize || 0),
         isPublic: typeof video?.isPublic === 'boolean' ? video.isPublic : null,
         tokenKeyConfigured: Boolean(tokenKey),
+        librarySecurity,
         currentPlayer,
         legacyPlayer,
         // Probes can differ from the real browser due to session/cookie and CDN controls.
