@@ -259,9 +259,10 @@ Deno.serve(async (req: Request) => {
           const blocked = (Array.isArray(library.BlockedReferrers) ? library.BlockedReferrers :
             Array.isArray(library.blockedReferrers) ? library.blockedReferrers : [])
             .map((s: unknown) => String(s).toLowerCase())
+          // Only compare a field explicitly labeled for embed/player authentication.
+          // A generic TokenAuthenticationKey may instead be the CDN key.
           const keyFromLibrary = [
             library.PlayerTokenAuthenticationKey, library.playerTokenAuthenticationKey,
-            library.TokenAuthenticationKey, library.tokenAuthenticationKey,
           ].find((k) => typeof k === 'string' && k.length > 0)
           librarySecurity = {
             fetched: true,
