@@ -112,7 +112,7 @@ jobs:
 
       - name: Keep machine-readable audit records
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guardian-report-${{ github.run_id }}
           path: |
