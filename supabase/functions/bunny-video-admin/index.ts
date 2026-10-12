@@ -193,6 +193,75 @@ Deno.serve(async (req: Request) => {
     if (assetError) return json({ error: assetError.message }, 500)
     if (!asset?.bunny_video_id) return json({ error: 'No Bunny video is attached to this lecture.' }, 404)
 
+    if (action === 'diagnose') {
+      // Read-only, admin-authorized diagnostics. Never return API keys, token keys,
+      // signed playback URLs, or raw third-party responses to the browser.
+      const videoResponse = await fetch(
+        `https://video.bunnycdn.com/library/${libraryId}/videos/${encodeURIComponent(asset.bunny_video_id)}`,
+        { headers: { 'AccessKey': apiKey, 'Accept': 'application/json' } },
+      )
+      if (!videoResponse.ok) {
+        return json({
+          reachable: false,
+          providerHttpStatus: videoResponse.status,
+          diagnosis: videoResponse.status === 404
+            ? 'Bunny cannot find this video under the configured library.'
+            : 'Bunny API did not return video metadata.',
+        })
+      }
+
+      const video = await videoResponse.json()
+      const actualLibrary = String(video?.videoLibraryId || '')
+      const matchesLibrary = actualLibrary === String(libraryId)
+      const matchesVideo = String(video?.guid || '').toLowerCase() === asset.bunny_video_id.toLowerCase()
+      const tokenKey = Deno.env.get('BUNNY_STREAM_TOKEN_AUTH_KEY')
+      const providerStatus = Number(video?.status)
+      const hasPlayableResolution = Boolean(String(video?.availableResolutions || '').trim())
+
+      const testEmbed = async (host: 'player.mediadelivery.net' | 'iframe.mediadelivery.net') => {
+        if (!tokenKey) return { status: null, note: 'Playback token key is missing.' }
+        const expires = Math.floor(Date.now() / 1000) + 300
+        const signedToken = await sha256Hex(tokenKey + asset.bunny_video_id + String(expires))
+        const url = `https://${host}/embed/${encodeURIComponent(libraryId)}/${encodeURIComponent(asset.bunny_video_id)}?token=${signedToken}&expires=${expires}`
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Referer': 'https://kifaroedu.com/' },
+            redirect: 'manual',
+            signal: AbortSignal.timeout(8000),
+          })
+          // A 3xx is a normal edge/player redirect, not definitive playback success.
+          return { status: response.status, note: 'HTTP response from Bunny player (server-side probe).' }
+        } catch {
+          return { status: null, note: 'Player probe was blocked or timed out.' }
+        }
+      }
+
+      const [currentPlayer, legacyPlayer] = await Promise.all([
+        testEmbed('player.mediadelivery.net'),
+        testEmbed('iframe.mediadelivery.net'),
+      ])
+
+      return json({
+        reachable: true,
+        providerHttpStatus: videoResponse.status,
+        libraryMatches: matchesLibrary,
+        videoMatches: matchesVideo,
+        providerStatus,
+        encodeProgress: Number(video?.encodeProgress || 0),
+        hasPlayableResolution,
+        availableResolutions: String(video?.availableResolutions || ''),
+        videoLengthSeconds: Number(video?.length || 0),
+        storageBytes: Number(video?.storageSize || 0),
+        isPublic: typeof video?.isPublic === 'boolean' ? video.isPublic : null,
+        tokenKeyConfigured: Boolean(tokenKey),
+        currentPlayer,
+        legacyPlayer,
+        // Probes can differ from the real browser due to session/cookie and CDN controls.
+        requiresBrowserVerification: true,
+      })
+    }
+
     if (action === 'uploaded') {
       const { error } = await adminClient.from('lecture_assets').update({
         video_provider: 'bunny',
