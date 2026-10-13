@@ -563,7 +563,7 @@ export default function AdminPage() {
         `Playback signing key: ${data.tokenKeyConfigured ? 'configured' : 'MISSING'}.`,
         data.librarySecurity?.fetched
           ? `Library security: player token auth=${String(data.librarySecurity.playerTokenAuthenticationEnabled)}; CDN token auth=${String(data.librarySecurity.cdnTokenAuthenticationEnabled)}; block missing referrer=${String(data.librarySecurity.blockNoReferrer)}.`
-          : `Library security could not be read (HTTP ${data.librarySecurity?.httpStatus ?? 'unavailable'}).`,
+          : `Library settings unavailable: ${data.librarySecurity?.reason || 'Requires a separate account-level key, not the Stream upload key.'} (HTTP ${data.librarySecurity?.httpStatus ?? 'not checked'}). Check Bunny > Stream > Library > Security directly; never paste API keys into chat.`,
         data.librarySecurity?.fetched
           ? `Allowed domains: ${data.librarySecurity.allowedReferrers?.join(', ') || 'none'}; blocked domains: ${data.librarySecurity.blockedReferrers?.join(', ') || 'none'}.`
           : '',
