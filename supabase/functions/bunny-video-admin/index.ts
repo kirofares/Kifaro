@@ -18,67 +18,53 @@ async function sha256Hex(value: string) {
 }
 
 
-const expectedAllowedReferrers = ['kifaroedu.com', 'www.kifaroedu.com', 'kirofares.github.io']
-
-async function syncAllowedReferrers(libraryId: string, apiKey: string) {
-  try {
-    const libraryResponse = await fetch(`https://api.bunny.net/videolibrary/${libraryId}`, {
-      headers: { 'AccessKey': apiKey, 'Accept': 'application/json' },
-    })
-
-    const libraryText = await libraryResponse.text()
-    let library: any = null
-    try { library = JSON.parse(libraryText) } catch {}
-
-    if (!libraryResponse.ok || !library) {
-      return { synced: false, allowedDomains: [], warning: library?.Message || library?.message || libraryText || 'Could not read Bunny library settings.' }
+// Core video-library settings use the account-level API key, not the Stream upload key.
+// Diagnostic requests must never silently modify allowed referrers.
+async function inspectAllowedReferrers(libraryId: string, accountKey: string | undefined) {
+  if (!accountKey) {
+    return {
+      checked: false,
+      reason: 'Bunny account-level API key is not configured. Check allowed domains in Bunny Stream > Library > Security.',
     }
+  }
 
-    const rawAllowed = Array.isArray(library.AllowedReferrers)
-      ? library.AllowedReferrers
-      : Array.isArray(library.allowedReferrers)
-        ? library.allowedReferrers
-        : []
-
-    const allowed = rawAllowed.map((item: unknown) => String(item).toLowerCase())
-    const warnings: string[] = []
-
-    for (const hostname of expectedAllowedReferrers) {
-      if (allowed.includes(hostname.toLowerCase())) continue
-
-      const addResponse = await fetch(
-        `https://api.bunny.net/videolibrary/${libraryId}/addAllowedReferrer`,
-        {
-          method: 'POST',
-          headers: {
-            'AccessKey': apiKey,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ Hostname: hostname }),
-        },
-      )
-
-      if (addResponse.ok) {
-        allowed.push(hostname.toLowerCase())
-      } else {
-        const addText = await addResponse.text()
-        // A duplicate can race with another configuration request; keep the library usable.
-        if (!/already|exist|duplicate/i.test(addText)) warnings.push(`${hostname}: ${addText || addResponse.status}`)
+  try {
+    const response = await fetch(`https://api.bunny.net/videolibrary/${encodeURIComponent(libraryId)}`, {
+      headers: { AccessKey: accountKey, Accept: 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!response.ok) {
+      return {
+        checked: false,
+        httpStatus: response.status,
+        reason: 'Bunny account-level API key could not access the library settings.',
       }
     }
-
+    const library: any = await response.json()
+    const allowedReferrers = (Array.isArray(library.AllowedReferrers)
+      ? library.AllowedReferrers
+      : Array.isArray(library.allowedReferrers) ? library.allowedReferrers : []
+    ).map((s: unknown) => String(s).toLowerCase())
+    const blockedReferrers = (Array.isArray(library.BlockedReferrers)
+      ? library.BlockedReferrers
+      : Array.isArray(library.blockedReferrers) ? library.blockedReferrers : []
+    ).map((s: unknown) => String(s).toLowerCase())
     return {
-      synced: warnings.length === 0,
-      allowedDomains: Array.from(new Set(allowed)),
-      warning: warnings.length ? warnings.join(' | ') : null,
+      checked: true,
+      httpStatus: 200,
+      allowedReferrers,
+      blockedReferrers,
+      domainAllowed: allowedReferrers.length === 0 || allowedReferrers.includes('kifaroedu.com'),
+      domainBlocked: blockedReferrers.includes('kifaroedu.com'),
+      playerTokenAuthenticationEnabled: library.PlayerTokenAuthenticationEnabled ?? library.playerTokenAuthenticationEnabled ?? null,
+      cdnTokenAuthenticationEnabled: library.EnableTokenAuthentication ?? library.enableTokenAuthentication ?? null,
+      blockNoReferrer: library.BlockNoneReferrer ?? library.blockNoneReferrer ?? null,
+      drmEnabled: library.EnableDRM ?? library.enableDRM ?? null,
+      playerSigningKey: typeof (library.PlayerTokenAuthenticationKey ?? library.playerTokenAuthenticationKey) === 'string'
+        ? (library.PlayerTokenAuthenticationKey ?? library.playerTokenAuthenticationKey) : null,
     }
-  } catch (error) {
-    return {
-      synced: false,
-      allowedDomains: [],
-      warning: error instanceof Error ? error.message : 'Could not sync Bunny allowed domains.',
-    }
+  } catch {
+    return { checked: false, reason: 'Cannot reach Bunny account-level library API.' }
   }
 }
 
@@ -116,6 +102,7 @@ Deno.serve(async (req: Request) => {
 
     const libraryId = Deno.env.get('BUNNY_STREAM_LIBRARY_ID')
     const apiKey = Deno.env.get('BUNNY_STREAM_API_KEY')
+    const accountKey = Deno.env.get('BUNNY_ACCOUNT_API_KEY')
     const configured = Boolean(libraryId && apiKey)
 
     const body = await req.json().catch(() => ({}))
@@ -125,7 +112,9 @@ Deno.serve(async (req: Request) => {
       if (!configured || !libraryId || !apiKey) {
         return json({ configured: false, libraryId: null, domainSync: null })
       }
-      const domainSync = await syncAllowedReferrers(libraryId, apiKey)
+      const domainAudit = await inspectAllowedReferrers(libraryId, accountKey)
+      const { playerSigningKey: _doNotExpose, ...publicAudit } = domainAudit as any
+      const domainSync = publicAudit
       return json({ configured: true, libraryId, domainSync })
     }
 
@@ -242,45 +231,28 @@ Deno.serve(async (req: Request) => {
         testEmbed('iframe.mediadelivery.net'),
       ])
 
-      // Read-only library security inspection, to separate bad signatures from
-      // hostname/referrer restrictions. Never echo security keys or API secrets.
-      let librarySecurity: any = { fetched: false, httpStatus: null }
-      try {
-        const libraryResponse = await fetch(`https://api.bunny.net/videolibrary/${encodeURIComponent(libraryId)}`, {
-          headers: { 'AccessKey': apiKey, 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(8000),
-        })
-        librarySecurity.httpStatus = libraryResponse.status
-        if (libraryResponse.ok) {
-          const library: any = await libraryResponse.json()
-          const allowed = (Array.isArray(library.AllowedReferrers) ? library.AllowedReferrers :
-            Array.isArray(library.allowedReferrers) ? library.allowedReferrers : [])
-            .map((s: unknown) => String(s).toLowerCase())
-          const blocked = (Array.isArray(library.BlockedReferrers) ? library.BlockedReferrers :
-            Array.isArray(library.blockedReferrers) ? library.blockedReferrers : [])
-            .map((s: unknown) => String(s).toLowerCase())
-          // Only compare a field explicitly labeled for embed/player authentication.
-          // A generic TokenAuthenticationKey may instead be the CDN key.
-          const keyFromLibrary = [
-            library.PlayerTokenAuthenticationKey, library.playerTokenAuthenticationKey,
-          ].find((k) => typeof k === 'string' && k.length > 0)
-          librarySecurity = {
-            fetched: true,
-            httpStatus: libraryResponse.status,
-            allowedReferrers: allowed,
-            blockedReferrers: blocked,
-            productionDomainAllowed: allowed.length === 0 || allowed.includes('kifaroedu.com'),
-            productionDomainBlocked: blocked.includes('kifaroedu.com'),
-            playerTokenAuthenticationEnabled: library.PlayerTokenAuthenticationEnabled ?? library.playerTokenAuthenticationEnabled ?? null,
-            cdnTokenAuthenticationEnabled: library.EnableTokenAuthentication ?? library.enableTokenAuthentication ?? null,
-            blockNoReferrer: library.BlockNoneReferrer ?? library.blockNoneReferrer ?? null,
-            drmEnabled: library.EnableDRM ?? library.enableDRM ?? null,
-            signingKeyMatches: keyFromLibrary ? keyFromLibrary === tokenKey : null,
-            signingKeyComparisonAvailable: Boolean(keyFromLibrary),
-          }
-        }
-      } catch {
-        librarySecurity = { fetched: false, httpStatus: null }
+      // Read-only library security audit with account-level credentials.
+      // The Stream library key does not authorize core API access (HTTP 401).
+      const securityAudit: any = await inspectAllowedReferrers(libraryId, accountKey)
+      const librarySecurity = securityAudit.checked ? {
+        fetched: true,
+        httpStatus: 200,
+        allowedReferrers: securityAudit.allowedReferrers,
+        blockedReferrers: securityAudit.blockedReferrers,
+        productionDomainAllowed: securityAudit.domainAllowed,
+        productionDomainBlocked: securityAudit.domainBlocked,
+        playerTokenAuthenticationEnabled: securityAudit.playerTokenAuthenticationEnabled,
+        cdnTokenAuthenticationEnabled: securityAudit.cdnTokenAuthenticationEnabled,
+        blockNoReferrer: securityAudit.blockNoReferrer,
+        drmEnabled: securityAudit.drmEnabled,
+        signingKeyMatches: securityAudit.playerSigningKey
+          ? securityAudit.playerSigningKey === tokenKey : null,
+        signingKeyComparisonAvailable: Boolean(securityAudit.playerSigningKey),
+      } : {
+        fetched: false,
+        httpStatus: securityAudit.httpStatus ?? null,
+        reason: securityAudit.reason,
+        accountKeyRequired: !accountKey,
       }
 
       return json({
