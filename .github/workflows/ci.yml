@@ -18,6 +18,7 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm run test:viva
+      - run: node --test tests/guardian.variant-proposal.test.mjs
       - run: npm run typecheck
       - run: npm run build
         env:
