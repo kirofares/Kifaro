@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
+    "test:guardian": "node --test tests/guardian*.test.mjs",
     "test:viva": "node --test tests/viva.test.mjs",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
@@ -28,6 +29,14 @@
     "@capacitor/ios": "^8.5.2",
     "pptxgenjs": "4.0.1",
     "jspdf": "4.2.1"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "overrides": {
+    "pptxgenjs": {
+      "image-size": "2.0.4"
+    }
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",

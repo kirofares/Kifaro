@@ -151,6 +151,8 @@ export default function AdminPage() {
   const [assetUploading, setAssetUploading] = useState<'video' | 'pdf' | 'pptx' | ''>('')
   const [videoUploadProgress, setVideoUploadProgress] = useState(0)
   const [bunnyConfigured, setBunnyConfigured] = useState<boolean | null>(null)
+  const [bunnyDiagnosis, setBunnyDiagnosis] = useState('')
+  const [bunnyDiagnosing, setBunnyDiagnosing] = useState(false)
   const [editingRuleId, setEditingRuleId] = useState('')
   const [ruleYear, setRuleYear] = useState(0)
   const [ruleNationality, setRuleNationality] = useState('*')
@@ -533,6 +535,57 @@ export default function AdminPage() {
     setMessage(data?.status === 'ready'
       ? 'Video is encoded and ready for sale.'
       : 'Bunny Stream is still processing the video: ' + Number(data?.encodeProgress || 0) + '%.')
+  }
+
+  const diagnoseBunnyPlayback = async () => {
+    if (!supabase || !editingLecture || !lectureDraft.bunnyVideoId || bunnyDiagnosing) return
+    setBunnyDiagnosing(true)
+    setBunnyDiagnosis('Checking Bunny video metadata and both player endpoints…')
+    try {
+      const { data, error } = await supabase.functions.invoke('bunny-video-admin', {
+        body: { action: 'diagnose', lectureId: editingLecture },
+      })
+      if (error || data?.error) {
+        setBunnyDiagnosis(data?.error || error?.message || 'Could not run the secure video diagnostic.')
+        return
+      }
+      if (!data?.reachable) {
+        setBunnyDiagnosis(`Bunny API HTTP ${data?.providerHttpStatus ?? 'unknown'}: ${data?.diagnosis || 'Video could not be verified.'}`)
+        return
+      }
+      const current = data.currentPlayer?.status ?? 'no response'
+      const legacy = data.legacyPlayer?.status ?? 'no response'
+      const parts = [
+        `Bunny API: HTTP ${data.providerHttpStatus}.`,
+        `Video/library identity: ${data.videoMatches && data.libraryMatches ? 'match' : 'MISMATCH'}.`,
+        `Video status: ${data.providerStatus}; encode: ${data.encodeProgress}%; playable: ${data.hasPlayableResolution ? 'yes' : 'no'}.`,
+        `Signed new player: HTTP ${current}; legacy player: HTTP ${legacy}.`,
+        `Playback signing key: ${data.tokenKeyConfigured ? 'configured' : 'MISSING'}.`,
+        data.librarySecurity?.fetched
+          ? `Library security: player token auth=${String(data.librarySecurity.playerTokenAuthenticationEnabled)}; CDN token auth=${String(data.librarySecurity.cdnTokenAuthenticationEnabled)}; block missing referrer=${String(data.librarySecurity.blockNoReferrer)}.`
+          : `Library settings unavailable: ${data.librarySecurity?.reason || 'Requires a separate account-level key, not the Stream upload key.'} (HTTP ${data.librarySecurity?.httpStatus ?? 'not checked'}). Check Bunny > Stream > Library > Security directly; never paste API keys into chat.`,
+        data.librarySecurity?.fetched
+          ? `Allowed domains: ${data.librarySecurity.allowedReferrers?.join(', ') || 'none'}; blocked domains: ${data.librarySecurity.blockedReferrers?.join(', ') || 'none'}.`
+          : '',
+        data.librarySecurity?.productionDomainAllowed === false || data.librarySecurity?.productionDomainBlocked
+          ? 'ACTION: kifaroedu.com is missing from the Bunny allowlist or is blocked.'
+          : '',
+        data.librarySecurity?.signingKeyMatches === false
+          ? 'ACTION: Supabase playback signing key does not match the Bunny library key.'
+          : '',
+        data.librarySecurity?.signingKeyMatches === true ? 'Bunny signing key matches library.' : '',
+        data.librarySecurity?.signingKeyComparisonAvailable === false
+          ? 'Bunny API did not return the signing key, so a configured key is NOT proof of a matching key.'
+          : '',
+        data.isPublic === false ? 'Bunny reports video isPublic=false (access restricted). Do not change privacy before verifying the intended protected playback configuration.' : '',
+        'HTTP 200 from a server-side probe does not prove iframe playback succeeds in the browser.',
+      ]
+      setBunnyDiagnosis(parts.filter(Boolean).join(' '))
+    } catch (error) {
+      setBunnyDiagnosis(error instanceof Error ? error.message : 'Diagnostic request failed.')
+    } finally {
+      setBunnyDiagnosing(false)
+    }
   }
 
   const uploadVideoToBunny = async () => {
@@ -1203,11 +1256,17 @@ export default function AdminPage() {
                       </span>
                     </div>
                     {lectureDraft.bunnyVideoId && (
-                      <button className="secondary" disabled={assetUploading === 'video'} onClick={() => void refreshBunnyStatus()}>
-                        Refresh video status
-                      </button>
+                      <>
+                        <button className="secondary" disabled={assetUploading === 'video'} onClick={() => void refreshBunnyStatus()}>
+                          Refresh video status
+                        </button>
+                        <button className="secondary" disabled={assetUploading === 'video' || bunnyDiagnosing} onClick={() => void diagnoseBunnyPlayback()}>
+                          {bunnyDiagnosing ? 'Diagnosing…' : 'Diagnose playback 404'}
+                        </button>
+                      </>
                     )}
                   </div>
+                  {bunnyDiagnosis && <p className="adminformwide" role="status">{bunnyDiagnosis}</p>}
                   <label className="adminformwide">Upload lecture video to Bunny Stream
                     <input type="file" accept="video/mp4,video/webm,video/quicktime,.m4v,.mkv" onChange={(e) => setVideoFile(e.target.files?.[0] || null)}/>
                   </label>

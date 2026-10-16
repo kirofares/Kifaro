@@ -48,7 +48,7 @@ jobs:
           test -n "$STORE_PASSWORD" || (echo "Missing ANATOMATE_KEYSTORE_PASSWORD_V2" && exit 1)
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build web app
         run: npm run build

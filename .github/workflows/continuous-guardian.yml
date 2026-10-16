@@ -31,11 +31,11 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm install --no-fund
+        run: npm ci --no-fund
 
       - name: Regression tests
         run: |
-          node --test tests/guardian.policy.test.mjs
+          npm run test:guardian
           npm run test:viva
 
       - name: TypeScript and production build
@@ -121,16 +121,10 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Fail on confirmed critical checks
+      - name: Enforce dependency security on every PR and run
+        if: always()
+        run: node scripts/guardian/assert-reports.mjs guardian-audit-result.json
+
+      - name: Enforce live-site checks when applicable
         if: ${{ always() && github.event_name != 'pull_request' }}
-        run: |
-          node --input-type=module -e "
-            import {readFileSync,existsSync} from 'node:fs';
-            let bad = false;
-            for (const file of ['guardian-audit-result.json','guardian-site-result.json']) {
-              if (!existsSync(file)) { console.error('Missing report: ' + file); bad = true; continue; }
-              const status = JSON.parse(readFileSync(file,'utf8')).status;
-              if (status === 'FAIL' || status === 'UNKNOWN') { console.error(file + ': ' + status); bad = true; }
-            }
-            if (bad) process.exitCode = 1;
-          "
+        run: node scripts/guardian/assert-reports.mjs guardian-site-result.json
