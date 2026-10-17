@@ -19,6 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run test:guardian
       - run: npm run test:viva
+      - run: node --test tests/guardian.variant-proposal.test.mjs
       - run: npm run typecheck
       - run: npm run build
         env:
