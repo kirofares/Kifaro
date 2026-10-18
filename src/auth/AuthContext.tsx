@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, supabaseConfigured } from '../lib/supabase'
+import { authFailure, type AuthFailure } from './emailRequestGate'
 
 type StudentSignupData = {
   email: string
@@ -20,7 +21,7 @@ type AuthContextValue = {
   session: Session | null
   user: User | null
   signIn: (email: string, password: string) => Promise<{ error?: string }>
-  signUp: (data: StudentSignupData) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>
+  signUp: (data: StudentSignupData) => Promise<{ error?: string; authError?: AuthFailure; needsEmailConfirmation?: boolean }>
   signOut: () => Promise<void>
 }
 
@@ -76,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         },
       })
-      if (error) return { error: error.message }
+      if (error) return { error: error.message, authError: authFailure(error) }
       return { needsEmailConfirmation: !data.session }
     },
     signOut: async () => {
