@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "test:guardian": "node --test tests/guardian*.test.mjs",
+    "test:auth": "node --test tests/auth-email.test.mjs",
     "test:viva": "node --test tests/viva.test.mjs",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",

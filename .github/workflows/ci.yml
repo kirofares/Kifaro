@@ -18,6 +18,7 @@ jobs:
           node-version: '22'
       - run: npm ci
       - run: npm run test:guardian
+      - run: npm run test:auth
       - run: npm run test:viva
       - run: npm run typecheck
       - run: npm run build
