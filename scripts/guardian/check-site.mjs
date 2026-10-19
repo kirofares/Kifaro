@@ -1,57 +1,61 @@
 import { writeFileSync } from 'node:fs';
+import { discoverPublicAssets, verifyPublicAsset } from './public-assets.mjs';
 
 const BASES = ['https://kifaroedu.com/', 'https://www.kifaroedu.com/'];
-const REQUEST_TIMEOUT_MS = 15000;
-const checks = [];
+const results = [];
+const checked = new Set();
 
-async function check(url, kind, expectHtml = false) {
-  const item = { url, kind, status: 'FAIL' };
+for (const base of BASES) {
+  const homepage = { url: base, kind: 'homepage', status: 'FAIL' };
+  let html, deliveredUrl;
   try {
-    const response = await fetch(url, {
+    const response = await fetch(base, {
       method: 'GET',
       redirect: 'follow',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: { 'user-agent': 'KIFARO-Guardian/1.0 (+github-actions)' },
+      signal: AbortSignal.timeout(15000),
+      headers: { 'user-agent': 'KIFARO-Guardian/2.0 (+github-actions)' },
     });
-    item.http = response.status;
-    item.final_url = response.url;
+    homepage.http = response.status;
+    homepage.final_url = response.url;
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    if (!response.url.startsWith('https://')) throw new Error('Redirected away from HTTPS');
-    const ct = response.headers.get('content-type') || '';
-    if (expectHtml && !ct.includes('text/html')) throw new Error('Expected HTML, got ' + ct);
-    const body = expectHtml ? await response.text() : '';
-    if (expectHtml && !body.toLowerCase().includes('kifaro')) throw new Error('KIFARO brand not found in HTML');
-    item.status = 'PASS';
-    checks.push(item);
-    return body;
-  } catch (error) {
-    item.reason = String(error?.message || error).slice(0, 300);
-    checks.push(item);
-    return null;
+    if (!response.url.startsWith('https://')) throw new Error('Homepage redirected away from HTTPS');
+    if (!(response.headers.get('content-type') ?? '').includes('text/html')) {
+      throw new Error('Homepage did not return HTML');
+    }
+    html = await response.text();
+    if (!html.toLowerCase().includes('kifaro')) throw new Error('Brand not found in HTML');
+    deliveredUrl = response.url;
+    homepage.status = 'PASS';
+  } catch (e) {
+    homepage.reason = String(e?.message || e).slice(0, 250);
+  }
+  results.push(homepage);
+  if (!html) continue;
+
+  const assets = discoverPublicAssets(html, deliveredUrl, 16);
+  if (!assets.length) {
+    results.push({ url: deliveredUrl, kind: 'asset-discovery', status: 'WARN',
+      reason: 'No same-origin script/link/image assets discovered; resource checks not performed' });
+  }
+  for (const asset of assets) {
+    // Both hostnames can redirect to the same canonical site. Avoid duplicate checks.
+    if (checked.has(asset.url)) continue;
+    checked.add(asset.url);
+    results.push(await verifyPublicAsset(asset));
   }
 }
 
-for (const base of BASES) {
-  const html = await check(base, 'homepage', true);
-  if (!html) continue;
-  const paths = [...new Set(
-    [...html.matchAll(/(?:src|href)=["'](\/assets\/[^"']+)["']/g)].map(m => m[1])
-  )].slice(0, 8);
-  if (!paths.length) checks.push({
-    url: base, kind: 'asset-discovery', status: 'WARN',
-    reason: 'No /assets/ references in HTML; asset test skipped',
-  });
-  for (const path of paths) await check(new URL(path, base).toString(), 'asset');
-}
-const failed = checks.filter(x => x.status === 'FAIL');
-const unknown = checks.filter(x => x.status === 'WARN');
+const failed = results.filter(x => x.status === 'FAIL');
+const warnings = results.filter(x => x.status === 'WARN');
+const assetsTested = results.filter(x => ['javascript','css','image','manifest','font'].includes(x.kind)).length;
 const report = {
   checked_at: new Date().toISOString(),
   website: 'KIFARO',
-  status: failed.length ? 'FAIL' : unknown.length ? 'WARN' : 'PASS',
-  summary: { checks: checks.length, failed: failed.length, warnings: unknown.length },
-  checks,
+  status: failed.length ? 'FAIL' : warnings.length ? 'WARN' : assetsTested === 0 ? 'WARN' : 'PASS',
+  summary: { checks: results.length, failed: failed.length, warnings: warnings.length, assets_tested: assetsTested },
+  scope: 'Unauthenticated homepage HTML + explicitly referenced public assets only; private media untested',
+  checks: results,
 };
 writeFileSync('guardian-site-result.json', JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));
-// Deliberately exit 0: a subsequent step records the issue before the workflow is marked failed.
+// Report failure is enforced after GitHub Issues have been updated.
