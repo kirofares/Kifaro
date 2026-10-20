@@ -49,12 +49,13 @@ test('limits probes to eight distinct assets', () => {
   assert.equal(discoverSiteAssets(html, 'https://kifaroedu.com/').length, 8);
 });
 
-function runSiteCheck(html, assetStatus = 200) {
+function runSiteCheck(html, assetStatus = 200, redirectWww = false) {
   const directory = mkdtempSync(join(tmpdir(), 'kifaro-site-test-'));
   const mock = `globalThis.fetch = async (url) => ({
     ok: !String(url).includes('/assets/') || ${assetStatus} === 200,
     status: String(url).includes('/assets/') ? ${assetStatus} : 200,
-    url: String(url), headers: new Headers({'content-type':'text/html'}),
+    url: ${redirectWww} ? String(url).replace('www.kifaroedu.com', 'kifaroedu.com') : String(url),
+    headers: new Headers({'content-type':'text/html'}),
     text: async () => ${JSON.stringify(html)}
   });`;
   try {
@@ -86,4 +87,13 @@ test('a broken relative JavaScript bundle fails monitoring', () => {
   const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script>', 404);
   assert.equal(report.status, 'FAIL');
   assert.equal(report.checks.filter(c => c.kind === 'asset' && c.status === 'FAIL').length, 2);
+});
+
+test('monitor resolves assets against the final URL after the www redirect', () => {
+  const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script>', 200, true);
+  assert.equal(report.status, 'PASS');
+  assert.deepEqual(report.checks.filter(c => c.kind === 'asset').map(c => c.url), [
+    'https://kifaroedu.com/assets/app.js',
+    'https://kifaroedu.com/assets/app.js',
+  ]);
 });

@@ -24,7 +24,7 @@ async function check(url, kind, expectHtml = false) {
     if (expectHtml && !body.toLowerCase().includes('kifaro')) throw new Error('KIFARO brand not found in HTML');
     item.status = 'PASS';
     checks.push(item);
-    return body;
+    return { body, url: response.url };
   } catch (error) {
     item.reason = String(error?.message || error).slice(0, 300);
     checks.push(item);
@@ -33,9 +33,9 @@ async function check(url, kind, expectHtml = false) {
 }
 
 for (const base of BASES) {
-  const html = await check(base, 'homepage', true);
-  if (!html) continue;
-  const assets = discoverSiteAssets(html, base);
+  const page = await check(base, 'homepage', true);
+  if (!page) continue;
+  const assets = discoverSiteAssets(page.body, page.url);
   if (!assets.length) checks.push({
     url: base, kind: 'asset-discovery', status: 'FAIL',
     reason: 'No same-origin /assets/ references in HTML; asset availability could not be verified',
