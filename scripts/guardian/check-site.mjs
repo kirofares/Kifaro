@@ -1,4 +1,5 @@
 import { writeFileSync } from 'node:fs';
+import { discoverSiteAssets } from './site-assets.mjs';
 
 const BASES = ['https://kifaroedu.com/', 'https://www.kifaroedu.com/'];
 const REQUEST_TIMEOUT_MS = 15000;
@@ -23,7 +24,7 @@ async function check(url, kind, expectHtml = false) {
     if (expectHtml && !body.toLowerCase().includes('kifaro')) throw new Error('KIFARO brand not found in HTML');
     item.status = 'PASS';
     checks.push(item);
-    return body;
+    return { body, url: response.url };
   } catch (error) {
     item.reason = String(error?.message || error).slice(0, 300);
     checks.push(item);
@@ -32,16 +33,14 @@ async function check(url, kind, expectHtml = false) {
 }
 
 for (const base of BASES) {
-  const html = await check(base, 'homepage', true);
-  if (!html) continue;
-  const paths = [...new Set(
-    [...html.matchAll(/(?:src|href)=["'](\/assets\/[^"']+)["']/g)].map(m => m[1])
-  )].slice(0, 8);
-  if (!paths.length) checks.push({
-    url: base, kind: 'asset-discovery', status: 'WARN',
-    reason: 'No /assets/ references in HTML; asset test skipped',
+  const page = await check(base, 'homepage', true);
+  if (!page) continue;
+  const assets = discoverSiteAssets(page.body, page.url);
+  if (!assets.length) checks.push({
+    url: base, kind: 'asset-discovery', status: 'FAIL',
+    reason: 'No same-origin /assets/ references in HTML; asset availability could not be verified',
   });
-  for (const path of paths) await check(new URL(path, base).toString(), 'asset');
+  for (const asset of assets) await check(asset, 'asset');
 }
 const failed = checks.filter(x => x.status === 'FAIL');
 const unknown = checks.filter(x => x.status === 'WARN');
