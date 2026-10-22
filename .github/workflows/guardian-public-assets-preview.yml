@@ -1,0 +1,41 @@
+name: Guardian Public Asset Preview
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/guardian/**'
+      - 'tests/guardian*.test.mjs'
+      - 'tests/fixtures/guardian-homepage.html'
+      - '.github/workflows/guardian-public-assets-preview.yml'
+
+# PR verification only: no secrets, issue writes, deployment or authenticated media.
+permissions:
+  contents: read
+
+concurrency:
+  group: guardian-public-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check deployed public homepage and referenced assets using PR code
+        run: node scripts/guardian/check-site.mjs
+      - name: Keep public-site verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-public-preview-${{ github.run_id }}
+          path: guardian-site-result.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Enforce public-site report
+        if: always()
+        run: node scripts/guardian/assert-reports.mjs guardian-site-result.json
