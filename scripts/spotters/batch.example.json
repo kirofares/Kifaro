@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "batch_id": "EXAMPLE-NOT-APPROVED",
+  "items": [{
+    "item_id": "00000000-0000-4000-8000-000000000001",
+    "expected_media_url": "/assets/example.svg",
+    "expected_updated_at": "",
+    "asset": {
+      "file": "reviewed-image.jpg",
+      "key": "spotter-reviewed/batch-001/asset-001.jpg",
+      "sha256": "",
+      "mime_type": "image/jpeg",
+      "kind": "specimen_photo",
+      "source_url": "",
+      "creator": "",
+      "license": "",
+      "license_evidence": "",
+      "commercial_use": false,
+      "adaptations_allowed": false,
+      "credit_line": ""
+    },
+    "media_alt": "",
+    "rights_review": {"status":"pending","asset_sha256":"","reviewer":"","reviewed_at":"","evidence":""},
+    "science_review": {"status":"pending","asset_sha256":"","reviewer":"","reviewed_at":"","evidence":""},
+    "question_review": {"status":"pending","asset_sha256":"","snapshot_sha256":"","reviewer":"","reviewed_at":"","evidence":"","answers_unchanged":false,"no_answer_leakage":false,"label_mapping":""},
+    "mobile_review": {"status":"pending","asset_sha256":"","reviewer":"","reviewed_at":"","evidence":""},
+    "desktop_review": {"status":"pending","asset_sha256":"","reviewer":"","reviewed_at":"","evidence":""}
+  }]
+}
