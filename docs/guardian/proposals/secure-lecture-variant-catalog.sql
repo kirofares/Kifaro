@@ -10,8 +10,31 @@
 -- 3. Confirm real anon / student / admin read behavior after applying.
 
 BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '60s';
 
-CREATE TABLE IF NOT EXISTS public.lecture_document_variant_catalog (
+-- A one-shot proposal: fail on existing objects instead of silently trusting old
+-- columns, permissive policies, grants or SECURITY DEFINER function ownership.
+DO $preflight$
+BEGIN
+  IF current_setting('server_version_num')::integer < 150000 THEN
+    RAISE EXCEPTION 'PostgreSQL 15+ is required';
+  END IF;
+  IF to_regnamespace('private') IS NULL THEN
+    RAISE EXCEPTION 'Expected existing private schema; inspect baseline first';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_class
+                 WHERE oid = 'public.lecture_document_variants'::regclass
+                   AND relrowsecurity) THEN
+    RAISE EXCEPTION 'Source RLS must already be enabled';
+  END IF;
+END $preflight$;
+
+-- Serialize all source writes, including TRUNCATE, until backfill and view swap
+-- commit. A lock timeout aborts the whole proposal; never proceed partially.
+LOCK TABLE public.lecture_document_variants IN SHARE ROW EXCLUSIVE MODE;
+
+CREATE TABLE public.lecture_document_variant_catalog (
   lecture_id text NOT NULL,
   variant_key text NOT NULL,
   label text NOT NULL,
@@ -25,8 +48,6 @@ CREATE TABLE IF NOT EXISTS public.lecture_document_variant_catalog (
 
 ALTER TABLE public.lecture_document_variant_catalog ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.lecture_document_variant_catalog FROM PUBLIC, anon, authenticated;
-DROP POLICY IF EXISTS lecture_document_variant_catalog_published_select
-  ON public.lecture_document_variant_catalog;
 CREATE POLICY lecture_document_variant_catalog_published_select
   ON public.lecture_document_variant_catalog FOR SELECT
   TO anon, authenticated USING (published IS TRUE);
@@ -34,13 +55,17 @@ GRANT SELECT ON public.lecture_document_variant_catalog TO anon, authenticated;
 
 -- A private trigger ensures public flags are based on the authoritative record.
 -- No source_name, pdf_path, pptx_path or user data is persisted in this table.
-CREATE OR REPLACE FUNCTION private.sync_lecture_document_variant_catalog()
+CREATE FUNCTION private.sync_lecture_document_variant_catalog()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $function$
 BEGIN
+  IF TG_OP = 'TRUNCATE' THEN
+    DELETE FROM public.lecture_document_variant_catalog;
+    RETURN NULL;
+  END IF;
   IF TG_OP = 'DELETE' THEN
     DELETE FROM public.lecture_document_variant_catalog
       WHERE lecture_id = OLD.lecture_id AND variant_key = OLD.variant_key;
@@ -75,11 +100,12 @@ $function$;
 REVOKE ALL ON FUNCTION private.sync_lecture_document_variant_catalog()
   FROM PUBLIC, anon, authenticated;
 
-DROP TRIGGER IF EXISTS sync_lecture_document_variant_catalog
-  ON public.lecture_document_variants;
 CREATE TRIGGER sync_lecture_document_variant_catalog
   AFTER INSERT OR UPDATE OR DELETE ON public.lecture_document_variants
   FOR EACH ROW EXECUTE FUNCTION private.sync_lecture_document_variant_catalog();
+CREATE TRIGGER truncate_lecture_document_variant_catalog
+  AFTER TRUNCATE ON public.lecture_document_variants
+  FOR EACH STATEMENT EXECUTE FUNCTION private.sync_lecture_document_variant_catalog();
 
 -- Backfill and prune in the same transaction to prevent stale catalog records.
 INSERT INTO public.lecture_document_variant_catalog
@@ -112,10 +138,10 @@ AS SELECT lecture_id, variant_key, label, description, sort_order,
 FROM public.lecture_document_variant_catalog
 WHERE published IS TRUE;
 
-REVOKE ALL ON public.lecture_document_variants_public FROM PUBLIC;
+REVOKE ALL ON public.lecture_document_variants_public FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.lecture_document_variants_public TO anon, authenticated;
 
--- Fail closed if the view somehow did not become invoker-owned.
+-- Fail closed if the view somehow did not become security-invoker.
 DO $check$
 BEGIN
   IF NOT EXISTS (
@@ -131,7 +157,7 @@ COMMIT;
 
 -- Post-deployment checks (run separately, with role-aware test identities):
 -- (a) anon: SELECT public.lecture_document_variants_public works for published rows.
--- (b) anon: SELECT public.lecture_document_variants rejects.
+-- (b) anon: source SELECT rejects; student source SELECT returns zero rows under RLS.
 -- (c) student: only published variants, with no private storage path fields.
 -- (d) admin: original table remains readable, including draft records.
 -- (e) after an admin update/delete, public view reflects it immediately.

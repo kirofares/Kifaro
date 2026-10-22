@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
+    "test:guardian": "node --test tests/guardian*.test.mjs",
+    "test:auth": "node --test tests/auth-email.test.mjs",
     "test:viva": "node --test tests/viva.test.mjs",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
@@ -23,11 +25,19 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
     "@supabase/supabase-js": "^2.57.4",
-    "pdfjs-dist": "^5.4.149",
+    "pdfjs-dist": "^6.4.299",
     "tus-js-client": "^4.3.1",
     "@capacitor/ios": "^8.5.2",
     "pptxgenjs": "4.0.1",
     "jspdf": "4.2.1"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "overrides": {
+    "pptxgenjs": {
+      "image-size": "2.0.4"
+    }
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
