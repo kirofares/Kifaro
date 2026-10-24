@@ -159,6 +159,25 @@ Deno.serve(async (req: Request) => {
     if (!setting || setting.published === false) return json({ error: 'This lecture is not available for purchase.' }, 404)
     if (setting.access_mode === 'free') return json({ error: 'This lecture is free. Open it without payment.' }, 409)
 
+    // Read authoritative delivery metadata, never readiness supplied by the client.
+    // Match the protected delivery paths; legacy public URLs are not readiness.
+    const { data: asset, error: assetError } = await adminClient
+      .from('lecture_assets')
+      .select('video_path, video_provider, bunny_video_id, bunny_status, pdf_path, pptx_path')
+      .eq('lecture_id', lectureId)
+      .maybeSingle()
+    if (assetError) return json({ error: 'Could not verify lecture availability. Try again later.' }, 503)
+    const hasPath = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+    const hasVideo = Boolean(asset && (hasPath(asset.video_path) || (
+      asset.video_provider === 'bunny' && asset.bunny_status === 'ready' && hasPath(asset.bunny_video_id)
+    )))
+    const hasDatashow = Boolean(asset && (hasPath(asset.pdf_path) || hasPath(asset.pptx_path)))
+    if ((productType === 'video' && !hasVideo)
+      || (productType === 'datashow' && !hasDatashow)
+      || (productType === 'bundle' && (!hasVideo || !hasDatashow))) {
+      return json({ error: 'The selected lecture format is not ready for purchase.' }, 409)
+    }
+
     const activeEntitlement = existingEntitlement && !existingEntitlement.revoked_at ? existingEntitlement : null
     const ownsVideo = Boolean(activeEntitlement?.video_access)
     const ownsDatashow = Boolean(activeEntitlement?.datashow_access)
