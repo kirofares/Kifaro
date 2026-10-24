@@ -623,6 +623,20 @@ export function VivaBankPage() {
 
 export function AssessmentItemPage() {
   const { id } = useParams()
+  const { user, loading } = useAuth()
+  const nav = useNavigate()
+  const tr = useTr()
+  if (loading) return <div className="page"><div className="assessmentempty">{tr('Checking your session…', 'جارٍ التحقق من تسجيل الدخول…')}</div></div>
+  if (!user) return <div className="page"><div className="assessmentempty">
+    <p>{tr('Sign in to open this assessment. Access requires an active subscription for your academic year.', 'سجل الدخول لفتح التقييم. يلزم اشتراك سارٍ للسنة الدراسية الخاصة بك.')}</p>
+    <button className="primary" onClick={() => nav('/login')}>{tr('Sign in', 'تسجيل الدخول')}</button>
+  </div></div>
+  // Remount on account/route changes so old protected content cannot carry over.
+  return <AuthenticatedAssessmentItemPage key={`${user.id}:${id}`} />
+}
+
+function AuthenticatedAssessmentItemPage() {
+  const { id } = useParams()
   const nav = useNavigate()
   const tr = useTr()
   const lang = useLang()
@@ -637,24 +651,52 @@ export function AssessmentItemPage() {
   const [result, setResult] = useState<AssessmentResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [loadStatus, setLoadStatus] = useState<number | null>(null)
+  const [retryVersion, setRetryVersion] = useState(0)
+
+  const assessmentError = (status: number | null) => status === 401
+    ? tr('Your session has expired. Sign in again to continue.', 'انتهت جلسة الدخول. سجل الدخول مرة أخرى للمتابعة.')
+    : status === 403
+      ? tr('You do not have active access to this assessment for your academic year.', 'ليس لديك وصول سارٍ لهذا التقييم ضمن سنتك الدراسية.')
+      : status === 404
+        ? tr('This assessment is not available.', 'هذا التقييم غير متاح.')
+        : status === 429
+          ? tr('Too many requests. Please wait before trying again.', 'طلبات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.')
+          : tr('Could not load the assessment. Please try again.', 'تعذر تحميل التقييم. حاول مرة أخرى.')
 
   useEffect(() => {
-    if (!supabase || !id) return
+    let active = true
+    if (!supabase || !id) {
+      setLoadError(assessmentError(null))
+      return
+    }
     setItem(null)
     setResult(null)
     setSubmitted(false)
     setAnswers({})
     setChecked({})
     setLoadError('')
+    setLoadStatus(null)
+    setSecondsLeft(null)
+    setTimerStarted(false)
+    setNextItemId(null)
 
     supabase.functions.invoke('assessment-item', { body: { itemId: id } })
       .then(async ({ data, error }) => {
+        if (!active) return
         if (error || data?.error) {
-          setLoadError(error?.message || String(data?.error || tr('Assessment is not available.', 'التقييم غير متاح.')))
+          const status = error?.context?.status ?? null
+          setLoadStatus(status)
+          setLoadError(assessmentError(status))
           return
         }
 
         const next = (data?.item || null) as AssessmentItem | null
+        if (!next) {
+          setLoadStatus(404)
+          setLoadError(assessmentError(404))
+          return
+        }
         setItem(next)
         setSecondsLeft(next?.time_limit_seconds ?? null)
         setTimerStarted(!next?.time_limit_seconds)
@@ -672,13 +714,17 @@ export function AssessmentItemPage() {
           .order('created_at', { ascending: true })
 
         const list = siblings || []
+        if (!active) return
         const currentIndex = list.findIndex((row) => row.id === next.id)
         if (currentIndex >= 0 && list.length > 1) {
           const following = list[(currentIndex + 1) % list.length]
           setNextItemId(following?.id || null)
         }
+      }).catch(() => {
+        if (active) setLoadError(assessmentError(null))
       })
-  }, [id])
+    return () => { active = false }
+  }, [id, retryVersion])
 
   useEffect(() => {
     if (!timerStarted || submitted || secondsLeft === null || secondsLeft <= 0) return
@@ -690,7 +736,13 @@ export function AssessmentItemPage() {
     if (timerStarted && secondsLeft === 0 && !submitted) void finish()
   }, [secondsLeft, timerStarted, submitted])
 
-  if (loadError) return <div className="page"><div className="assessmentempty">{loadError}</div></div>
+  if (loadError) return <div className="page"><div className="assessmentempty" role="status">
+    <p>{assessmentError(loadStatus)}</p>
+    {loadStatus === 401
+      ? <button className="primary" onClick={() => nav('/login')}>{tr('Sign in', 'تسجيل الدخول')}</button>
+      : <button className="secondary" onClick={() => setRetryVersion((value) => value + 1)}>{tr('Try again', 'إعادة المحاولة')}</button>}
+    <button className="secondary" onClick={() => nav('/assessments')}>{tr('Back to practice', 'العودة للتدريب')}</button>
+  </div></div>
   if (!item) return <div className="page"><div className="assessmentempty">{tr('Loading station…', 'جارٍ تحميل المحطة…')}</div></div>
 
   const questions = item.content?.questions || []
