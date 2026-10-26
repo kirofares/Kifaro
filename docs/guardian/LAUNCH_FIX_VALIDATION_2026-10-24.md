@@ -1,5 +1,7 @@
 # Launch checkout and assessment follow-up — 2026-10-24
 
+Historical evidence for the original PR head. The [27 October review](PR71_REVIEW_2026-10-27.md) supersedes the original readiness criteria and test counts below; it adds PDF/Bunny resource checks, assessment entitlement-year matching, and webhook fixes.
+
 Prepared 24 October 2026, Africa/Cairo (UTC+03:00). Base: `4a22bbd3300f8cd05a1ad5f9f45fd4ada01ec1e0`.
 Status: proposed code fix; production behavior remains unverified for this change.
 

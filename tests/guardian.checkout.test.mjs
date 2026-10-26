@@ -21,10 +21,17 @@ function fixture() {
     lecture_assets: [{ lecture_id: 'lecture', pdf_path: 'private/test.pdf', video_provider: 'bunny', bunny_video_id: 'test-video', bunny_status: 'ready' }],
   }
   const providerCalls = []
+  const storageReads = []
+  const storage = { data: { size: 1024, contentType: 'application/pdf' }, error: null }
+  const bunny = { status: 200, data: { status: 4, availableResolutions: '720p' }, throws: false }
   const reads = []
   let failTable = null
   let handler
   const client = {
+    storage: { from: bucket => ({ info: async path => {
+      storageReads.push({ bucket, path })
+      return storage
+    } }) },
     auth: { getUser: async token => ({ data: { user: token === 'valid' ? { id: 'student' } : null }, error: null }) },
     rpc: async () => ({ data: true, error: null }),
     from(table) {
@@ -41,17 +48,21 @@ function fixture() {
       }
     },
   }
-  const env = { SUPABASE_URL: 'https://example.invalid', SUPABASE_ANON_KEY: 'test', SUPABASE_SERVICE_ROLE_KEY: 'test', PAYMOB_SECRET_KEY: 'test-secret', PAYMOB_PUBLIC_KEY: 'test-public', PAYMOB_HMAC_SECRET: 'test-hmac', PAYMOB_INTEGRATION_ID_CARD: '1' }
+  const env = { SUPABASE_URL: 'https://example.invalid', SUPABASE_ANON_KEY: 'test', SUPABASE_SERVICE_ROLE_KEY: 'test', PAYMOB_SECRET_KEY: 'test-secret', PAYMOB_PUBLIC_KEY: 'test-public', PAYMOB_HMAC_SECRET: 'test-hmac', PAYMOB_INTEGRATION_ID_CARD: '1', BUNNY_STREAM_LIBRARY_ID: '1', BUNNY_STREAM_API_KEY: 'test-bunny', BUNNY_STREAM_TOKEN_AUTH_KEY: 'test-playback' }
   vm.runInNewContext(compiled, {
-    createClient: () => client, Request, Response, TextEncoder, btoa, crypto: webcrypto,
+    createClient: () => client, Request, Response, TextEncoder, btoa, crypto: webcrypto, AbortSignal,
     Deno: { env: { get: key => env[key] }, serve: fn => { handler = fn } },
     fetch: async (url, options) => {
+      if (url.startsWith('https://video.bunnycdn.com/')) {
+        if (bunny.throws) throw new Error('simulated timeout')
+        return new Response(JSON.stringify(bunny.data), { status: bunny.status })
+      }
       providerCalls.push({ url, payload: JSON.parse(options.body) })
       return new Response(JSON.stringify({ client_secret: 'fake-secret', id: 'fake-intention' }), { status: 200 })
     },
   })
   return {
-    state, reads, providerCalls, fail: table => { failTable = table },
+    state, reads, providerCalls, storageReads, storage, bunny, env, fail: table => { failTable = table },
     request: (body = {}, token = 'valid') => handler(new Request('https://example.invalid/checkout', {
       method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({ lectureId: 'lecture', productType: 'bundle', ...body }),
@@ -127,11 +138,68 @@ test('checkout: correct-year ready bundle uses server price and signed server ye
   assert.equal(signedState.y, 1); assert.equal(signedState.a, 8000)
   assert.equal(signedState.u, 'student'); assert.equal(signedState.l, 'lecture')
 })
-test('checkout: protected storage video and PPTX references remain supported', async () => {
+test('checkout: storage-only video and PPTX cannot satisfy the current Bunny/PDF student players', async () => {
   const f = fixture(); f.state.lecture_assets = [{ lecture_id: 'lecture', video_path: 'private/test.mp4', pptx_path: 'private/test.pptx' }]
-  assert.equal((await f.request()).status, 200)
+  for (const productType of ['video', 'datashow', 'bundle']) assert.equal((await f.request({ productType })).status, 409)
+  assert.equal(f.providerCalls.length, 0)
 })
 test('checkout: active ownership still blocks duplicate purchase', async () => {
   const f = fixture(); f.state.lecture_entitlements = [{ user_id: 'student', lecture_id: 'lecture', video_access: true, datashow_access: true, revoked_at: null }]
   assert.equal((await f.request()).status, 409); assert.equal(f.providerCalls.length, 0)
+})
+
+test('checkout: PPTX-only datashow is rejected even alongside a ready Bunny video', async () => {
+  const f = fixture(); delete f.state.lecture_assets[0].pdf_path
+  f.state.lecture_assets[0].pptx_path = 'private/test.pptx'
+  for (const productType of ['datashow', 'bundle']) assert.equal((await f.request({ productType })).status, 409)
+  assert.equal(f.providerCalls.length, 0)
+})
+for (const [name, data, error, status] of [
+  ['missing object', null, { status: 404, statusCode: '404' }, 409],
+  ['Storage not-found code', null, { status: 400, code: 'NoSuchKey' }, 409],
+  ['empty object', { size: 0 }, null, 409],
+  ['unknown object size', {}, null, 503],
+  ['storage outage', null, { status: 500 }, 503],
+  ['storage permission error', null, { status: 403 }, 503],
+]) test(`checkout: ${name} blocks datashow and bundle before Paymob`, async () => {
+  const f = fixture(); Object.assign(f.storage, { data, error })
+  for (const productType of ['datashow', 'bundle']) assert.equal((await f.request({ productType })).status, status)
+  assert.equal(f.providerCalls.length, 0)
+})
+test('checkout: checks the same private PDF path used by student delivery', async () => {
+  const f = fixture(); assert.equal((await f.request({ productType: 'datashow' })).status, 200)
+  assert.deepEqual(f.storageReads, [{ bucket: 'kifaro-content', path: 'private/test.pdf' }])
+})
+for (const [name, change, status] of [
+  ['deleted Bunny video', { status: 404 }, 409],
+  ['Bunny outage', { status: 503 }, 503],
+  ['Bunny permission error', { status: 401 }, 503],
+  ['Bunny timeout', { throws: true }, 503],
+  ['still processing remotely', { data: { status: 2, availableResolutions: '720p' } }, 409],
+  ['failed remotely', { data: { status: 5, availableResolutions: '720p' } }, 409],
+  ['missing renditions', { data: { status: 4, availableResolutions: '' } }, 409],
+]) test(`checkout: ${name} overrides stale ready metadata`, async () => {
+  const f = fixture(); Object.assign(f.bunny, change)
+  for (const productType of ['video', 'bundle']) assert.equal((await f.request({ productType })).status, status)
+  assert.equal(f.providerCalls.length, 0)
+})
+for (const key of ['BUNNY_STREAM_LIBRARY_ID', 'BUNNY_STREAM_API_KEY', 'BUNNY_STREAM_TOKEN_AUTH_KEY']) {
+  test(`checkout: missing ${key} stops video payment`, async () => {
+    const f = fixture(); delete f.env[key]
+    assert.equal((await f.request({ productType: 'video' })).status, 503)
+    assert.equal(f.providerCalls.length, 0)
+    assert.equal((await f.request({ productType: 'datashow' })).status, 200)
+  })
+}
+test('checkout: storage path cannot hide an unready Bunny player', async () => {
+  const f = fixture(); f.state.lecture_assets[0].video_path = 'private/old.mp4'
+  f.state.lecture_assets[0].bunny_status = 'processing'
+  assert.equal((await f.request({ productType: 'video' })).status, 409)
+  assert.equal(f.providerCalls.length, 0)
+})
+test('checkout: owning one format does not buy the same format again, but allows the other', async () => {
+  const f = fixture(); f.state.lecture_entitlements = [{ user_id: 'student', lecture_id: 'lecture', video_access: true, datashow_access: false, revoked_at: null }]
+  assert.equal((await f.request({ productType: 'video' })).status, 409)
+  assert.equal(f.providerCalls.length, 0)
+  assert.equal((await f.request({ productType: 'datashow' })).status, 200)
 })

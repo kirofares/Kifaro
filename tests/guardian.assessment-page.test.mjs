@@ -13,7 +13,9 @@ const compiled = ts.transpileModule(source, {
 function fixture({ invoke = async () => ({ error: { context: { status: 403 } } }), user = { id: 'student' }, loading = false, ar = false } = {}) {
   const state = { user, loading, id: 'item', ar }
   let cursor = 0
-  const values = [], effects = [], pending = [], calls = [], navigation = []
+  let instanceKey
+  const values = [], effects = [], pending = [], calls = [], navigation = [], timers = new Map()
+  let timerId = 0
   const jsx = (type, props, key) => ({ type, props, key })
   const exports = {}
   const react = {
@@ -23,6 +25,11 @@ function fixture({ invoke = async () => ({ error: { context: { status: 403 } } }
       return [values[i], value => { values[i] = typeof value === 'function' ? value(values[i]) : value }]
     },
     useMemo(fn) { return fn() },
+    useRef(initial) {
+      const i = cursor++
+      if (!(i in values)) values[i] = { current: initial }
+      return values[i]
+    },
     useEffect(fn, deps) {
       const i = cursor++
       if (!effects[i] || deps.some((v, n) => !Object.is(v, effects[i].deps[n]))) {
@@ -42,18 +49,27 @@ function fixture({ invoke = async () => ({ error: { context: { status: 403 } } }
       from: () => ({ select() { return this }, eq() { return this }, order: async () => ({ data: [] }) }),
     } },
   }
-  vm.runInNewContext(compiled, { exports, require: name => modules[name] || {}, window: { setInterval: () => 1, clearInterval() {} } })
+  vm.runInNewContext(compiled, { exports, require: name => modules[name] || {}, window: {
+    setInterval(fn) { timers.set(++timerId, fn); return timerId },
+    clearInterval(id) { timers.delete(id) },
+  } })
   const wrapper = () => exports.AssessmentItemPage()
   const render = () => {
     cursor = 0
     const outer = wrapper()
+    if (outer.key !== instanceKey) {
+      effects.forEach(e => e?.cleanup?.())
+      values.length = 0; effects.length = 0; pending.length = 0
+      instanceKey = outer.key
+    }
     const tree = typeof outer.type === 'function' ? outer.type() : outer
     pending.splice(0).forEach(fn => fn())
     return tree
   }
   const all = node => !node || typeof node !== 'object' ? [] : [node, ...[node.props?.children].flat(Infinity).flatMap(all)]
   return { state, calls, navigation, wrapper, render, text: () => JSON.stringify(render()),
-    button: label => all(render()).find(n => n.type === 'button' && n.props.children === label),
+    button: label => all(render()).find(n => n.type === 'button' && [n.props.children].flat(Infinity).includes(label)),
+    tick: () => [...timers.values()].forEach(fn => fn()),
     cleanup: () => effects.forEach(e => e?.cleanup?.()),
   }
 }
@@ -62,6 +78,56 @@ const settle = () => new Promise(resolve => setImmediate(resolve))
 test('assessment page: guest gets sign-in without requesting protected data', () => {
   const f = fixture({ user: null }); assert.match(f.text(), /Sign in to open this assessment/)
   assert.equal(f.calls.length, 0); f.button('Sign in').props.onClick(); assert.deepEqual(f.navigation, ['/login'])
+})
+
+const readyItem = { id: 'item', year: 1, module_code: 'IAE-1', assessment_type: 'case', title: 'PRIVATE STATION', stem: 'PRIVATE QUESTION', content: { questions: [{ prompt: 'Select one', options: ['Choice A', 'Choice B'] }] }, time_limit_seconds: null }
+for (const [status, message] of [[401, 'Your session has expired'], [403, 'do not have active access']]) {
+  test(`assessment page: submit HTTP ${status} clears protected content and shows the correct action`, async () => {
+    const f = fixture({ invoke: async name => name === 'assessment-item' ? { data: { item: readyItem } } : { error: { context: { status } } } })
+    f.render(); await settle(); f.button('Finish assessment').props.onClick(); await settle()
+    assert.match(f.text(), new RegExp(message))
+    assert.doesNotMatch(f.text(), /PRIVATE STATION|PRIVATE QUESTION/)
+    assert.ok(f.button(status === 401 ? 'Sign in' : 'Try again'))
+  })
+}
+test('assessment page: a thrown submit failure allows retry without losing the answer', async () => {
+  const f = fixture({ invoke: async name => name === 'assessment-item' ? { data: { item: readyItem } } : Promise.reject(new Error('network failure')) })
+  f.render(); await settle()
+  f.button('Choice B').props.onClick()
+  await f.button('Finish assessment').props.onClick(); await settle()
+  assert.match(f.text(), /Could not submit/)
+  f.button('Finish assessment').props.onClick(); await settle()
+  const submissions = f.calls.filter(([name]) => name === 'assessment-submit')
+  assert.equal(submissions.length, 2)
+  assert.equal(submissions[1][1].body.answers[0], 1)
+})
+test('assessment page: duplicate finish clicks create one submission', async () => {
+  const f = fixture({ invoke: async name => name === 'assessment-item' ? { data: { item: readyItem } } : new Promise(() => {}) })
+  f.render(); await settle()
+  const button = f.button('Finish assessment'); button.props.onClick(); button.props.onClick()
+  assert.equal(f.calls.filter(([name]) => name === 'assessment-submit').length, 1)
+  f.cleanup()
+})
+test('assessment page: account switch clears loaded content and late submission results', async () => {
+  let resolveSubmit
+  const f = fixture({ invoke: name => name === 'assessment-submit'
+    ? new Promise(resolve => { resolveSubmit = resolve })
+    : Promise.resolve(f.state.user.id === 'student' ? { data: { item: readyItem } } : { error: { context: { status: 403 } } }) })
+  f.render(); await settle(); f.button('Finish assessment').props.onClick()
+  f.state.user = { id: 'other-student' }; f.render(); await settle()
+  resolveSubmit({ data: { score: 1, max_score: 1, key_points: ['PRIVATE RESULTS'] } }); await settle()
+  assert.doesNotMatch(f.text(), /PRIVATE STATION|PRIVATE QUESTION|PRIVATE RESULTS/)
+  assert.match(f.text(), /do not have active access/)
+})
+test('assessment page: timed station starts explicitly and submits once at zero', async () => {
+  const f = fixture({ invoke: async name => name === 'assessment-item'
+    ? { data: { item: { ...readyItem, time_limit_seconds: 1 } } }
+    : { data: { score: 0, max_score: 1, question_results: [] } } })
+  f.render(); await settle(); f.render(); f.tick(); f.render()
+  assert.equal(f.calls.length, 1)
+  f.button('Start station').props.onClick(); f.render(); f.tick(); f.render(); await settle(); f.render()
+  assert.equal(f.calls.filter(([name]) => name === 'assessment-submit').length, 1)
+  f.cleanup()
 })
 test('assessment page: session hydration does not flash an access error', () => {
   const f = fixture({ user: null, loading: true }); assert.match(f.text(), /Checking your session/)
