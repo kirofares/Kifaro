@@ -2,6 +2,10 @@ name: Validate AnatoMate iOS
 
 on:
   workflow_dispatch:
+  # Validate runtime/workflow edits before merge without signing or deployment.
+  pull_request:
+    paths:
+      - '.github/workflows/ios-validate.yml'
   push:
     branches: [main]
     paths:
