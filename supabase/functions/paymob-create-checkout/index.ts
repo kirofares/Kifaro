@@ -59,6 +59,44 @@ function ruleScore(rule: any) {
   return yearScore + nationalityScore + Number(rule.priority || 0)
 }
 
+// Probe only server-owned references. These checks do not grant access or mutate
+// delivery counters, and an upstream outage must never fall through to Paymob.
+async function checkPdf(adminClient: any, path: string): Promise<409 | 503 | null> {
+  try {
+    const { data, error } = await adminClient.storage.from('kifaro-content').info(path)
+    if (error) {
+      const status = Number(error.statusCode ?? error.status)
+      return status === 404 || ['NoSuchKey', 'not_found'].includes(error.code) ? 409 : 503
+    }
+    if (!data || !Number.isFinite(Number(data.size))) return 503
+    if (Number(data.size) <= 0) return 409
+    return null
+  } catch {
+    return 503
+  }
+}
+
+async function checkBunnyVideo(videoId: string): Promise<409 | 503 | null> {
+  const libraryId = Deno.env.get('BUNNY_STREAM_LIBRARY_ID')
+  const apiKey = Deno.env.get('BUNNY_STREAM_API_KEY')
+  const tokenKey = Deno.env.get('BUNNY_STREAM_TOKEN_AUTH_KEY')
+  if (!libraryId || !apiKey || !tokenKey) return 503
+  try {
+    const response = await fetch(
+      `https://video.bunnycdn.com/library/${encodeURIComponent(libraryId)}/videos/${encodeURIComponent(videoId)}`,
+      { headers: { AccessKey: apiKey, Accept: 'application/json' }, signal: AbortSignal.timeout(8000) },
+    )
+    if (response.status === 404) return 409
+    if (!response.ok) return 503
+    const video = await response.json()
+    // Finished or at least one finished rendition, as used by the Bunny player.
+    return [3, 4].includes(Number(video?.status)) && String(video?.availableResolutions || '').trim()
+      ? null : 409
+  } catch {
+    return 503
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -159,6 +197,25 @@ Deno.serve(async (req: Request) => {
     if (!setting || setting.published === false) return json({ error: 'This lecture is not available for purchase.' }, 404)
     if (setting.access_mode === 'free') return json({ error: 'This lecture is free. Open it without payment.' }, 409)
 
+    // Match the actual student players: Bunny video and a watermarked PDF.
+    // A PPTX or legacy storage video alone cannot be delivered by those players.
+    const { data: asset, error: assetError } = await adminClient
+      .from('lecture_assets')
+      .select('video_provider, bunny_video_id, bunny_status, pdf_path')
+      .eq('lecture_id', lectureId)
+      .maybeSingle()
+    if (assetError) return json({ error: 'Could not verify lecture availability. Try again later.' }, 503)
+    const hasPath = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+    const hasVideo = Boolean(asset && (
+      asset.video_provider === 'bunny' && asset.bunny_status === 'ready' && hasPath(asset.bunny_video_id)
+    ))
+    const hasDatashow = Boolean(asset && hasPath(asset.pdf_path))
+    if ((productType === 'video' && !hasVideo)
+      || (productType === 'datashow' && !hasDatashow)
+      || (productType === 'bundle' && (!hasVideo || !hasDatashow))) {
+      return json({ error: 'The selected lecture format is not ready for purchase.' }, 409)
+    }
+
     const activeEntitlement = existingEntitlement && !existingEntitlement.revoked_at ? existingEntitlement : null
     const ownsVideo = Boolean(activeEntitlement?.video_access)
     const ownsDatashow = Boolean(activeEntitlement?.datashow_access)
@@ -201,6 +258,14 @@ Deno.serve(async (req: Request) => {
           : 'Card payments are not configured yet.',
       }, 503)
     }
+
+    const readiness = await Promise.all([
+      productType === 'video' || productType === 'bundle' ? checkBunnyVideo(asset!.bunny_video_id) : null,
+      productType === 'datashow' || productType === 'bundle' ? checkPdf(adminClient, asset!.pdf_path) : null,
+    ])
+    if (readiness.includes(409)) return json({ error: 'The selected lecture format is not ready for purchase.' }, 409)
+    if (readiness.includes(503)) return json({ error: 'Could not verify lecture availability. Try again later.' }, 503)
+
     const nameParts = String(profile.full_name || userData.user.email || 'KIFARO Student').trim().split(/\s+/)
     const firstName = nameParts.shift() || 'KIFARO'
     const lastName = nameParts.join(' ') || 'Student'

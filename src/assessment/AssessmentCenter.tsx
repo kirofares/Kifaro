@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, CheckCircle2, ChevronRight, Clock3, Eye, FileQuestion, RotateCcw, Stethoscope } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -623,6 +623,20 @@ export function VivaBankPage() {
 
 export function AssessmentItemPage() {
   const { id } = useParams()
+  const { user, loading } = useAuth()
+  const nav = useNavigate()
+  const tr = useTr()
+  if (loading) return <div className="page"><div className="assessmentempty">{tr('Checking your session…', 'جارٍ التحقق من تسجيل الدخول…')}</div></div>
+  if (!user) return <div className="page"><div className="assessmentempty">
+    <p>{tr('Sign in to open this assessment. Access requires an active subscription for your academic year.', 'سجل الدخول لفتح التقييم. يلزم اشتراك سارٍ للسنة الدراسية الخاصة بك.')}</p>
+    <button className="primary" onClick={() => nav('/login')}>{tr('Sign in', 'تسجيل الدخول')}</button>
+  </div></div>
+  // Remount on account/route changes so old protected content cannot carry over.
+  return <AuthenticatedAssessmentItemPage key={`${user.id}:${id}`} />
+}
+
+function AuthenticatedAssessmentItemPage() {
+  const { id } = useParams()
   const nav = useNavigate()
   const tr = useTr()
   const lang = useLang()
@@ -637,24 +651,61 @@ export function AssessmentItemPage() {
   const [result, setResult] = useState<AssessmentResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [loadStatus, setLoadStatus] = useState<number | null>(null)
+  const [retryVersion, setRetryVersion] = useState(0)
+  const [submitError, setSubmitError] = useState(false)
+  const mounted = useRef(false)
+  const submissionPending = useRef(false)
 
   useEffect(() => {
-    if (!supabase || !id) return
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
+
+  const assessmentError = (status: number | null) => status === 401
+    ? tr('Your session has expired. Sign in again to continue.', 'انتهت جلسة الدخول. سجل الدخول مرة أخرى للمتابعة.')
+    : status === 403
+      ? tr('You do not have active access to this assessment for your academic year.', 'ليس لديك وصول سارٍ لهذا التقييم ضمن سنتك الدراسية.')
+      : status === 404
+        ? tr('This assessment is not available.', 'هذا التقييم غير متاح.')
+        : status === 429
+          ? tr('Too many requests. Please wait before trying again.', 'طلبات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.')
+          : tr('Could not load the assessment. Please try again.', 'تعذر تحميل التقييم. حاول مرة أخرى.')
+
+  useEffect(() => {
+    let active = true
+    if (!supabase || !id) {
+      setLoadError(assessmentError(null))
+      return
+    }
     setItem(null)
     setResult(null)
     setSubmitted(false)
     setAnswers({})
     setChecked({})
     setLoadError('')
+    setLoadStatus(null)
+    setSubmitError(false)
+    setSecondsLeft(null)
+    setTimerStarted(false)
+    setNextItemId(null)
 
     supabase.functions.invoke('assessment-item', { body: { itemId: id } })
       .then(async ({ data, error }) => {
+        if (!active) return
         if (error || data?.error) {
-          setLoadError(error?.message || String(data?.error || tr('Assessment is not available.', 'التقييم غير متاح.')))
+          const status = error?.context?.status ?? null
+          setLoadStatus(status)
+          setLoadError(assessmentError(status))
           return
         }
 
         const next = (data?.item || null) as AssessmentItem | null
+        if (!next) {
+          setLoadStatus(404)
+          setLoadError(assessmentError(404))
+          return
+        }
         setItem(next)
         setSecondsLeft(next?.time_limit_seconds ?? null)
         setTimerStarted(!next?.time_limit_seconds)
@@ -672,13 +723,17 @@ export function AssessmentItemPage() {
           .order('created_at', { ascending: true })
 
         const list = siblings || []
+        if (!active) return
         const currentIndex = list.findIndex((row) => row.id === next.id)
         if (currentIndex >= 0 && list.length > 1) {
           const following = list[(currentIndex + 1) % list.length]
           setNextItemId(following?.id || null)
         }
+      }).catch(() => {
+        if (active) setLoadError(assessmentError(null))
       })
-  }, [id])
+    return () => { active = false }
+  }, [id, retryVersion])
 
   useEffect(() => {
     if (!timerStarted || submitted || secondsLeft === null || secondsLeft <= 0) return
@@ -690,7 +745,13 @@ export function AssessmentItemPage() {
     if (timerStarted && secondsLeft === 0 && !submitted) void finish()
   }, [secondsLeft, timerStarted, submitted])
 
-  if (loadError) return <div className="page"><div className="assessmentempty">{loadError}</div></div>
+  if (loadError) return <div className="page"><div className="assessmentempty" role="status">
+    <p>{assessmentError(loadStatus)}</p>
+    {loadStatus === 401
+      ? <button className="primary" onClick={() => nav('/login')}>{tr('Sign in', 'تسجيل الدخول')}</button>
+      : <button className="secondary" onClick={() => setRetryVersion((value) => value + 1)}>{tr('Try again', 'إعادة المحاولة')}</button>}
+    <button className="secondary" onClick={() => nav('/assessments')}>{tr('Back to practice', 'العودة للتدريب')}</button>
+  </div></div>
   if (!item) return <div className="page"><div className="assessmentempty">{tr('Loading station…', 'جارٍ تحميل المحطة…')}</div></div>
 
   const questions = item.content?.questions || []
@@ -701,19 +762,39 @@ export function AssessmentItemPage() {
   const maxScore = Number(result?.max_score || 0)
 
   async function finish() {
-    if (!supabase || !user || submitting || submitted) return
+    if (!supabase || !user || !item || submissionPending.current || submitted) return
+    submissionPending.current = true
     setSubmitting(true)
-    setLoadError('')
-    const { data, error } = await supabase.functions.invoke('assessment-submit', {
-      body: { itemId: item!.id, answers, checklist: checked },
-    })
-    setSubmitting(false)
-    if (error || data?.error) {
-      setLoadError(error?.message || String(data?.error || tr('Could not submit assessment.', 'تعذر إرسال التقييم.')))
-      return
+    setSubmitError(false)
+    try {
+      const { data, error } = await supabase.functions.invoke('assessment-submit', {
+        body: { itemId: item.id, answers, checklist: checked },
+      })
+      if (!mounted.current) return
+      if (error || data?.error) {
+        const status = error?.context?.status ?? null
+        if ([401, 403, 404].includes(status)) {
+          setItem(null)
+          setResult(null)
+          setAnswers({})
+          setChecked({})
+          setTimerStarted(false)
+          setSecondsLeft(null)
+          setLoadStatus(status)
+          setLoadError(assessmentError(status))
+        } else {
+          setSubmitError(true)
+        }
+        return
+      }
+      setResult(data as AssessmentResult)
+      setSubmitted(true)
+    } catch {
+      if (mounted.current) setSubmitError(true)
+    } finally {
+      submissionPending.current = false
+      if (mounted.current) setSubmitting(false)
     }
-    setResult(data as AssessmentResult)
-    setSubmitted(true)
   }
 
   const minutes = secondsLeft === null ? null : Math.floor(secondsLeft / 60)
@@ -744,7 +825,8 @@ export function AssessmentItemPage() {
 
           {checklist.length > 0 && <section className="stationchecklist"><h2>{tr('Station checklist', 'قائمة تقييم المحطة')}</h2><p>{tr('For practice mode, tick each step you completed correctly.', 'في وضع التدريب علّم على كل خطوة نفذتها بصورة صحيحة.')}</p>{checklist.map((row,index)=><label key={index}><input type="checkbox" disabled={submitted} checked={Boolean(checked[index])} onChange={(e)=>setChecked((state)=>({...state,[index]:e.target.checked}))}/><span>{row.label}</span><strong>{row.marks}</strong></label>)}</section>}
 
-          {!submitted ? <div className="stationactions"><button className="primary" disabled={submitting} onClick={() => void finish()}>{submitting ? tr('Checking…', 'جارٍ التصحيح…') : tr('Finish assessment', 'إنهاء التقييم')}</button></div> : <section className="stationresult"><CheckCircle2/><div><small>{tr('Result', 'النتيجة')}</small><strong>{score}/{maxScore}</strong><p>{result?.key_points?.length ? tr('Key points to review:', 'نقاط للمراجعة:') + ' ' + result.key_points.join(' · ') : tr('Attempt saved to your progress.', 'تم حفظ المحاولة في تقدمك.')}</p></div><div className="stationresultactions"><button className="secondary" onClick={()=>{setAnswers({});setChecked({});setResult(null);setSubmitted(false);setLoadError('');setSecondsLeft(item.time_limit_seconds);setTimerStarted(!item.time_limit_seconds)}}><RotateCcw size={17}/>{tr('Try again', 'إعادة المحاولة')}</button>{nextItemId && <button className="primary" onClick={()=>nav('/assessments/item/' + nextItemId)}>{item.assessment_type === 'case' ? tr('Next Case', 'الحالة التالية') : tr('Next Station', 'المحطة التالية')}<ChevronRight size={17}/></button>}</div></section>}
+          {submitError && <p role="alert">{tr('Could not submit assessment. Your answers are kept; try finishing again.', 'تعذر إرسال التقييم. إجاباتك محفوظة هنا؛ حاول الإنهاء مرة أخرى.')}</p>}
+          {!submitted ? <div className="stationactions"><button className="primary" disabled={submitting} onClick={() => void finish()}>{submitting ? tr('Checking…', 'جارٍ التصحيح…') : tr('Finish assessment', 'إنهاء التقييم')}</button></div> : <section className="stationresult"><CheckCircle2/><div><small>{tr('Result', 'النتيجة')}</small><strong>{score}/{maxScore}</strong><p>{result?.key_points?.length ? tr('Key points to review:', 'نقاط للمراجعة:') + ' ' + result.key_points.join(' · ') : tr('Attempt saved to your progress.', 'تم حفظ المحاولة في تقدمك.')}</p></div><div className="stationresultactions"><button className="secondary" onClick={()=>{setAnswers({});setChecked({});setResult(null);setSubmitted(false);setLoadError('');setSubmitError(false);setSecondsLeft(item.time_limit_seconds);setTimerStarted(!item.time_limit_seconds)}}><RotateCcw size={17}/>{tr('Try again', 'إعادة المحاولة')}</button>{nextItemId && <button className="primary" onClick={()=>nav('/assessments/item/' + nextItemId)}>{item.assessment_type === 'case' ? tr('Next Case', 'الحالة التالية') : tr('Next Station', 'المحطة التالية')}<ChevronRight size={17}/></button>}</div></section>}
         </>
       )}
     </div>
