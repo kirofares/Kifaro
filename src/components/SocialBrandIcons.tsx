@@ -1,6 +1,9 @@
 import type { SVGProps } from 'react'
 
-/*
+/*!
+ * @license lucide-react 0.468.0 - ISC
+ * Distribution notice: public/licenses/lucide-social-icons.txt
+ *
  * Brand icon geometry retained from lucide-react 0.468.0, which exported these
  * icons before Lucide removed brand icons. Keep them local so library upgrades
  * do not break our social links or change their established appearance.
