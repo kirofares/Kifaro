@@ -1,0 +1,92 @@
+[
+  {
+    "path": "public/assets/anatomate/y1/lecture-19/amniotic-fluid-exam.svg",
+    "original_sha256": "e06fa84c695742a907bb5a2d80c91604b8fea122c5c788b662b7145724b60195",
+    "fixed_sha256": "5235b5465e2447f2f0e1a0d86940838d95a6cac4c3f755670b43d5299aff03cb",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/lecture-01/anatomical-position-regions-exam.svg",
+    "original_sha256": "c99f378a6d420d4a5d91a6d206eea29b97afe3c5cb0d4de3ae103fba1fe449fb",
+    "fixed_sha256": "af27106314bd5f2fec81d83279556558ba89cd94be6c6bbeeb5a43c6bbf3e5f6",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/lecture-07/regional-drainage-exam.svg",
+    "original_sha256": "d610d081497567a83c02f17859fcaed68fce8e4ac6cf67e71af85dd3280b87c1",
+    "fixed_sha256": "03079bb5d2339f7cc96afcfd6629276e74c1f261c896974796ae66ab55763861",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/lecture-19/cord-anomalies-exam.svg",
+    "original_sha256": "2dc455400f6a6873699727b0d05e35a79e9fe2a9708cb84ee20a13b2e1884f8f",
+    "fixed_sha256": "f1e7ed611a3f8c0d5a1fb02a3aa2c48109814c3e2b7194226d90e5db56c7f97f",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/spotters/y1-mls-1-51.svg",
+    "original_sha256": "4de483f51b32029ea618f2b875416cf6c8fb5001fc9108fbb9d40ad9e4f4a698",
+    "fixed_sha256": "da8d25486ddaa79c9671d21b858124b3d064f1d6a237408e95772834156b071b",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/spotters/y1-mls-1-40.svg",
+    "original_sha256": "a34bcf83ddf7ee91e8e9ef734fc61dd08ae3bf48d6503abaa50590166b7b58a9",
+    "fixed_sha256": "f325d6954cd8261709e434eaccfd0b85bb2cd383431bb6151920505361f56cf3",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/spotters/y1-mls-1-54.svg",
+    "original_sha256": "c9c254b0a3250175493304eaf3dde94ba4bd0584e236af35056e530587357285",
+    "fixed_sha256": "fbfcb1d1cb5813186e4de857af89f606ca4b768cad81a669882dccaf76fd2d02",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/lecture-21/upper-limb-map-exam.svg",
+    "original_sha256": "bce02c8ca3eeedb00399238e3187d00939e4f5149e355e397ab8711d201947ed",
+    "fixed_sha256": "9f7a6a13225ff87916be9ffccaf1623806d7f8ff828178b2c8fb46bde6ecf8e5",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y1/spotters/y1-mls-1-25.svg",
+    "original_sha256": "99d2fa6d5f18ce0fdbbfdfaf533e1bb046c92f3ecb7f5bf20a4a60c4b63caecc",
+    "fixed_sha256": "7c6da4b0b4f8d4a6e1ef0a8d9bd85269d8f315acd284c7fad0027cb8a324d2a5",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y2/mcns-2/lecture-31/meninges-spaces-spotter.svg",
+    "original_sha256": "0eba9f3f5e9a80dacf7a6f85cf2a4720c4eba6021ea7de375d3fcf4dd14b8ec3",
+    "fixed_sha256": "a7431ce2850d2555dde48a44461737ac591c8023bc7e03fa9601099c8df3bc34",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y2/mrs-2/lecture-12/trachea-bronchi-spotter.svg",
+    "original_sha256": "e373453a30e824d26e4af1ad33753a442b63ea252f426b2994fb23e0af611e78",
+    "fixed_sha256": "eb33637b0e7732fa22248e5a468e9e330917ff06118c37cc3cfec04004c0172d",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y2/mss-2/lecture-55/auditory-vestibular-pathway-spotter.svg",
+    "original_sha256": "c926421890b531903ea22328a880764dae7e3b4cccf5c3d336255a19199fa6df",
+    "fixed_sha256": "c50936ae02a11e308eb4a63efff1dfb631cc7ee3d70031e297b52705a43e1cfc",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y3/mgl-3/lecture-21/rectum-anal-spotter.svg",
+    "original_sha256": "ce55ece3ced5b9605e6737ea580b2ca75f821e4ef19767e7b44a5ab028cb5e9a",
+    "fixed_sha256": "70857e65cb2347a8e85a67259523ba75efc68d8260ebad4161ee4b85f6c84592",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y3/mgl-3/lecture-19/appendix-spotter.svg",
+    "original_sha256": "7d48ebd451ab3a382a604a1a2198d4275db05944cf4d7cfd92934e8a49a70350",
+    "fixed_sha256": "88a727098ae049d7214d1b9ddaf1d79782567d8e3df3ba82d2b2c3d9a0e46dd1",
+    "replacements": 1
+  },
+  {
+    "path": "public/assets/anatomate/y3/mug-3/lecture-17/ductus-seminal-spotter.svg",
+    "original_sha256": "c6d6e4fb2ae336ae346874de6b7c98cd9d2a1e42d0640b1abc9a7d12e80dd5a5",
+    "fixed_sha256": "d5f9577f9b01e299c6a1947188196b8d527bdba1d4e968be9983855c3d2cba35",
+    "replacements": 1
+  }
+]
