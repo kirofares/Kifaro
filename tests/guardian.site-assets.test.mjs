@@ -5,7 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { discoverSiteAssets } from '../scripts/guardian/site-assets.mjs';
+import { discoverSiteAssets as discover } from '../scripts/guardian/site-assets.mjs';
+
+const discoverSiteAssets = (html, url) => discover(html, url).assets.map(x => x.url);
 
 test('discovers Vite relative JS and CSS emitted with base ./', () => {
   assert.deepEqual(discoverSiteAssets(`
@@ -21,8 +23,8 @@ test('supports root paths, plain relative paths and same-origin absolute URLs wi
   assert.deepEqual(discoverSiteAssets(`
     <script src='/assets/app.js'></script>
     <script src='assets/app.js#module'></script>
-    <link HREF = "https://kifaroedu.com/assets/app.js">
-    <link href="./assets/app.css?v=2">
+    <link rel="modulepreload" HREF = "https://kifaroedu.com/assets/app.js">
+    <link rel="stylesheet" href="./assets/app.css?v=2">
   `, 'https://kifaroedu.com/'), [
     'https://kifaroedu.com/assets/app.js',
     'https://kifaroedu.com/assets/app.css?v=2',
@@ -49,15 +51,26 @@ test('limits probes to eight distinct assets', () => {
   assert.equal(discoverSiteAssets(html, 'https://kifaroedu.com/').length, 8);
 });
 
-function runSiteCheck(html, assetStatus = 200, redirectWww = false) {
+function runSiteCheck(html, assetStatus = 200, redirectWww = false, scenario = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'kifaro-site-test-'));
-  const mock = `globalThis.fetch = async (url) => ({
-    ok: !String(url).includes('/assets/') || ${assetStatus} === 200,
-    status: String(url).includes('/assets/') ? ${assetStatus} : 200,
-    url: ${redirectWww} ? String(url).replace('www.kifaroedu.com', 'kifaroedu.com') : String(url),
-    headers: new Headers({'content-type':'text/html'}),
-    text: async () => ${JSON.stringify(html)}
-  });`;
+  const mock = `globalThis.fetch = async (url, options) => {
+    if (options.redirect !== 'manual') throw new Error('Redirects must be manual');
+    const u = String(url);
+    const isAsset = new URL(u).pathname !== '/';
+    if (${redirectWww} && u === 'https://www.kifaroedu.com/') {
+      return new Response(null, {status:302, headers:{location:'https://kifaroedu.com/'}});
+    }
+    const scenario = ${JSON.stringify(scenario)};
+    const ext = new URL(u).pathname.split('.').pop();
+    const mime = {js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',webmanifest:'application/manifest+json',woff2:'font/woff2'}[ext];
+    const body = isAsset ? (scenario.emptyAssets ? '' : 'asset bytes') : ${JSON.stringify(html)};
+    const response = new Response(body, {
+      status: isAsset ? (scenario.statusByPath?.[new URL(u).pathname] ?? ${assetStatus}) : 200,
+      headers: {'content-type': isAsset ? (scenario.assetType ?? mime ?? 'application/octet-stream') : 'text/html'}
+    });
+    Object.defineProperty(response, 'url', {value:u});
+    return response;
+  };`;
   try {
     const result = spawnSync(process.execPath, [
       '--import', `data:text/javascript,${encodeURIComponent(mock)}`,
@@ -74,7 +87,7 @@ function runSiteCheck(html, assetStatus = 200, redirectWww = false) {
 test('monitor actually requests relative assets on both hostnames', () => {
   const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script>');
   assert.equal(report.status, 'PASS');
-  assert.equal(report.checks.filter(c => c.kind === 'asset' && c.http === 200).length, 2);
+  assert.equal(report.checks.filter(c => c.kind === 'javascript' && c.http === 200).length, 2);
 });
 
 test('missing asset references fail monitoring instead of silently skipping checks', () => {
@@ -86,14 +99,56 @@ test('missing asset references fail monitoring instead of silently skipping chec
 test('a broken relative JavaScript bundle fails monitoring', () => {
   const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script>', 404);
   assert.equal(report.status, 'FAIL');
-  assert.equal(report.checks.filter(c => c.kind === 'asset' && c.status === 'FAIL').length, 2);
+  assert.equal(report.checks.filter(c => c.kind === 'javascript' && c.status === 'FAIL').length, 2);
 });
 
 test('monitor resolves assets against the final URL after the www redirect', () => {
   const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script>', 200, true);
   assert.equal(report.status, 'PASS');
-  assert.deepEqual(report.checks.filter(c => c.kind === 'asset').map(c => c.url), [
-    'https://kifaroedu.com/assets/app.js',
+  assert.deepEqual(report.checks.filter(c => c.kind === 'javascript').map(c => c.url), [
     'https://kifaroedu.com/assets/app.js',
   ]);
 });
+
+test('monitor reports JS, CSS, icon, image, manifest and font once across canonical hosts', () => {
+  const report = runSiteCheck('<title>KIFARO</title>'
+    + '<script src="./assets/app.js"></script><link rel="stylesheet" href="./assets/app.css">'
+    + '<link rel="icon" href="./icons/app.svg"><link rel="apple-touch-icon" href="./icons/app.svg">'
+    + '<img src="./hero.png"><link rel="manifest" href="./manifest.webmanifest">'
+    + '<link rel="preload" as="font" href="./assets/font.woff2">', 200, true);
+  assert.equal(report.status, 'PASS');
+  assert.equal(report.summary.assets_tested, 6);
+  assert.equal(report.summary.checks, 8);
+  assert.deepEqual(report.summary.assets_by_kind, {javascript:1, css:1, image:2, manifest:1, font:1});
+  assert.ok(report.coverage.every(x => x.discovered === 6 && x.skipped_by_limit === 0));
+  assert.match(report.scope, /private\/paid media are untested/);
+});
+
+test('an icon alone cannot hide missing application bundles', () => {
+  const report = runSiteCheck('<title>KIFARO</title><link rel="icon" href="./icon.svg">', 200, true);
+  assert.equal(report.status, 'FAIL');
+  assert.equal(report.checks.filter(x => x.kind === 'asset-discovery').length, 2);
+});
+
+test('a 404 image after a quoted angle bracket fails even when the application bundle passes', () => {
+  const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script>'
+    + '<img alt="A > B" src="./hero.png">', 200, true, {statusByPath:{'/hero.png':404}});
+  assert.equal(report.status, 'FAIL');
+  assert.equal(report.summary.assets_tested, 2);
+  assert.equal(report.summary.failed, 1);
+  assert.equal(report.checks.find(x => x.kind === 'javascript').status, 'PASS');
+  assert.equal(report.checks.find(x => x.kind === 'image').http, 404);
+});
+
+for (const scenario of [{assetType:'text/html'}, {emptyAssets:true}]) {
+  test(`monitor and report gate fail on bad public asset: ${JSON.stringify(scenario)}`, () => {
+    const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script><img src="./hero.png">', 200, true, scenario);
+    assert.equal(report.status, 'FAIL');
+    assert.equal(report.summary.failed, 2);
+    const gate = spawnSync(process.execPath, [
+      fileURLToPath(new URL('../scripts/guardian/assert-reports.mjs', import.meta.url)),
+      '/dev/stdin',
+    ], {input:JSON.stringify(report), encoding:'utf8'});
+    assert.equal(gate.status, 1);
+  });
+}
