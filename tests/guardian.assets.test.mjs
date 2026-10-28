@@ -95,6 +95,27 @@ test('ignores comments, inline JS markup, credentials, HTTP and non-resource lin
   assert.equal(discoverSiteAssets(html, 'https://kifaroedu.com/').discovered, 0);
 });
 
+test('quoted angle brackets do not hide actual script, stylesheet or image references', () => {
+  const html = '<script data-label="A > B" src="./assets/app.js"></script>'
+    + "<link title='A > B' rel='stylesheet' href='./assets/app.css'>"
+    + '<img alt="A > B" src="./hero.png">';
+  assert.deepEqual(discoverSiteAssets(html, 'https://kifaroedu.com/').assets, [
+    {url:'https://kifaroedu.com/assets/app.js', kind:'javascript'},
+    {url:'https://kifaroedu.com/assets/app.css', kind:'css'},
+    {url:'https://kifaroedu.com/hero.png', kind:'image'},
+  ]);
+});
+
+test('markup inside attribute values and raw text does not create phantom probes', () => {
+  const html = `<div data-example="<img src='/ghost.png'>"></div>`
+    + `<img alt="<!-- illustration -->" src="/real.png">`
+    + `<script data-label="A > B">const sample = '<img src="/js.png">';</script>`
+    + `<style>.example::after {content: '<img src="/css.png">'}</style>`
+    + `<textarea><img src="/text.png"></textarea><title><img src="/title.png"></title>`;
+  assert.deepEqual(discoverSiteAssets(html, 'https://kifaroedu.com/').assets,
+    [{url:'https://kifaroedu.com/real.png', kind:'image'}]);
+});
+
 test('extra assets cannot crowd out the eight-bundle budget; coverage exposes cap', () => {
   const html = Array.from({length:30}, (_,i) => `<img src="/img-${i}.webp">`).join('')
     + Array.from({length:12}, (_,i) => `<script src="./assets/${i}.js"></script>`).join('');

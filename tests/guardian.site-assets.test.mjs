@@ -65,7 +65,7 @@ function runSiteCheck(html, assetStatus = 200, redirectWww = false, scenario = {
     const mime = {js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',webmanifest:'application/manifest+json',woff2:'font/woff2'}[ext];
     const body = isAsset ? (scenario.emptyAssets ? '' : 'asset bytes') : ${JSON.stringify(html)};
     const response = new Response(body, {
-      status: isAsset ? ${assetStatus} : 200,
+      status: isAsset ? (scenario.statusByPath?.[new URL(u).pathname] ?? ${assetStatus}) : 200,
       headers: {'content-type': isAsset ? (scenario.assetType ?? mime ?? 'application/octet-stream') : 'text/html'}
     });
     Object.defineProperty(response, 'url', {value:u});
@@ -128,6 +128,16 @@ test('an icon alone cannot hide missing application bundles', () => {
   const report = runSiteCheck('<title>KIFARO</title><link rel="icon" href="./icon.svg">', 200, true);
   assert.equal(report.status, 'FAIL');
   assert.equal(report.checks.filter(x => x.kind === 'asset-discovery').length, 2);
+});
+
+test('a 404 image after a quoted angle bracket fails even when the application bundle passes', () => {
+  const report = runSiteCheck('<title>KIFARO</title><script src="./assets/app.js"></script>'
+    + '<img alt="A > B" src="./hero.png">', 200, true, {statusByPath:{'/hero.png':404}});
+  assert.equal(report.status, 'FAIL');
+  assert.equal(report.summary.assets_tested, 2);
+  assert.equal(report.summary.failed, 1);
+  assert.equal(report.checks.find(x => x.kind === 'javascript').status, 'PASS');
+  assert.equal(report.checks.find(x => x.kind === 'image').http, 404);
 });
 
 for (const scenario of [{assetType:'text/html'}, {emptyAssets:true}]) {

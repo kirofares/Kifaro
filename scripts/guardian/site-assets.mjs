@@ -1,16 +1,32 @@
 // Discover only resources explicitly referenced by public homepage HTML.
 // Vite's relative URLs resolve against the final page URL (including www -> apex).
-const TAGS = /<(script|link|img)\b[^>]*>/gi;
+// Consume whole tags, including unrelated tags, so quoted markup cannot become
+// a resource and a quoted '>' cannot truncate src/href attributes.
+const TAGS = /<!--[\s\S]*?(?:-->|$)|<![^>]*>|<\/?([a-z][a-z0-9:-]*)(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
 const ATTR = /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>`=]+))/g;
 export const ASSET_LIMIT = 16;
 const PRELOAD_KINDS = new Map([['script', 'javascript'], ['style', 'css'], ['image', 'image'], ['font', 'font']]);
+const RAW_TEXT_TAGS = new Set(['script', 'style', 'title', 'textarea', 'xmp', 'iframe', 'noembed', 'noframes']);
+
+function* resourceTags(html) {
+  const tokens = new RegExp(TAGS);
+  let tag;
+  while ((tag = tokens.exec(html))) {
+    if (!tag[1] || tag[0].startsWith('</')) continue;
+    const name = tag[1].toLowerCase();
+    if (RAW_TEXT_TAGS.has(name)) {
+      const closing = new RegExp(`</${name}(?=[\\s/>])[^>]*>`, 'gi');
+      closing.lastIndex = tokens.lastIndex;
+      tokens.lastIndex = closing.exec(html) ? closing.lastIndex : html.length;
+    }
+    if (['script', 'link', 'img'].includes(name)) yield tag;
+  }
+}
 
 export function discoverSiteAssets(html, pageUrl) {
   const base = new URL(pageUrl);
   const assets = new Map();
-  const markup = html.replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/(<script\b[^>]*>)[\s\S]*?<\/script\s*>/gi, '$1</script>');
-  for (const tag of markup.matchAll(TAGS)) {
+  for (const tag of resourceTags(html)) {
     const name = tag[1].toLowerCase();
     const attrs = Object.create(null);
     for (const a of tag[0].matchAll(ATTR)) {
