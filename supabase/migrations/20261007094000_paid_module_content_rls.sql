@@ -244,3 +244,8 @@ using (
     )
   )
 );
+
+-- Explicit Data API grants for fresh installations without automatic table grants.
+-- Existing RLS policies still enforce admin, ownership and academic-year restrictions.
+grant select on public.lecture_module_map to authenticated;
+grant select, insert, update, delete on public.lecture_module_map to service_role;
