@@ -78,3 +78,8 @@ as $$
 $$;
 
 grant execute on function public.get_my_mcq_mastery() to authenticated;
+
+-- Explicit Data API grants for fresh installations without automatic table grants.
+-- Existing RLS policies still enforce admin, ownership and academic-year restrictions.
+grant select on public.mcq_stages to anon;
+grant select, insert, update, delete on public.mcq_stages to authenticated, service_role;
