@@ -72,3 +72,9 @@ alter table public.payment_transactions add column if not exists module_code tex
 alter table public.payment_transactions drop constraint if exists payment_transactions_product_type_check;
 alter table public.payment_transactions add constraint payment_transactions_product_type_check
 check (product_type in ('video','datashow','bundle','mcq_module','cases_module','osce_module'));
+
+-- Explicit Data API grants for fresh installations without automatic table grants.
+-- Existing RLS policies still enforce admin, ownership and academic-year restrictions.
+grant select on public.module_products to authenticated;
+grant select, insert, update, delete on public.module_products to service_role;
+grant select, insert, update, delete on public.module_entitlements to authenticated, service_role;
