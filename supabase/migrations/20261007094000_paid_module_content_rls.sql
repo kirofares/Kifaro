@@ -214,6 +214,7 @@ using (
       join public.module_entitlements me
         on me.user_id=auth.uid()
        and me.module_code=lm.module_code
+       and me.academic_year=lm.academic_year
        and me.product_type='mcq'
        and me.revoked_at is null
       where lm.lecture_id=mcq_questions.lecture_id
@@ -237,13 +238,12 @@ using (
     and (
       (assessment_type='case' and exists (
         select 1 from public.module_entitlements me
-        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.product_type='cases' and me.revoked_at is null
+        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.academic_year=assessment_items.year and me.product_type='cases' and me.revoked_at is null
       ))
-      or (assessment_type in ('osce','ospe') and exists (
+      or (assessment_type in ('osce','ospe','spotter') and exists (
         select 1 from public.module_entitlements me
-        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.product_type='osce' and me.revoked_at is null
+        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.academic_year=assessment_items.year and me.product_type='osce' and me.revoked_at is null
       ))
-      or assessment_type='spotter'
     )
   )
 );

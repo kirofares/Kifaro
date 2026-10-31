@@ -51,6 +51,7 @@ SELECT fixture.assert_true((SELECT array_agg(lecture_id)=ARRAY['test-y1'] FROM p
 SELECT fixture.assert_true(fixture.denied('SELECT correct_option FROM public.mcq_questions'), 'student MCQ answer denied');
 SELECT fixture.assert_true(fixture.denied('SELECT content FROM public.assessment_items'), 'student assessment answers denied');
 SELECT fixture.assert_true((SELECT count(*)=0 FROM public.assessment_items WHERE year<>1), 'published assessment policy cannot bypass academic year');
+SELECT fixture.assert_true((SELECT count(*)=0 FROM public.assessment_items), 'unpaid cases and spotters cannot bypass entitlement requirement');
 SELECT fixture.assert_true(fixture.denied('INSERT INTO public.module_entitlements(user_id,module_code,product_type,academic_year) VALUES (auth.uid(),''SELF-GRANT'',''mcq'',1)'), 'student cannot self-grant entitlement');
 SELECT fixture.assert_true(fixture.changed('UPDATE public.module_entitlements SET revoked_at=NULL, expires_at=now()+interval ''100 years'', price_paid_egp=0')=0, 'student cannot extend or alter entitlements');
 SELECT fixture.assert_true(fixture.changed('UPDATE public.module_entitlements SET user_id=''00000000-0000-0000-0000-000000000002''')=0, 'student cannot transfer entitlement');
@@ -96,6 +97,23 @@ SELECT fixture.assert_true((SELECT count(*)=1 AND bool_and(user_id=auth.uid()) F
 RESET ROLE;
 
 -- Expiry/revocation are enforced by the actual later policy, not just grants.
+BEGIN;
+UPDATE public.module_entitlements SET academic_year=2 WHERE module_code='TEST-Y1';
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+SELECT fixture.assert_true((SELECT count(*)=0 FROM public.mcq_questions), 'mismatched entitlement year cannot unlock same-year MCQ');
+ROLLBACK;
+BEGIN;
+INSERT INTO public.module_entitlements(user_id,module_code,product_type,academic_year) VALUES
+ ('00000000-0000-0000-0000-000000000001','IAE-1','osce',1);
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+SELECT fixture.assert_true((SELECT count(*)=2 FROM public.assessment_items), 'valid osce entitlement unlocks own-year osce and spotter');
+RESET ROLE;
+UPDATE public.module_entitlements SET academic_year=2 WHERE module_code='IAE-1';
+SET LOCAL ROLE authenticated;
+SELECT fixture.assert_true((SELECT count(*)=0 FROM public.assessment_items), 'mismatched entitlement year cannot unlock assessment');
+ROLLBACK;
 BEGIN;
 UPDATE public.module_entitlements SET expires_at=now()-interval '1 second' WHERE user_id='00000000-0000-0000-0000-000000000001';
 SET LOCAL ROLE authenticated;

@@ -12,14 +12,14 @@ CREATE POLICY fixture_profile_read ON public.profiles FOR SELECT TO authenticate
 CREATE POLICY fixture_profile_update ON public.profiles FOR UPDATE TO authenticated
   USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 GRANT SELECT, UPDATE ON public.profiles TO authenticated;
--- Profile-backed identity, not user-editable JWT metadata. The absent deployed
--- private helper must still be verified on staging before release.
-CREATE FUNCTION private.is_admin(p_id uuid DEFAULT auth.uid()) RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
-  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = p_id AND role = 'admin')
+-- Body/signature/search_path verified via read-only production catalog on
+-- 2026-10-31. auth.uid() remains a synthetic claim adapter, not real JWT validation.
+CREATE FUNCTION private.is_admin() RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = (SELECT auth.uid()) AND role = 'admin')
 $$;
-REVOKE ALL ON FUNCTION private.is_admin(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION private.is_admin(uuid) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION private.is_admin() TO anon, authenticated, service_role;
 
 CREATE TABLE public.mcq_questions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lecture_id text, topic text, subtopic text,

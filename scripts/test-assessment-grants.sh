@@ -23,6 +23,10 @@ if [[ "$mode" == replay ]]; then
       if [[ "$migration" == 'supabase/migrations/20261001124500_separate_video_datashow_access.sql' ]] &&
          grep -Fq 'relation "public.lecture_pricing_rules" does not exist' "$log"; then
         echo "KNOWN FRESH-INSTALL BLOCKER after $count files: missing public.lecture_pricing_rules; replay NOT complete."
+        if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+          echo '**Fresh installation remains BLOCKED.** Replay stopped after 8 migrations because public.lecture_pricing_rules is missing. This diagnostic passing only confirms the known failure; it does not certify migration readiness.' >> "$GITHUB_STEP_SUMMARY"
+          echo '::warning::Fresh-install replay remains blocked by missing public.lecture_pricing_rules.'
+        fi
         exit 0
       fi
       echo "Unexpected replay failure: $migration" >&2
