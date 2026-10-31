@@ -42,6 +42,16 @@ SET request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 SET request.jwt.claims = '{"user_metadata":{"role":"admin","medical_year":2}}';
 SET ROLE authenticated;
 SELECT fixture.assert_true(NOT private.is_admin(), 'forged user metadata does not grant admin');
+DO $$
+BEGIN
+  BEGIN
+    UPDATE public.profiles SET role='admin' WHERE id=auth.uid();
+    RAISE EXCEPTION 'FAIL: student promoted own account';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'Only an administrator can change account roles' THEN RAISE; END IF;
+  END;
+  RAISE NOTICE 'PASS: student cannot promote own profile to admin';
+END $$;
 SELECT fixture.assert_true((SELECT count(*)=5 FROM public.mcq_stages), 'student stages available');
 SELECT fixture.assert_true((SELECT count(*)=4 FROM public.mcq_levels), 'student levels available');
 SELECT fixture.assert_true((SELECT array_agg(module_code ORDER BY module_code)=ARRAY['TEST-Y1'] FROM public.module_products WHERE module_code LIKE 'TEST-%'), 'student products enforce year and enabled');

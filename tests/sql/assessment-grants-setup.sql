@@ -20,6 +20,23 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
 $$;
 REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION private.is_admin() TO anon, authenticated, service_role;
+-- Reproduce the checked-in backend profile-role guard as a dependency, so the
+-- fixture does not accidentally allow students to promote themselves first.
+-- See 20260930130000_kifaro_backend.sql (public.is_admin/protect_profile_role).
+CREATE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql STABLE
+SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role='admin')
+$$;
+CREATE FUNCTION public.protect_profile_role() RETURNS trigger LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF new.role IS DISTINCT FROM old.role AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Only an administrator can change account roles';
+  END IF;
+  RETURN new;
+END $$;
+CREATE TRIGGER protect_profile_role BEFORE UPDATE ON public.profiles
+FOR EACH ROW EXECUTE FUNCTION public.protect_profile_role();
 
 CREATE TABLE public.mcq_questions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lecture_id text, topic text, subtopic text,
