@@ -222,6 +222,9 @@ using (
   )
 );
 
+-- Permissive SELECT policies combine with OR. Retaining the original published
+-- policy would bypass the paid/year predicate below for every published row.
+drop policy if exists "assessment_items_read_published" on public.assessment_items;
 drop policy if exists "assessment_items_read_student_year" on public.assessment_items;
 drop policy if exists "assessment_items_paid_module_read" on public.assessment_items;
 create policy "assessment_items_paid_module_read"
@@ -247,5 +250,6 @@ using (
 
 -- Explicit Data API grants for fresh installations without automatic table grants.
 -- Existing RLS policies still enforce admin, ownership and academic-year restrictions.
+revoke all on public.lecture_module_map from public, anon, authenticated, service_role;
 grant select on public.lecture_module_map to authenticated;
 grant select, insert, update, delete on public.lecture_module_map to service_role;
