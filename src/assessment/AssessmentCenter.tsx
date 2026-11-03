@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Activity, CheckCircle2, ChevronRight, Clock3, Eye, FileQuestion, RotateCcw, Stethoscope } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { publicAssetUrl } from '../lib/publicAssetUrl'
+import { ProtectedAssessmentImage } from './ProtectedAssessmentImage'
 import { useAuth } from '../auth/AuthContext'
 import { useLang, useTr } from '../i18n'
 import { anatomateLectures, anatomateYears } from '../data/anatomate'
@@ -51,44 +51,6 @@ type AssessmentItem = {
   content: AssessmentContent
 }
 
-
-function ProtectedAssessmentImage({ itemId, mediaPath, alt }: { itemId: string; mediaPath: string; alt: string }) {
-  const [url, setUrl] = useState('')
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    setFailed(false)
-
-    if (!mediaPath.startsWith('private:')) {
-      setUrl(publicAssetUrl(mediaPath) || '')
-      return () => { active = false }
-    }
-
-    if (!supabase) {
-      setFailed(true)
-      setUrl('')
-      return () => { active = false }
-    }
-
-    supabase.functions.invoke('assessment-media-access', { body: { itemId } })
-      .then(({ data, error }) => {
-        if (!active) return
-        if (error || data?.error || !data?.url) {
-          setFailed(true)
-          setUrl('')
-          return
-        }
-        setUrl(String(data.url))
-      })
-
-    return () => { active = false }
-  }, [itemId, mediaPath])
-
-  if (failed) return <div className="assessmentempty">Protected image could not be loaded.</div>
-  if (!url) return <div className="assessmentempty">Loading protected image…</div>
-  return <img src={url} alt={alt} loading="lazy" />
-}
 
 function useAssessmentItems(types?: AssessmentType[]) {
   const [items, setItems] = useState<AssessmentItem[]>([])

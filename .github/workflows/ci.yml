@@ -20,6 +20,7 @@ jobs:
       - run: npm run test:guardian
       - run: npm run test:auth
       - run: npm run test:viva
+      - run: npm run test:assessment-media
       - run: npm run typecheck
       - run: npm run build
         env:
