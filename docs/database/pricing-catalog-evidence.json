@@ -1,0 +1,184 @@
+{
+  "observed_at": "2026-11-01",
+  "source": "Read-only PostgreSQL catalog on Anatomate; no table data",
+  "columns": [
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 1,
+      "attname": "id",
+      "type": "uuid",
+      "attnotnull": true,
+      "default_expression": "gen_random_uuid()"
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 2,
+      "attname": "lecture_id",
+      "type": "text",
+      "attnotnull": true,
+      "default_expression": null
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 3,
+      "attname": "academic_year",
+      "type": "integer",
+      "attnotnull": false,
+      "default_expression": null
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 4,
+      "attname": "nationality_match",
+      "type": "text",
+      "attnotnull": true,
+      "default_expression": "'*'::text"
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 5,
+      "attname": "price_egp",
+      "type": "numeric(10,2)",
+      "attnotnull": true,
+      "default_expression": null
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 6,
+      "attname": "view_limit",
+      "type": "integer",
+      "attnotnull": false,
+      "default_expression": null
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 7,
+      "attname": "enabled",
+      "type": "boolean",
+      "attnotnull": true,
+      "default_expression": "true"
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 8,
+      "attname": "priority",
+      "type": "integer",
+      "attnotnull": true,
+      "default_expression": "0"
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 9,
+      "attname": "created_at",
+      "type": "timestamp with time zone",
+      "attnotnull": true,
+      "default_expression": "now()"
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 10,
+      "attname": "updated_at",
+      "type": "timestamp with time zone",
+      "attnotnull": true,
+      "default_expression": "now()"
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 11,
+      "attname": "updated_by",
+      "type": "uuid",
+      "attnotnull": false,
+      "default_expression": null
+    },
+    {
+      "relname": "lecture_pricing_rules",
+      "attnum": 12,
+      "attname": "product_type",
+      "type": "text",
+      "attnotnull": true,
+      "default_expression": "'bundle'::text"
+    }
+  ],
+  "objects": [
+    {
+      "kind": "constraint",
+      "name": "lecture_pricing_rules_academic_year_check",
+      "definition": "CHECK (((academic_year >= 1) AND (academic_year <= 7)))"
+    },
+    {
+      "kind": "constraint",
+      "name": "lecture_pricing_rules_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "kind": "constraint",
+      "name": "lecture_pricing_rules_price_egp_check",
+      "definition": "CHECK ((price_egp >= (0)::numeric))"
+    },
+    {
+      "kind": "constraint",
+      "name": "lecture_pricing_rules_product_type_check",
+      "definition": "CHECK ((product_type = ANY (ARRAY['video'::text, 'datashow'::text, 'bundle'::text])))"
+    },
+    {
+      "kind": "constraint",
+      "name": "lecture_pricing_rules_updated_by_fkey",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "kind": "constraint",
+      "name": "lecture_pricing_rules_view_limit_check",
+      "definition": "CHECK (((view_limit IS NULL) OR (view_limit >= 1)))"
+    },
+    {
+      "kind": "index",
+      "name": "lecture_pricing_rules_pkey",
+      "definition": "CREATE UNIQUE INDEX lecture_pricing_rules_pkey ON public.lecture_pricing_rules USING btree (id)"
+    },
+    {
+      "kind": "index",
+      "name": "lecture_pricing_rules_updated_by_idx",
+      "definition": "CREATE INDEX lecture_pricing_rules_updated_by_idx ON public.lecture_pricing_rules USING btree (updated_by)"
+    },
+    {
+      "kind": "index",
+      "name": "lecture_pricing_rules_unique_scope",
+      "definition": "CREATE UNIQUE INDEX lecture_pricing_rules_unique_scope ON public.lecture_pricing_rules USING btree (lecture_id, COALESCE(academic_year, 0), lower(nationality_match), product_type)"
+    },
+    {
+      "kind": "policy",
+      "name": "pricing_rules_admin_all",
+      "definition": "{\"roles\" : [\"authenticated\"], \"cmd\" : \"ALL\", \"qual\" : \"( SELECT private.is_admin() AS is_admin)\", \"with_check\" : \"( SELECT private.is_admin() AS is_admin)\"}"
+    },
+    {
+      "kind": "policy",
+      "name": "pricing_rules_student_matching_select",
+      "definition": "{\"roles\" : [\"authenticated\"], \"cmd\" : \"SELECT\", \"qual\" : \"((enabled = true) AND (EXISTS ( SELECT 1\\n   FROM profiles p\\n  WHERE ((p.id = ( SELECT auth.uid() AS uid)) AND ((lecture_pricing_rules.academic_year IS NULL) OR (lecture_pricing_rules.academic_year = p.medical_year)) AND ((lecture_pricing_rules.nationality_match = '*'::text) OR (lower(lecture_pricing_rules.nationality_match) = lower(COALESCE(p.nationality, ''::text))) OR ((lecture_pricing_rules.nationality_match = 'NON_EGYPTIAN'::text) AND (lower(COALESCE(p.nationality, ''::text)) <> ALL (ARRAY['egyptian'::text, 'egypt'::text]))))))))\", \"with_check\" : null}"
+    },
+    {
+      "kind": "trigger",
+      "name": "audit_sensitive_change",
+      "definition": "CREATE TRIGGER audit_sensitive_change AFTER INSERT OR DELETE OR UPDATE ON public.lecture_pricing_rules FOR EACH ROW EXECUTE FUNCTION private.audit_sensitive_change()"
+    },
+    {
+      "kind": "acl",
+      "name": "anon",
+      "definition": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+    },
+    {
+      "kind": "acl",
+      "name": "authenticated",
+      "definition": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+    },
+    {
+      "kind": "acl",
+      "name": "postgres",
+      "definition": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+    },
+    {
+      "kind": "acl",
+      "name": "service_role",
+      "definition": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+    }
+  ]
+}
