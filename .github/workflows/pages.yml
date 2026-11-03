@@ -21,7 +21,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          # October 2026 security release; update the assertion with future pins.
+          node-version: '22.23.4'
+      - name: Verify patched Node runtime
+        run: |
+          node --version
+          node -e "require('node:assert/strict').equal(process.versions.node, '22.23.4')"
       - run: npm ci
       - run: npm run build
         env:
