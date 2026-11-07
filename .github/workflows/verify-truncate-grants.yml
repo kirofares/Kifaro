@@ -1,0 +1,92 @@
+name: Verify no client TRUNCATE on assessment tables
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261104070141_revoke_public_truncate_from_assessment_tables.sql'
+      - 'tests/guardian.truncate.test.mjs'
+      - '.github/workflows/verify-truncate-grants.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261104070141_revoke_public_truncate_from_assessment_tables.sql'
+      - '.github/workflows/verify-truncate-grants.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-roles:
+    name: PostgreSQL ${{ matrix.postgres }} privilege regression
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['15', '17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-fixture-only
+          POSTGRES_DB: kifaro_synthetic_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: local-fixture-only
+      PGDATABASE: kifaro_synthetic_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create isolated fixture with legacy broad grants
+        run: |
+          psql -X -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN;
+          CREATE TABLE public.mcq_stages(id integer);
+          CREATE TABLE public.mcq_levels(id integer);
+          CREATE TABLE public.module_products(id integer);
+          CREATE TABLE public.module_entitlements(id integer);
+          CREATE TABLE public.lecture_module_map(id integer);
+          INSERT INTO public.mcq_stages VALUES (1);
+          INSERT INTO public.mcq_levels VALUES (1);
+          INSERT INTO public.module_products VALUES (1);
+          INSERT INTO public.module_entitlements VALUES (1);
+          INSERT INTO public.lecture_module_map VALUES (1);
+          GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+          SQL
+      - name: Apply production-equivalent revocation migration
+        run: |
+          psql -X -v ON_ERROR_STOP=1 --file=supabase/migrations/20261104070141_revoke_public_truncate_from_assessment_tables.sql
+      - name: Verify grants and retained data without executing TRUNCATE
+        run: |
+          psql -X -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE tab text; num bigint;
+          BEGIN
+            FOREACH tab IN ARRAY ARRAY['mcq_stages','mcq_levels','module_products','module_entitlements','lecture_module_map']
+            LOOP
+              IF has_table_privilege('anon', format('public.%I',tab), 'TRUNCATE') OR
+                 has_table_privilege('authenticated', format('public.%I',tab), 'TRUNCATE') THEN
+                RAISE EXCEPTION 'TRUNCATE is still allowed on %',tab;
+              END IF;
+              IF NOT has_table_privilege('anon', format('public.%I',tab), 'SELECT') OR
+                 NOT has_table_privilege('authenticated', format('public.%I',tab), 'SELECT') OR
+                 NOT has_table_privilege('service_role', format('public.%I',tab), 'SELECT') THEN
+                RAISE EXCEPTION 'Unrelated read grant was removed on %',tab;
+              END IF;
+              EXECUTE format('SELECT count(*) FROM public.%I',tab) INTO num;
+              IF num != 1 THEN RAISE EXCEPTION 'Fixture rows altered for %',tab; END IF;
+            END LOOP;
+          END $$;
+          SQL
