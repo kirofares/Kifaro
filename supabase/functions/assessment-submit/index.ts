@@ -30,6 +30,7 @@ async function canAccess(adminClient: any, userId: string, item: any, isAdmin: b
     .select('expires_at')
     .eq('user_id', userId)
     .eq('module_code', item.module_code)
+    .eq('academic_year', item.year)
     .eq('product_type', productType)
     .is('revoked_at', null)
     .gt('expires_at', new Date().toISOString())

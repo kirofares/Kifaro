@@ -111,9 +111,10 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const hmacSecret = Deno.env.get('PAYMOB_HMAC_SECRET')
-    const integrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_CARD') || 0)
+    const cardIntegrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_CARD') || 0)
+    const walletIntegrationId = Number(Deno.env.get('PAYMOB_INTEGRATION_ID_WALLET') || 0)
 
-    if (!supabaseUrl || !serviceKey || !hmacSecret || !integrationId) {
+    if (!supabaseUrl || !serviceKey || !hmacSecret || (!cardIntegrationId && !walletIntegrationId)) {
       return json({ error: 'Webhook environment is incomplete' }, 503)
     }
 
@@ -142,8 +143,15 @@ Deno.serve(async (req: Request) => {
 
     const state = await decodeAndVerifyState(hmacSecret, String(stateToken))
     if (!state || ![1,2].includes(Number(state.v))) return json({ error: 'Invalid KIFARO payment state' }, 400)
+    // The signed checkout state, never callback-supplied metadata, selects the
+    // payment method. Older lecture/module states without pm used cards only.
+    const paymentMethod = String(state.pm || 'card')
+    if (!['card', 'wallet'].includes(paymentMethod)) return json({ error: 'Invalid payment method' }, 400)
+    const integrationId = paymentMethod === 'wallet' ? walletIntegrationId : cardIntegrationId
+    if (!integrationId) return json({ error: 'Payment method is not configured' }, 503)
     if (callbackIntegration !== integrationId) return json({ error: 'Integration mismatch' }, 400)
     if (amountCents !== Number(state.a || 0)) return json({ error: 'Amount mismatch' }, 400)
+    if (obj.currency !== 'EGP') return json({ error: 'Currency mismatch' }, 400)
 
     const isModulePurchase = Number(state.v) === 2 && String(state.s || '') === 'module'
     if (isModulePurchase) {
