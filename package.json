@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
-    "cap:ios": "npx cap open ios"
+    "cap:ios": "npx cap open ios",
+    "test:assessment-media": "node --test tests/assessment-media-access.test.mjs tests/spotter-batch.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
