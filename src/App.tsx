@@ -130,7 +130,7 @@ const copy = {
     favorites: 'Favorites', noFavorites: 'Save lectures to find them here.',
     overall: 'Overall progress', completedOf: 'lectures completed',
     profile: 'My Profile', admin: 'Admin Dashboard', signOut: 'Sign out', logIn: 'Log in', demo: 'Demo mode',
-    openMenu: 'Open menu', closeMenu: 'Close menu', openProfile: 'Open profile',
+    homeLabel: 'KIFARO home', openMenu: 'Open menu', closeMenu: 'Close menu', openProfile: 'Open profile',
     privacy: 'Privacy', terms: 'Terms', refunds: 'Refunds',
     mark: 'Mark as complete', fav: 'Add to favorites', unfav: 'Remove favorite',
     theme: 'Theme color', language: 'Language', saved: 'Saved to favorites',
@@ -154,7 +154,7 @@ const copy = {
     favorites: 'المفضلة', noFavorites: 'احفظ المحاضرات لتجدها هنا.',
     overall: 'التقدم الكلي', completedOf: 'محاضرة مكتملة',
     profile: 'ملفي الشخصي', admin: 'لوحة الإدارة', signOut: 'تسجيل الخروج', logIn: 'تسجيل الدخول', demo: 'وضع تجريبي',
-    openMenu: 'فتح القائمة', closeMenu: 'إغلاق القائمة', openProfile: 'فتح الملف الشخصي',
+    homeLabel: 'الصفحة الرئيسية لكيفارو', openMenu: 'فتح القائمة', closeMenu: 'إغلاق القائمة', openProfile: 'فتح الملف الشخصي',
     privacy: 'الخصوصية', terms: 'الشروط', refunds: 'الاسترداد',
     mark: 'تحديد كمكتمل', fav: 'أضف للمفضلة', unfav: 'إزالة من المفضلة',
     theme: 'لون الواجهة', language: 'اللغة', saved: 'تمت الإضافة للمفضلة',
@@ -413,7 +413,7 @@ export default function App() {
       )}
       <header className="topbar">
         <button className="icon mobile" onClick={() => setDrawer(true)} aria-label={t.openMenu}><Menu /></button>
-        <button className="brand" onClick={() => nav('/')}>
+        <button className="brand" onClick={() => nav('/')} aria-label={t.homeLabel}>
           <span className="brandmark"><Stethoscope /></span><strong>KIFARO</strong>
         </button>
 
@@ -767,7 +767,7 @@ function Dashboard({ t, lang, lectures, allLectures, go, studentName, latestApkU
         <section className="hero">
           <div>
             <span className="pill">ANATOMATE BY KIFARO</span>
-            <h2>{t.anatomyTitle}</h2>
+            <h1>{t.anatomyTitle}</h1>
             <p>{t.anatomyBody}</p>
             <p>{lang === 'ar'
               ? 'محاضرات منظمة حسب السنة والموديول، وأسئلة MCQ وحالات سريرية وتدريب عملي. ابدأ بالمحاضرة المجانية وشوف الأسعار وعدد الأسئلة قبل الدفع.'
