@@ -1,54 +1,62 @@
 import { writeFileSync } from 'node:fs';
-import { discoverSiteAssets } from './site-assets.mjs';
+import { discoverSiteAssets, fetchAllowed, verifyPublicAsset } from './site-assets.mjs';
 
 const BASES = ['https://kifaroedu.com/', 'https://www.kifaroedu.com/'];
-const REQUEST_TIMEOUT_MS = 15000;
+const ORIGINS = BASES.map(base => new URL(base).origin);
 const checks = [];
+const checked = new Set();
+const coverage = [];
 
-async function check(url, kind, expectHtml = false) {
-  const item = { url, kind, status: 'FAIL' };
+async function checkHomepage(url) {
+  const item = { url, kind: 'homepage', status: 'FAIL' };
+  let response;
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: { 'user-agent': 'KIFARO-Guardian/1.0 (+github-actions)' },
-    });
+    const fetched = await fetchAllowed(url, ORIGINS);
+    response = fetched.response;
     item.http = response.status;
-    item.final_url = response.url;
+    item.final_url = fetched.url;
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    if (!response.url.startsWith('https://')) throw new Error('Redirected away from HTTPS');
-    const ct = response.headers.get('content-type') || '';
-    if (expectHtml && !ct.includes('text/html')) throw new Error('Expected HTML, got ' + ct);
-    const body = expectHtml ? await response.text() : '';
-    if (expectHtml && !body.toLowerCase().includes('kifaro')) throw new Error('KIFARO brand not found in HTML');
+    const ct = (response.headers.get('content-type') || '').split(';', 1)[0].trim().toLowerCase();
+    if (ct !== 'text/html') throw new Error('Expected HTML, got ' + ct);
+    const body = await response.text();
+    if (!body.toLowerCase().includes('kifaro')) throw new Error('KIFARO brand not found in HTML');
     item.status = 'PASS';
-    checks.push(item);
-    return { body, url: response.url };
+    return { body, url: fetched.url };
   } catch (error) {
     item.reason = String(error?.message || error).slice(0, 300);
-    checks.push(item);
     return null;
+  } finally {
+    await response?.body?.cancel().catch(() => {});
+    checks.push(item);
   }
 }
 
 for (const base of BASES) {
-  const page = await check(base, 'homepage', true);
+  const page = await checkHomepage(base);
   if (!page) continue;
-  const assets = discoverSiteAssets(page.body, page.url);
-  if (!assets.length) checks.push({
+  const { assets, discovered, skipped } = discoverSiteAssets(page.body, page.url);
+  coverage.push({ url: base, final_url: page.url, discovered, selected: assets.length, skipped_by_limit: skipped });
+  if (!assets.some(asset => ['javascript', 'css'].includes(asset.kind))) checks.push({
     url: base, kind: 'asset-discovery', status: 'FAIL',
-    reason: 'No same-origin /assets/ references in HTML; asset availability could not be verified',
+    reason: 'No same-origin JS/CSS references in HTML; bundle availability could not be verified',
   });
-  for (const asset of assets) await check(asset, 'asset');
+  for (const asset of assets) {
+    if (checked.has(asset.url)) continue;
+    checked.add(asset.url);
+    checks.push(await verifyPublicAsset(asset));
+  }
 }
 const failed = checks.filter(x => x.status === 'FAIL');
-const unknown = checks.filter(x => x.status === 'WARN');
+const assetsByKind = Object.fromEntries(['javascript', 'css', 'image', 'manifest', 'font'].map(kind => [
+  kind, checks.filter(x => x.kind === kind).length,
+]));
 const report = {
   checked_at: new Date().toISOString(),
   website: 'KIFARO',
-  status: failed.length ? 'FAIL' : unknown.length ? 'WARN' : 'PASS',
-  summary: { checks: checks.length, failed: failed.length, warnings: unknown.length },
+  status: failed.length ? 'FAIL' : 'PASS',
+  summary: { checks: checks.length, failed: failed.length, warnings: 0, assets_tested: checked.size, assets_by_kind: assetsByKind },
+  scope: 'Unauthenticated homepage HTML and explicitly referenced same-origin public assets only. CSS/JS-discovered resources, rendered app images, and private/paid media are untested. Asset probes validate MIME and a nonempty stream, not full file integrity.',
+  coverage,
   checks,
 };
 writeFileSync('guardian-site-result.json', JSON.stringify(report, null, 2) + '\n');
