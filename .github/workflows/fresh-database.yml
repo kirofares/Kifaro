@@ -1,0 +1,34 @@
+name: Full fresh database replay (strict)
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths: ['supabase/**', 'scripts/test-fresh-database.sh', 'tests/sql/bootstrap-pricing-security.sql', '.github/workflows/fresh-database.yml']
+permissions:
+  contents: read
+jobs:
+  replay:
+    name: PostgreSQL ${{ matrix.postgres }} strict candidate replay
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['15', '17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_PASSWORD: disposable-test-only
+          POSTGRES_DB: kifaro_bootstrap_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGDATABASE: kifaro_bootstrap_test
+      PGUSER: postgres
+      PGPASSWORD: disposable-test-only
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Replay every historical file, fail on first error
+        run: bash scripts/test-fresh-database.sh candidate

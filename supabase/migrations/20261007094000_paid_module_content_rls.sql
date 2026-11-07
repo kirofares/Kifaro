@@ -214,6 +214,7 @@ using (
       join public.module_entitlements me
         on me.user_id=auth.uid()
        and me.module_code=lm.module_code
+       and me.academic_year=lm.academic_year
        and me.product_type='mcq'
        and me.revoked_at is null
       where lm.lecture_id=mcq_questions.lecture_id
@@ -222,6 +223,9 @@ using (
   )
 );
 
+-- Permissive SELECT policies combine with OR. Retaining the original published
+-- policy would bypass the paid/year predicate below for every published row.
+drop policy if exists "assessment_items_read_published" on public.assessment_items;
 drop policy if exists "assessment_items_read_student_year" on public.assessment_items;
 drop policy if exists "assessment_items_paid_module_read" on public.assessment_items;
 create policy "assessment_items_paid_module_read"
@@ -234,13 +238,18 @@ using (
     and (
       (assessment_type='case' and exists (
         select 1 from public.module_entitlements me
-        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.product_type='cases' and me.revoked_at is null
+        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.academic_year=assessment_items.year and me.product_type='cases' and me.revoked_at is null
       ))
-      or (assessment_type in ('osce','ospe') and exists (
+      or (assessment_type in ('osce','ospe','spotter') and exists (
         select 1 from public.module_entitlements me
-        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.product_type='osce' and me.revoked_at is null
+        where me.user_id=auth.uid() and me.module_code=assessment_items.module_code and me.academic_year=assessment_items.year and me.product_type='osce' and me.revoked_at is null
       ))
-      or assessment_type='spotter'
     )
   )
 );
+
+-- Explicit Data API grants for fresh installations without automatic table grants.
+-- Existing RLS policies still enforce admin, ownership and academic-year restrictions.
+revoke all on public.lecture_module_map from public, anon, authenticated, service_role;
+grant select on public.lecture_module_map to authenticated;
+grant select, insert, update, delete on public.lecture_module_map to service_role;
