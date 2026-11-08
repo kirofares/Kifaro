@@ -10,6 +10,7 @@
     "test:guardian": "node --test tests/guardian*.test.mjs",
     "test:auth": "node --test tests/auth-email.test.mjs",
     "test:viva": "node --test tests/viva.test.mjs",
+    "test:presence": "node --test tests/site-presence.test.mjs",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
