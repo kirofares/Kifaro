@@ -1,0 +1,193 @@
+{
+  "review_date_cairo": "2026-10-28",
+  "reviewed_head": "97a5bf6bba6273e9300bee89f3764b69bc887e39",
+  "browser": "Chromium 153 headless, viewport/touch emulation",
+  "matrix": [
+    {
+      "width": 320,
+      "language": "en",
+      "contact_width": 320,
+      "page_width": 320,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 320,
+      "language": "ar",
+      "contact_width": 320,
+      "page_width": 320,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 390,
+      "language": "en",
+      "contact_width": 390,
+      "page_width": 390,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 390,
+      "language": "ar",
+      "contact_width": 390,
+      "page_width": 390,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 768,
+      "language": "en",
+      "contact_width": 768,
+      "page_width": 768,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 768,
+      "language": "ar",
+      "contact_width": 768,
+      "page_width": 768,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 1280,
+      "language": "en",
+      "contact_width": 1044,
+      "page_width": 1280,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 1280,
+      "language": "ar",
+      "contact_width": 1044,
+      "page_width": 1280,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 1440,
+      "language": "en",
+      "contact_width": 1204,
+      "page_width": 1440,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    },
+    {
+      "width": 1440,
+      "language": "ar",
+      "contact_width": 1204,
+      "page_width": 1440,
+      "navigation_checks": 8,
+      "runtime_errors": [],
+      "focus": {
+        "active": true,
+        "visible": true,
+        "outline": "rgb(255, 255, 255) solid 3px",
+        "outlineOffset": "2px"
+      },
+      "profile_route_observed": "http://127.0.0.1:4173/#/profile",
+      "profile_contact_count": 0
+    }
+  ],
+  "navigation_destination_intercepted": true,
+  "separate_live_destination_verification": {
+    "browser": "Cloud Chrome",
+    "facebook": {
+      "title": "Anato-mate | Facebook",
+      "url": "https://www.facebook.com/people/Anato-mate/61594048447607/?mibextid=ZbWKwL",
+      "evidence": "Anato-mate heading and kifaroedu.com link visible after dismissing login prompt; no login performed"
+    },
+    "instagram": {
+      "title": "Anato-mate (@anatomate130) • Instagram photos and videos",
+      "url": "https://www.instagram.com/anatomate130?stkn=MWt0a2dwbGZkeGdobQ==",
+      "evidence": "anatomate130 heading, Anato-mate profile name and public posts visible; no login performed"
+    }
+  },
+  "imports": {
+    "unique_icons": 79,
+    "source_files": 23,
+    "render_failures": 0,
+    "geometry_string_changes": 36
+  },
+  "local_tests": {
+    "guardian": 12,
+    "auth": 11,
+    "viva": 6,
+    "build": "pass"
+  }
+}
