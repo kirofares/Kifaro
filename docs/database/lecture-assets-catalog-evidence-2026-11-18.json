@@ -1,0 +1,553 @@
+{
+  "observed_at": "2026-11-18",
+  "source": "Read-only PostgreSQL catalog; no user/payment rows",
+  "rls": {
+    "acl": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "forced": false,
+    "enabled": true
+  },
+  "grants": [
+    {
+      "grantee": "postgres",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "YES",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "INSERT",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "postgres",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "YES",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "SELECT",
+      "with_hierarchy": "YES"
+    },
+    {
+      "grantee": "postgres",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "YES",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "UPDATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "postgres",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "YES",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "DELETE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "postgres",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "YES",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRUNCATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "postgres",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "YES",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "REFERENCES",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "postgres",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "YES",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRIGGER",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "anon",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "INSERT",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "anon",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "SELECT",
+      "with_hierarchy": "YES"
+    },
+    {
+      "grantee": "anon",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "UPDATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "anon",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "DELETE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "anon",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRUNCATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "anon",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "REFERENCES",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "anon",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRIGGER",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "authenticated",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "INSERT",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "authenticated",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "SELECT",
+      "with_hierarchy": "YES"
+    },
+    {
+      "grantee": "authenticated",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "UPDATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "authenticated",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "DELETE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "authenticated",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRUNCATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "authenticated",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "REFERENCES",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "authenticated",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRIGGER",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "service_role",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "INSERT",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "service_role",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "SELECT",
+      "with_hierarchy": "YES"
+    },
+    {
+      "grantee": "service_role",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "UPDATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "service_role",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "DELETE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "service_role",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRUNCATE",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "service_role",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "REFERENCES",
+      "with_hierarchy": "NO"
+    },
+    {
+      "grantee": "service_role",
+      "grantor": "postgres",
+      "table_name": "lecture_assets",
+      "is_grantable": "NO",
+      "table_schema": "public",
+      "table_catalog": "postgres",
+      "privilege_type": "TRIGGER",
+      "with_hierarchy": "NO"
+    }
+  ],
+  "columns": [
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "lecture_id",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "video_url",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "pdf_url",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "pptx_url",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "lecture_assets",
+      "column": "updated_at",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "lecture_assets",
+      "column": "updated_by",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "video_storage_path",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "video_path",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "pdf_path",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "pptx_path",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "video_provider",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "bunny_video_id",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_assets",
+      "column": "bunny_status",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "integer",
+      "table": "lecture_assets",
+      "column": "bunny_encode_progress",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "lecture_entitlements",
+      "column": "user_id",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "lecture_entitlements",
+      "column": "lecture_id",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "type": "numeric(10,2)",
+      "table": "lecture_entitlements",
+      "column": "price_paid_egp",
+      "default": "0",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "lecture_entitlements",
+      "column": "source",
+      "default": "'admin'::text",
+      "not_null": true
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "lecture_entitlements",
+      "column": "granted_at",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "lecture_entitlements",
+      "column": "revoked_at",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "integer",
+      "table": "lecture_entitlements",
+      "column": "view_limit",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "integer",
+      "table": "lecture_entitlements",
+      "column": "views_used",
+      "default": "0",
+      "not_null": true
+    },
+    {
+      "type": "integer",
+      "table": "lecture_entitlements",
+      "column": "offer_academic_year",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "lecture_entitlements",
+      "column": "offer_nationality",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "type": "boolean",
+      "table": "lecture_entitlements",
+      "column": "video_access",
+      "default": "true",
+      "not_null": true
+    },
+    {
+      "type": "boolean",
+      "table": "lecture_entitlements",
+      "column": "datashow_access",
+      "default": "true",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "lecture_entitlements",
+      "column": "product_type",
+      "default": "'bundle'::text",
+      "not_null": true
+    }
+  ],
+  "indexes": [
+    {
+      "name": "lecture_assets_pkey",
+      "definition": "CREATE UNIQUE INDEX lecture_assets_pkey ON public.lecture_assets USING btree (lecture_id)"
+    },
+    {
+      "name": "lecture_assets_updated_by_idx",
+      "definition": "CREATE INDEX lecture_assets_updated_by_idx ON public.lecture_assets USING btree (updated_by)"
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "lecture_assets",
+      "permissive": "PERMISSIVE",
+      "policyname": "assets_admin_insert",
+      "schemaname": "public",
+      "with_check": "( SELECT private.is_admin() AS is_admin)"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_admin() AS is_admin)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "lecture_assets",
+      "permissive": "PERMISSIVE",
+      "policyname": "assets_admin_select_only",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.is_admin() AS is_admin)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "lecture_assets",
+      "permissive": "PERMISSIVE",
+      "policyname": "assets_admin_update",
+      "schemaname": "public",
+      "with_check": "( SELECT private.is_admin() AS is_admin)"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "lecture_assets_bunny_status_check",
+      "definition": "CHECK (((bunny_status IS NULL) OR (bunny_status = ANY (ARRAY['uploading'::text, 'processing'::text, 'ready'::text, 'error'::text]))))"
+    },
+    {
+      "name": "lecture_assets_pkey",
+      "definition": "PRIMARY KEY (lecture_id)"
+    },
+    {
+      "name": "lecture_assets_updated_by_fkey",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "lecture_assets_video_provider_check",
+      "definition": "CHECK (((video_provider IS NULL) OR (video_provider = ANY (ARRAY['supabase'::text, 'bunny'::text]))))"
+    }
+  ]
+}
