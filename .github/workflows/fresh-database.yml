@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [main]
-    paths: ['supabase/**', 'scripts/test-fresh-database.sh', 'tests/sql/bootstrap-pricing-security.sql', '.github/workflows/fresh-database.yml']
+    paths: ['supabase/**', 'scripts/test-fresh-database.sh', 'tests/sql/bootstrap-*.sql', '.github/workflows/fresh-database.yml']
 permissions:
   contents: read
 jobs:

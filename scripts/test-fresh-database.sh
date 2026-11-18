@@ -23,11 +23,16 @@ DO $$ BEGIN
 END $$;
 SQL
 "${psql[@]}" --file=tests/sql/assessment-grants-platform.sql
+readiness=supabase/migrations/20261001231000_lecture_asset_readiness.sql
 count=0
 for migration in supabase/migrations/*.sql; do
   if [[ "$mode" == candidate && "$migration" == supabase/migrations/20261001124500_separate_video_datashow_access.sql ]]; then
     "${psql[@]}" --single-transaction --file=supabase/bootstrap/pricing-prerequisites.sql
     "${psql[@]}" --single-transaction --file=tests/sql/bootstrap-pricing-security.sql
+  fi
+  if [[ "$mode" == candidate && "$migration" == "$readiness" ]]; then
+    "${psql[@]}" --file=tests/sql/bootstrap-asset-contract.sql
+    "${psql[@]}" --single-transaction --file=supabase/bootstrap/lecture-asset-paths.sql
   fi
   echo "REPLAY $migration"
   if ! "${psql[@]}" --single-transaction --file="$migration"; then
@@ -38,5 +43,11 @@ for migration in supabase/migrations/*.sql; do
     exit 1
   fi
   count=$((count+1))
+  if [[ "$mode" == candidate && "$migration" == "$readiness" ]]; then
+    "${psql[@]}" --file=tests/sql/bootstrap-asset-readiness.sql
+  fi
+  if [[ "$mode" == candidate && "$migration" == supabase/migrations/20261006171500_secure_asset_readiness_and_indexes.sql ]]; then
+    "${psql[@]}" --file=tests/sql/bootstrap-asset-sync-security.sql
+  fi
 done
 echo "PASS: all $count historical migrations replayed ($mode); platform is synthetic, not Supabase integration certification"
