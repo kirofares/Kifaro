@@ -8,6 +8,15 @@ on:
       - 'src/**'
       - 'public/**'
       - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/ios-validate.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
       - 'capacitor.config.ts'
       - '.github/workflows/ios-validate.yml'
 

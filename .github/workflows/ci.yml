@@ -17,9 +17,12 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
+      - name: Audit production and development dependencies
+        run: npm audit --audit-level=moderate
       - run: npm run test:guardian
       - run: npm run test:auth
       - run: npm run test:viva
+      - run: npm run test:toolchain
       - run: npm run typecheck
       - run: npm run build
         env:
