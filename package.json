@@ -10,6 +10,7 @@
     "test:guardian": "node --test tests/guardian*.test.mjs",
     "test:auth": "node --test tests/auth-email.test.mjs",
     "test:viva": "node --test tests/viva.test.mjs",
+    "test:toolchain": "node --test tests/toolchain.test.mjs",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
@@ -40,7 +41,7 @@
     }
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.2",
+    "@capacitor/cli": "8.6.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
